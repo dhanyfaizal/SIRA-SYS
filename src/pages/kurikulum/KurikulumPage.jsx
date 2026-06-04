@@ -4,6 +4,7 @@ import { Plus, Database, GraduationCap, Target, Clock, FileText, Calendar, Trash
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 export default function KurikulumPage() {
   const { profile } = useAuth()
@@ -13,6 +14,7 @@ export default function KurikulumPage() {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('cpl') // 'cpl' | 'profil' | 'matrix' | 'history'
+  const [deleteConfirmDocId, setDeleteConfirmDocId] = useState(null)
 
   const prodiId = profile?.prodi_id
 
@@ -100,7 +102,13 @@ export default function KurikulumPage() {
   }
 
   async function handleDeleteDoc(id) {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus dokumen kurikulum ini dari riwayat?')) return
+    setDeleteConfirmDocId(id)
+  }
+
+  async function executeDeleteDoc() {
+    if (!deleteConfirmDocId) return
+    const id = deleteConfirmDocId
+    setDeleteConfirmDocId(null)
     try {
       const { error } = await supabase.from('kurikulum_docs').delete().eq('id', id)
       if (error) throw error
@@ -526,6 +534,17 @@ export default function KurikulumPage() {
           </div>
         </div>
       )}
+      
+      <ConfirmModal
+        isOpen={!!deleteConfirmDocId}
+        title="Hapus Dokumen Kurikulum"
+        message="Apakah Anda yakin ingin menghapus dokumen kurikulum ini dari riwayat?"
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+        onConfirm={executeDeleteDoc}
+        onCancel={() => setDeleteConfirmDocId(null)}
+      />
     </div>
   )
 }

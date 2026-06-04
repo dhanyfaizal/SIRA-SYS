@@ -3,6 +3,7 @@ import { Search, Shield, UserCheck, RefreshCw, ChevronDown, Trash2, CheckCircle,
 import { supabase } from '@/lib/supabase'
 import { dbProdi } from '@/lib/db'
 import toast from 'react-hot-toast'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 const ROLES = ['dosen', 'kaprodi', 'admin']
 const ROLE_LABELS = {
@@ -18,6 +19,7 @@ export default function AdminUsersPage() {
   const [search,   setSearch]   = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [saving,   setSaving]   = useState({})
+  const [deleteConfirmUser, setDeleteConfirmUser] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -64,10 +66,14 @@ export default function AdminUsersPage() {
     setSaving(p => ({ ...p, [id]: false }))
   }
 
-  async function deleteUser(id, name) {
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus pengguna "${name || 'User'}"? Semua data terkait (seperti draf RPS) akan terhapus permanen dari auth database.`)) {
-      return
-    }
+  const deleteUser = (id, name) => {
+    setDeleteConfirmUser({ id, name })
+  }
+
+  async function handleDeleteUser() {
+    if (!deleteConfirmUser) return
+    const { id, name } = deleteConfirmUser
+    setDeleteConfirmUser(null)
 
     setSaving(p => ({ ...p, [id]: true }))
     try {
@@ -75,7 +81,7 @@ export default function AdminUsersPage() {
       if (error) throw error
 
       setUsers(prev => prev.filter(u => u.id !== id))
-      toast.success('Pengguna berhasil dihapus secara permanen!')
+      toast.success(`Pengguna "${name}" berhasil dihapus secara permanen! 🗑️`)
     } catch (err) {
       console.error(err)
       toast.error('Gagal menghapus pengguna: ' + err.message)
@@ -327,6 +333,18 @@ export default function AdminUsersPage() {
       <p style={{ fontSize:11, color:'#94a3b8', marginTop:12 }}>
         {filtered.length} dari {users.length} pengguna ditampilkan · Perubahan langsung tersimpan ke database
       </p>
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmUser}
+        title="Hapus Pengguna Permanen"
+        message={deleteConfirmUser ? `Apakah Anda yakin ingin menghapus pengguna "${deleteConfirmUser.name}"? Semua data terkait (seperti draf RPS) akan terhapus permanen dari auth database.` : ''}
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+        onConfirm={handleDeleteUser}
+        onCancel={() => setDeleteConfirmUser(null)}
+      />
     </div>
   )
 }

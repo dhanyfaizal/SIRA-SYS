@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, currentTahunAkademik, TAHUN_AKADEMIK_LIST, SEMESTER_LIST } from '@/lib/db'
 import toast from 'react-hot-toast'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 const STATUS_CONFIG = {
   draft:     { label:'Draft',          class:'rps-status-draft',     icon: Clock },
@@ -22,6 +23,7 @@ export default function ProdiRpsPage() {
   const [tahun,   setTahun]   = useState(cur.tahun)
   const [semester,setSemester]= useState(cur.semester)
   const [filter,  setFilter]  = useState('all')
+  const [deleteConfirmRpsId, setDeleteConfirmRpsId] = useState(null)
 
   const prodiId = profile?.prodi_id
 
@@ -49,7 +51,13 @@ export default function ProdiRpsPage() {
   }, [load])
 
   async function handleDelete(id) {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus draf RPS ini secara permanen?')) return
+    setDeleteConfirmRpsId(id)
+  }
+
+  async function executeDeleteRps() {
+    if (!deleteConfirmRpsId) return
+    const id = deleteConfirmRpsId
+    setDeleteConfirmRpsId(null)
     try {
       const { error } = await dbRPS.delete(id)
       if (error) throw error
@@ -189,6 +197,17 @@ export default function ProdiRpsPage() {
           })}
         </div>
       )}
+      
+      <ConfirmModal
+        isOpen={!!deleteConfirmRpsId}
+        title="Hapus Draf RPS secara Permanen"
+        message="Apakah Anda yakin ingin menghapus draf RPS ini secara permanen?"
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+        onConfirm={executeDeleteRps}
+        onCancel={() => setDeleteConfirmRpsId(null)}
+      />
     </div>
   )
 }

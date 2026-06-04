@@ -9,6 +9,7 @@ import { dbRPS, dbComments, dbNotifications, dbReviewRps } from '@/lib/db'
 import { reviewSpmi } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import ConfirmModal from '@/components/ui/ConfirmModal'
 
 const STATUS_CONFIG = {
   draft:     { label:'Draft',          class:'rps-status-draft',     icon: Clock        },
@@ -76,6 +77,32 @@ export default function RpsDetailPage() {
 
   // Revision step-by-step notes state
   const [stepNotes, setStepNotes] = useState({ 1: '', 2: '', 3: '', 4: '' })
+
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Ya',
+    cancelText: 'Batal',
+    type: 'danger',
+    onConfirm: null,
+  })
+
+  const openConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Ya', cancelText = 'Batal') => {
+    setConfirmConfig({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      type,
+      onConfirm,
+    })
+  }
+
+  const closeConfirm = () => {
+    setConfirmConfig(p => ({ ...p, isOpen: false }))
+  }
 
   const loadComments = async () => {
     try {
@@ -230,50 +257,66 @@ export default function RpsDetailPage() {
   }
 
   async function handleDeleteComment(commentId) {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus komentar Anda?')) return
-    try {
-      const { error } = await dbComments.delete(commentId)
-      if (error) throw error
-      toast.success('Komentar dihapus')
-      await loadComments()
-    } catch (err) {
-      console.error(err)
-      toast.error('Gagal menghapus komentar: ' + err.message)
-    }
+    openConfirm(
+      'Hapus Komentar',
+      'Apakah Anda yakin ingin menghapus komentar Anda?',
+      async () => {
+        try {
+          const { error } = await dbComments.delete(commentId)
+          if (error) throw error
+          toast.success('Komentar dihapus')
+          await loadComments()
+        } catch (err) {
+          console.error(err)
+          toast.error('Gagal menghapus komentar: ' + err.message)
+        }
+      },
+      'danger',
+      'Hapus',
+      'Batal'
+    )
   }
 
   async function handleSubmit() {
-    if (!window.confirm('Ajukan RPS ini untuk direview Kaprodi?')) return
-    setSaving(true)
-    const { error } = await dbRPS.updateStatus(id, 'submitted')
-    if (error) { toast.error(error.message); setSaving(false); return }
-    setRps(p => ({ ...p, status: 'submitted' }))
-    toast.success('RPS berhasil diajukan untuk review!')
-    setSaving(false)
+    openConfirm(
+      'Ajukan RPS',
+      'Ajukan RPS ini untuk direview Kaprodi?',
+      async () => {
+        setSaving(true)
+        const { error } = await dbRPS.updateStatus(id, 'submitted')
+        if (error) { toast.error(error.message); setSaving(false); return }
+        setRps(p => ({ ...p, status: 'submitted' }))
+        toast.success('RPS berhasil diajukan untuk review!')
+        setSaving(false)
 
-    try {
-      const prodiId = rps?.mk?.prodi_id
-      if (prodiId) {
-        const { data: kaprodis } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('prodi_id', prodiId)
-          .eq('role', 'kaprodi')
-        
-        if (kaprodis) {
-          for (const k of kaprodis) {
-            await dbNotifications.create(
-              k.id,
-              'Pengajuan RPS Baru 📥',
-              `Dosen ${profile?.nama_lengkap || 'Pengampu'} mengajukan RPS untuk MK ${rps.mk?.kode_mk} - ${rps.mk?.nama_mk}.`,
-              `/rps/${id}`
-            )
+        try {
+          const prodiId = rps?.mk?.prodi_id
+          if (prodiId) {
+            const { data: kaprodis } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('prodi_id', prodiId)
+              .eq('role', 'kaprodi')
+            
+            if (kaprodis) {
+              for (const k of kaprodis) {
+                await dbNotifications.create(
+                  k.id,
+                  'Pengajuan RPS Baru 📥',
+                  `Dosen ${profile?.nama_lengkap || 'Pengampu'} mengajukan RPS untuk MK ${rps.mk?.kode_mk} - ${rps.mk?.nama_mk}.`,
+                  `/rps/${id}`
+                )
+              }
+            }
           }
+        } catch (err) {
+          console.error(err)
         }
-      }
-    } catch (err) {
-      console.error(err)
-    }
+      },
+      'info',
+      'Ajukan',
+      'Batal'
+    )
   }
 
   async function handleReview(status) {
@@ -330,16 +373,24 @@ export default function RpsDetailPage() {
   }
 
   async function handleDeleteRps() {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus draf RPS ini secara permanen?')) return
-    setSaving(true)
-    const { error } = await dbRPS.delete(id)
-    if (error) {
-      toast.error('Gagal menghapus: ' + error.message)
-      setSaving(false)
-      return
-    }
-    toast.success('RPS berhasil dihapus')
-    navigate(-1)
+    openConfirm(
+      'Hapus Draf RPS secara Permanen',
+      'Apakah Anda yakin ingin menghapus draf RPS ini secara permanen?',
+      async () => {
+        setSaving(true)
+        const { error } = await dbRPS.delete(id)
+        if (error) {
+          toast.error('Gagal menghapus: ' + error.message)
+          setSaving(false)
+          return
+        }
+        toast.success('RPS berhasil dihapus')
+        navigate(-1)
+      },
+      'danger',
+      'Hapus',
+      'Batal'
+    )
   }
 
   async function handleGenerateToken() {
@@ -1061,6 +1112,20 @@ export default function RpsDetailPage() {
           </div>
         </div>
       )}
+      
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        cancelText={confirmConfig.cancelText}
+        type={confirmConfig.type}
+        onConfirm={() => {
+          confirmConfig.onConfirm?.()
+          closeConfirm()
+        }}
+        onCancel={closeConfirm}
+      />
     </div>
   )
 }
