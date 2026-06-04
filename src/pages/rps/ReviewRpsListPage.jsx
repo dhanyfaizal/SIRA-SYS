@@ -1,10 +1,36 @@
 import { useState, useEffect, useCallback } from 'react'
-import { FileText, CheckCircle, Clock, Eye, ClipboardCheck, Calendar, Search } from 'lucide-react'
+import {
+  FileText, CheckCircle, Clock, Eye, ClipboardCheck, Calendar, Search,
+  Sparkles, RefreshCw, Printer, X, CheckSquare, Square, AlertTriangle, XCircle
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, currentTahunAkademik, TAHUN_AKADEMIK_LIST, SEMESTER_LIST } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
+import { generateCompilationReport } from '@/lib/ai'
 import toast from 'react-hot-toast'
+
+const ASPECT_LABELS = {
+  a_cpmk_subcpmk: 'Kesesuaian CPMK/Sub-CPMK dengan CPL',
+  b1_identitas_mk: 'Identitas Mata Kuliah',
+  b2_penanggung_jawab: 'Penanggung Jawab & Dosen',
+  b3_cpl_cpmk: 'CPL-PRODI & CP-MK',
+  b4_deskripsi_mk: 'Deskripsi Singkat MK',
+  b5_bahan_kajian: 'Bahan Kajian / Materi',
+  b6_referensi: 'Daftar Referensi',
+  b7_media_pembelajaran: 'Media Pembelajaran',
+  b8_prasyarat: 'Pra-Syarat MK',
+  b9_komposisi: 'Komposisi Teori & Praktek',
+  c1_minggu_ke: 'Minggu Ke (16 Minggu)',
+  c2_kemampuan_akhir: 'Kemampuan Akhir per Pertemuan',
+  c3_bahan_kajian_rps: 'Bahan Kajian per Pertemuan',
+  c4_metode_pembelajaran: 'Metode Pembelajaran per Pertemuan',
+  c5_waktu: 'Alokasi Waktu per Pertemuan',
+  c6_pengalaman_belajar: 'Pengalaman Belajar Mahasiswa',
+  c7_kriteria_penilaian: 'Kriteria Penilaian & Indikator',
+  c8_bobot_nilai: 'Bobot Nilai Evaluasi',
+  c9_referensi_rps: 'Referensi per Pertemuan'
+}
 
 export default function ReviewRpsListPage() {
   const { profile } = useAuth()
@@ -19,11 +45,18 @@ export default function ReviewRpsListPage() {
   const [filter, setFilter] = useState('all') // 'all' | 'reviewed' | 'pending'
   const [search, setSearch] = useState('')
 
+  // New compilation states
+  const [selectedIds, setSelectedIds] = useState([])
+  const [showCompileModal, setShowCompileModal] = useState(false)
+  const [compilationNotes, setCompilationNotes] = useState('')
+  const [compilationAiLoading, setCompilationAiLoading] = useState(false)
+
   const prodiId = profile?.prodi_id
 
   const load = useCallback(async () => {
     if (!prodiId) return
     setLoading(true)
+    setSelectedIds([]) // Reset selection on reload
     try {
       // 1. Ambil semua RPS approved di prodi
       const { data: rpsData, error: rpsErr } = await dbRPS.getByProdi(prodiId)
@@ -65,6 +98,123 @@ export default function ReviewRpsListPage() {
   }, [prodiId, tahun, semester])
 
   useEffect(() => { load() }, [load])
+
+  const handleSelectRps = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  const handleSelectAll = (reviewedDisplayed) => {
+    const displayedIds = reviewedDisplayed.map(r => r.id)
+    const allSelected = displayedIds.length > 0 && displayedIds.every(id => selectedIds.includes(id))
+
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !displayedIds.includes(id)))
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...displayedIds])))
+    }
+  }
+
+  const calculateCompilationStats = () => {
+    const stats = {};
+    const ALL_KEYS = [
+      'a_cpmk_subcpmk',
+      'b1_identitas_mk','b2_penanggung_jawab','b3_cpl_cpmk','b4_deskripsi_mk',
+      'b5_bahan_kajian','b6_referensi','b7_media_pembelajaran','b8_prasyarat','b9_komposisi',
+      'c1_minggu_ke','c2_kemampuan_akhir','c3_bahan_kajian_rps','c4_metode_pembelajaran',
+      'c5_waktu','c6_pengalaman_belajar','c7_kriteria_penilaian','c8_bobot_nilai','c9_referensi_rps'
+    ];
+    
+    const count = selectedIds.length;
+    if (count === 0) return { stats: {}, overall: { sesuai: 0, cukup: 0, tidak: 0 } };
+
+    let totalSesuai = 0;
+    let totalCukup = 0;
+    let totalTidak = 0;
+    const totalFields = count * ALL_KEYS.length;
+
+    ALL_KEYS.forEach(key => {
+      let sesuai = 0;
+      let cukup = 0;
+      let tidak = 0;
+
+      selectedIds.forEach(id => {
+        const rev = reviewMap[id];
+        if (rev) {
+          const val = rev[key];
+          if (val === 'sesuai') { sesuai++; totalSesuai++; }
+          else if (val === 'cukup') { cukup++; totalCukup++; }
+          else if (val === 'tidak_sesuai') { tidak++; totalTidak++; }
+        }
+      });
+
+      stats[key] = {
+        sesuai,
+        cukup,
+        tidak,
+        sesuai_pct: Math.round((sesuai / count) * 100),
+        cukup_pct: Math.round((cukup / count) * 100),
+        tidak_sesuai_pct: Math.round((tidak / count) * 100),
+      };
+    });
+
+    const overall = {
+      sesuai: Math.round((totalSesuai / totalFields) * 100),
+      cukup: Math.round((totalCukup / totalFields) * 100),
+      tidak: Math.round((totalTidak / totalFields) * 100),
+    };
+
+    return { stats, overall };
+  };
+
+  const runCompilationAiAnalysis = async () => {
+    if (selectedIds.length === 0) return;
+    setCompilationAiLoading(true);
+    const loadToast = toast.loading('AI sedang menyusun Laporan Naratif Kompilasi... 🤖');
+    try {
+      const prodiName = rpsList[0]?.mk?.prodi?.nama || 'Program Studi';
+      const selectedRps = rpsList.filter(r => selectedIds.includes(r.id));
+      
+      const coursesData = selectedRps.map(r => {
+        const rev = reviewMap[r.id];
+        const ALL_KEYS = [
+          'a_cpmk_subcpmk',
+          'b1_identitas_mk','b2_penanggung_jawab','b3_cpl_cpmk','b4_deskripsi_mk',
+          'b5_bahan_kajian','b6_referensi','b7_media_pembelajaran','b8_prasyarat','b9_komposisi',
+          'c1_minggu_ke','c2_kemampuan_akhir','c3_bahan_kajian_rps','c4_metode_pembelajaran',
+          'c5_waktu','c6_pengalaman_belajar','c7_kriteria_penilaian','c8_bobot_nilai','c9_referensi_rps'
+        ];
+        return {
+          nama_mk: r.mk?.nama_mk,
+          kode_mk: r.mk?.kode_mk,
+          dosen_nama: r.dosen?.nama_lengkap,
+          rekomendasi: rev?.rekomendasi,
+          sesuai: ALL_KEYS.filter(k => rev?.[k] === 'sesuai').length,
+          cukup: ALL_KEYS.filter(k => rev?.[k] === 'cukup').length,
+          tidak: ALL_KEYS.filter(k => rev?.[k] === 'tidak_sesuai').length
+        };
+      });
+
+      const { stats } = calculateCompilationStats();
+      const report = await generateCompilationReport(prodiName, coursesData, stats);
+      
+      if (report) {
+        setCompilationNotes(report);
+        toast.dismiss(loadToast);
+        toast.success('Laporan Analisa Deskriptif berhasil disusun oleh AI! 📑');
+      } else {
+        throw new Error('Hasil laporan AI kosong.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.dismiss(loadToast);
+      toast.error('Gagal menyusun laporan AI: ' + err.message);
+    } finally {
+      setCompilationAiLoading(false);
+    }
+  };
+
 
   // Count filled aspects in a review
   function countFilledAspects(review) {
@@ -181,7 +331,16 @@ export default function ReviewRpsListPage() {
               />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center' }}>
+            {filter === 'reviewed' && displayed.some(r => reviewMap[r.id]) && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => handleSelectAll(displayed.filter(r => reviewMap[r.id]))}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px' }}
+              >
+                <CheckSquare size={13} /> Select/Unselect All
+              </button>
+            )}
             {[
               { key: 'all', label: 'Semua' },
               { key: 'pending', label: 'Belum Review' },
@@ -233,6 +392,28 @@ export default function ReviewRpsListPage() {
                 borderLeft: `3px solid ${isReviewed ? '#10b981' : '#f59e0b'}`,
                 transition: 'box-shadow .15s',
               }}>
+                {/* Checkbox for Reviewed items */}
+                {isReviewed ? (
+                  <button
+                    onClick={() => handleSelectRps(rps.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 4,
+                      cursor: 'pointer',
+                      color: selectedIds.includes(rps.id) ? '#4f46e5' : '#94a3b8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 4
+                    }}
+                  >
+                    {selectedIds.includes(rps.id) ? <CheckSquare size={20} /> : <Square size={20} />}
+                  </button>
+                ) : (
+                  <div style={{ width: 28, height: 28 }} className="no-print" /> // Spacer for alignment
+                )}
+
                 {/* MK Info */}
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -293,7 +474,7 @@ export default function ReviewRpsListPage() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6 }} className="no-print">
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={() => navigate(`/rps/${rps.id}/review`)}
@@ -312,6 +493,352 @@ export default function ReviewRpsListPage() {
           })}
         </div>
       )}
+
+      {/* Floating Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="no-print" style={{
+          position: 'fixed',
+          bottom: 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: 12,
+          boxShadow: '0 10px 25px rgba(79, 70, 229, 0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 20,
+          zIndex: 100,
+          animation: 'slideUp .25s ease-out',
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>
+            {selectedIds.length} Mata Kuliah Terpilih untuk Kompilasi
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-sm"
+              onClick={() => setSelectedIds([])}
+              style={{ background: 'rgba(255, 255, 255, 0.15)', borderColor: 'transparent', color: '#fff' }}
+            >
+              Batal
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                setCompilationNotes('');
+                setShowCompileModal(true);
+              }}
+              style={{ background: '#10b981', borderColor: 'transparent', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <ClipboardCheck size={13} /> Buka Laporan Kompilasi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Compilation Modal Overlay */}
+      {showCompileModal && (() => {
+        const { stats, overall } = calculateCompilationStats();
+        const selectedRps = rpsList.filter(r => selectedIds.includes(r.id));
+        const prodiName = rpsList[0]?.mk?.prodi?.nama || 'Program Studi';
+
+        return (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 110,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+            animation: 'fadeIn .2s ease-out'
+          }}>
+            {/* Styles for printing inside this modal */}
+            <style dangerouslySetInnerHTML={{__html: `
+              @media print {
+                body * {
+                  visibility: hidden !important;
+                }
+                #compilation-print-area, #compilation-print-area * {
+                  visibility: visible !important;
+                }
+                #compilation-print-area {
+                  position: absolute !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  width: 100% !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  background: white !important;
+                  color: black !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  height: auto !important;
+                  overflow: visible !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              }
+            `}} />
+
+            <div className="card" style={{
+              width: '100%',
+              maxWidth: 1000,
+              height: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'hidden',
+              background: '#fff'
+            }}>
+              {/* Modal Header */}
+              <div className="no-print" style={{
+                padding: '16px 24px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#f8fafc'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <ClipboardCheck size={20} color="#4f46e5" />
+                  <div>
+                    <h3 style={{ fontWeight: 800, fontSize: 15, margin: 0, color: '#1e293b' }}>
+                      Laporan Kompilasi Review RPS
+                    </h3>
+                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                      Kompilasi ulasan dari {selectedIds.length} Mata Kuliah Terpilih
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => window.print()}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <Printer size={13} /> Cetak Laporan
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowCompileModal(false)}
+                    style={{ padding: 6 }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body / Print Container */}
+              <div id="compilation-print-area" style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: 32,
+                background: '#fff',
+              }}>
+                
+                {/* KOP SURAT (Hanya muncul saat print atau cetak laporan formal) */}
+                <div style={{
+                  textAlign: 'center',
+                  borderBottom: '2px solid #000',
+                  paddingBottom: 12,
+                  marginBottom: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 16
+                }}>
+                  <img src="/logo-sys.png" alt="Logo STIKOM" style={{ height: 60, width: 'auto', display: 'block' }} onError={e => e.currentTarget.style.display = 'none'} />
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Sekolah Tinggi Ilmu Komputer Yos Sudarso
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginTop: 2 }}>
+                      PROGRAM STUDI {prodiName}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                      Jl. Kecamatan No. 25, Karangpucung, Purwokerto Selatan, Kab. Banyumas, Jawa Tengah
+                    </div>
+                  </div>
+                </div>
+
+                {/* JUDUL LAPORAN */}
+                <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 800, textTransform: 'uppercase', margin: '0 0 4px 0' }}>
+                    Laporan Evaluasi & Kompilasi Review RPS
+                  </h2>
+                  <div style={{ fontSize: 12, color: '#475569' }}>
+                    Tahun Akademik: <strong>{tahun}</strong> | Semester: <strong>{semester}</strong>
+                  </div>
+                </div>
+
+                {/* RINGKASAN MATA KULIAH TERKOMPILASI */}
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px', borderBottom: '1px solid #cbd5e1', paddingBottom: 4 }}>
+                    I. Daftar Mata Kuliah Terkompilasi ({selectedRps.length} MK)
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                        <th style={{ padding: '8px 10px', width: 40 }}>No</th>
+                        <th style={{ padding: '8px 10px', width: 100 }}>Kode MK</th>
+                        <th style={{ padding: '8px 10px' }}>Nama Mata Kuliah</th>
+                        <th style={{ padding: '8px 10px', width: 80 }}>SKS / Sem</th>
+                        <th style={{ padding: '8px 10px' }}>Dosen Pengampu</th>
+                        <th style={{ padding: '8px 10px', width: 140, textAlign: 'center' }}>Statistik Review</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRps.map((r, i) => {
+                        const rev = reviewMap[r.id];
+                        const countSesuai = countByStatus(rev, 'sesuai');
+                        const countCukup = countByStatus(rev, 'cukup');
+                        const countTidak = countByStatus(rev, 'tidak_sesuai');
+                        return (
+                          <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                            <td style={{ padding: '8px 10px' }}>{i + 1}</td>
+                            <td style={{ padding: '8px 10px', fontFamily: 'monospace' }}>{r.mk?.kode_mk}</td>
+                            <td style={{ padding: '8px 10px', fontWeight: 600 }}>{r.mk?.nama_mk}</td>
+                            <td style={{ padding: '8px 10px' }}>{r.mk?.sks} SKS / S{r.mk?.semester}</td>
+                            <td style={{ padding: '8px 10px' }}>{r.dosen?.nama_lengkap}</td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <span style={{ color: '#10b981', fontWeight: 700 }}>S:{countSesuai}</span> |&nbsp;
+                              <span style={{ color: '#f59e0b', fontWeight: 700 }}>C:{countCukup}</span> |&nbsp;
+                              <span style={{ color: '#ef4444', fontWeight: 700 }}>T:{countTidak}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* TINGKAT KEPATUHAN & KESELARASAN PRODI */}
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px', borderBottom: '1px solid #cbd5e1', paddingBottom: 4 }}>
+                    II. Statistik Keselarasan Mutu RPS Prodi
+                  </div>
+                  
+                  {/* Overall Stats Cards */}
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <div style={{ flex: 1, padding: '12px', background: '#d1fae5', border: '1px solid #a7f3d0', borderRadius: 8, textAlign: 'center' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#065f46' }}>{overall.sesuai}%</div>
+                      <div style={{ fontSize: 11, color: '#047857', fontWeight: 600 }}>Rata-rata Sesuai</div>
+                    </div>
+                    <div style={{ flex: 1, padding: '12px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, textAlign: 'center' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#92400e' }}>{overall.cukup}%</div>
+                      <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>Rata-rata Cukup</div>
+                    </div>
+                    <div style={{ flex: 1, padding: '12px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, textAlign: 'center' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#991b1b' }}>{overall.tidak}%</div>
+                      <div style={{ fontSize: 11, color: '#b91c1c', fontWeight: 600 }}>Rata-rata Tidak Sesuai</div>
+                    </div>
+                  </div>
+
+                  {/* Aspects Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '8px 20px', fontSize: '11px' }}>
+                    {Object.entries(stats).map(([aspectKey, val]) => (
+                      <div key={aspectKey} style={{ padding: '6px 8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: '#334155' }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                            {ASPECT_LABELS[aspectKey]}
+                          </span>
+                          <span style={{ color: '#4f46e5' }}>Sesuai: {val.sesuai_pct}%</span>
+                        </div>
+                        {/* Custom Progress Bar Stack */}
+                        <div style={{ height: 6, width: '100%', background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', display: 'flex' }}>
+                          <div style={{ background: '#10b981', height: '100%', width: `${val.sesuai_pct}%`, transition: 'width 0.3s' }} title={`Sesuai: ${val.sesuai_pct}%`} />
+                          <div style={{ background: '#f59e0b', height: '100%', width: `${val.cukup_pct}%`, transition: 'width 0.3s' }} title={`Cukup: ${val.cukup_pct}%`} />
+                          <div style={{ background: '#ef4444', height: '100%', width: `${val.tidak_sesuai_pct}%`, transition: 'width 0.3s' }} title={`Tidak Sesuai: ${val.tidak_sesuai_pct}%`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ANALISA DESKRIPTIF / LAPORAN NARATIF */}
+                <div style={{ marginBottom: 40 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px solid #cbd5e1', paddingBottom: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                      III. Analisa Deskriptif & Rekomendasi Naratif
+                    </div>
+                    <button
+                      className="btn btn-secondary btn-xs no-print"
+                      onClick={runCompilationAiAnalysis}
+                      disabled={compilationAiLoading}
+                      style={{
+                        background: 'linear-gradient(135deg, #e0e7ff 0%, #f5f3ff 100%)',
+                        borderColor: '#c7d2fe',
+                        color: '#4338ca',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        fontSize: 10
+                      }}
+                    >
+                      {compilationAiLoading ? (
+                        <RefreshCw size={10} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Sparkles size={10} color="#4338ca" />
+                      )}
+                      {compilationAiLoading ? 'Menyusun...' : 'Hasilkan Analisa AI'}
+                    </button>
+                  </div>
+
+                  {/* Textarea for Editing (Hidden in Print) */}
+                  <div className="no-print" style={{ marginBottom: 12 }}>
+                    <textarea
+                      className="input"
+                      placeholder="Tuliskan analisis deskriptif kompilasi atau klik tombol 'Hasilkan Analisa AI' untuk menyusun otomatis..."
+                      rows={10}
+                      value={compilationNotes}
+                      onChange={e => setCompilationNotes(e.target.value)}
+                      style={{ fontSize: 12, resize: 'vertical', minHeight: 180, width: '100%', fontFamily: 'inherit' }}
+                    />
+                  </div>
+
+                  {/* Raw formatted text block (Visible in print, and also shown in modal) */}
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#334155',
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'inherit',
+                    padding: compilationNotes ? '12px 16px' : '20px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 6
+                  }}>
+                    {compilationNotes || (
+                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                        Belum ada laporan naratif. Silakan tulis manual di atas atau klik tombol <strong>"Hasilkan Analisa AI"</strong> untuk pre-fill laporan secara cerdas.
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* SIGNATURE SECTION */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 12, marginTop: 40, pageBreakInside: 'avoid' }}>
+                  <div style={{ textAlign: 'center', width: 220 }}>
+                    <div>Purwokerto, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                    <div style={{ fontWeight: 700, marginTop: 4 }}>Ketua Program Studi {prodiName}</div>
+                    <div style={{ height: 64 }} /> {/* Sign space */}
+                    <div style={{ fontWeight: 800, textDecoration: 'underline' }}>{profile?.nama_lengkap || 'Ka. Prodi'}</div>
+                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>NIDN: {profile?.nidn || '—'}</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   )
 }

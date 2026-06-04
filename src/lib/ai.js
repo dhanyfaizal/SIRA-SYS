@@ -412,3 +412,40 @@ export async function reviewRpsFull(rpsData) {
   return callAi(prompt, true);
 }
 
+// 8. Hasilkan Laporan Naratif Deskriptif Kompilasi Review RPS
+export async function generateCompilationReport(prodiName, coursesData, stats) {
+  const prompt = `
+    Anda adalah asesor dan auditor akademik senior di Sekolah Tinggi Ilmu Komputer Yos Sudarso.
+    Tugas Anda adalah menyusun Laporan Hasil Evaluasi dan Kompilasi Review Rencana Pembelajaran Semester (RPS) untuk Program Studi "${prodiName}".
+
+    Berikut adalah data kompilasi review RPS dari beberapa mata kuliah yang telah dievaluasi:
+    - Jumlah Mata Kuliah Terkompilasi: ${coursesData.length} MK
+    - Daftar MK & Catatan Review Asesor:
+    ${coursesData.map(c => `
+      * MK: ${c.nama_mk} (${c.kode_mk})
+        - Dosen: ${c.dosen_nama}
+        - Catatan Reviewer: ${c.rekomendasi || '—'}
+        - Skor Evaluasi Aspek: Sesuai: ${c.sesuai}, Cukup: ${c.cukup}, Tidak Sesuai: ${c.tidak_sesuai}
+    `).join('\n')}
+
+    - Statistik Kepatuhan Aspek (%) dari Total MK yang Terpilih:
+    ${Object.entries(stats).map(([key, val]) => `
+      * Aspek [${key}]: Sesuai ${val.sesuai_pct}%, Cukup ${val.cukup_pct}%, Tidak Sesuai ${val.tidak_sesuai_pct}%
+    `).join('\n')}
+
+    Susunlah ulasan Laporan Analisa Deskriptif Hasil Evaluasi RPS tingkat Program Studi. Laporan harus sangat profesional, terstruktur, kritis, konstruktif, dan menggunakan Bahasa Indonesia akademik formal.
+    Struktur ulasan laporan wajib dibagi menjadi 3 bagian utama menggunakan format Markdown:
+    1. **ANALISIS KEKUATAN & KEPATUHAN (Strengths)**:
+       Tinjau aspek-aspek mana yang memiliki kepatuhan paling tinggi (persentase "Sesuai" mendekati 100%) dan jelaskan mengapa hal itu berdampak positif terhadap kualitas pembelajaran di program studi.
+    2. **ANALISIS KELEMAHAN & AREA REVISI (Areas for Improvement)**:
+       Identifikasi aspek-aspek yang paling banyak mendapat rating "Cukup" atau "Tidak Sesuai" di seluruh mata kuliah. Tentukan akar masalah atau kelemahan dominan yang perlu diperbaiki.
+    3. **RENCANA TINDAK LANJUT & REKOMENDASI PRODI (Action Plan)**:
+       Berikan langkah taktis konkret yang harus diambil oleh Kaprodi dan Dosen Pengampu untuk meningkatkan mutu RPS pada semester ini (misalnya: lokakarya penyelarasan CPMK, revisi referensi, atau sinkronisasi instrumen penilaian).
+
+    Kembalikan hasil dalam format teks Markdown akademik yang siap dicetak/disalin. Jangan sertakan teks pengantar maupun penutup di luar isi laporan.
+  `;
+
+  return callAi(prompt, false); // return raw text/markdown
+}
+
+
