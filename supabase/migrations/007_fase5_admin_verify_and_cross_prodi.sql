@@ -11,10 +11,12 @@ UPDATE public.profiles SET is_verified = TRUE;
 
 -- 2. Ubah CHECK constraint role pada profiles (hapus 'mahasiswa')
 ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
-ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('admin', 'kaprodi', 'dosen'));
 
--- Jika ada user yang saat ini rolenya mahasiswa, ubah jadi dosen
+-- Jika ada user yang saat ini rolenya mahasiswa, ubah jadi dosen DULU sebelum menambah constraint
 UPDATE public.profiles SET role = 'dosen' WHERE role = 'mahasiswa';
+
+-- Tambahkan check constraint baru setelah data dibersihkan
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('admin', 'kaprodi', 'dosen'));
 
 -- 3. Perbarui RLS pada tabel mata_kuliah agar dosen bisa memilih MK lintas prodi
 DROP POLICY IF EXISTS "read_own_prodi_mk" ON mata_kuliah;
