@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Save, Printer, CheckCircle, AlertTriangle, XCircle,
-  ChevronDown, ChevronRight, History, Clock
+  ChevronDown, ChevronRight, History, Clock, Sparkles, RefreshCw
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, dbReviewRps, dbNotifications } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
+import { reviewRpsFull } from '@/lib/ai'
 import toast from 'react-hot-toast'
 
 // ── Definisi 19 aspek review sesuai Blanko ────────────────────────
@@ -73,9 +75,12 @@ export default function RpsReviewPage() {
   const [reviewId, setReviewId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
   const [history, setHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
   const [expandedSections, setExpandedSections] = useState({ A: true, B: true, C: true })
+  const [teamMembers, setTeamMembers] = useState([])
+  const [showRpsData, setShowRpsData] = useState({})
 
   const isKaprodi = role === 'kaprodi'
 
@@ -91,6 +96,17 @@ export default function RpsReviewPage() {
           return
         }
         setRps(rpsData)
+
+        // Load team members profiles
+        if (rpsData.team_dosen && rpsData.team_dosen.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, nama_lengkap')
+            .in('id', rpsData.team_dosen)
+          if (profiles) setTeamMembers(profiles)
+        } else {
+          setTeamMembers([])
+        }
 
         // Load latest review
         const { data: latestReview } = await dbReviewRps.getLatestByRpsId(id)
@@ -111,6 +127,244 @@ export default function RpsReviewPage() {
     }
     load()
   }, [id])
+
+  async function runAiReview() {
+    if (!rps) return
+    setAiLoading(true)
+    const loadToast = toast.loading('AI sedang menganalisis dokumen RPS… 🤖')
+    try {
+      const result = await reviewRpsFull(rps)
+      if (result) {
+        // Pre-fill ratings and catatan from AI result
+        const newReview = { ...review }
+        ALL_KEYS.forEach(key => {
+          if (result[key]) {
+            newReview[key] = result[key].rating || null
+            newReview[`${key}_catatan`] = result[key].catatan || null
+          }
+        })
+        if (result.rekomendasi) {
+          newReview.rekomendasi = result.rekomendasi
+        }
+        setReview(newReview)
+        toast.dismiss(loadToast)
+        toast.success('Ulasan otomatis AI berhasil dihasilkan! Silakan tinjau kembali sebelum menyimpan. 📑')
+      } else {
+        throw new Error('Hasil review AI kosong.')
+      }
+    } catch (err) {
+      console.error(err)
+      toast.dismiss(loadToast)
+      toast.error('Gagal menjalankan AI review: ' + err.message)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  function toggleRpsData(key) {
+    setShowRpsData(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  function renderRpsContent(key) {
+    if (!rps) return <span style={{ color: '#94a3b8' }}>Tidak ada data.</span>;
+
+    switch (key) {
+      case 'a_cpmk_subcpmk':
+      case 'b3_cpl_cpmk': {
+        const cpls = rps.capaian_pembelajaran?.cpl || [];
+        const cpmks = rps.capaian_pembelajaran?.cpmk || [];
+        return (
+          <div>
+            <div style={{ fontWeight: 700, color: '#475569', marginBottom: 4 }}>CPL (Capaian Pembelajaran Lulusan):</div>
+            {cpls.length > 0 ? (
+              <ul style={{ margin: '0 0 10px 16px', padding: 0 }}>
+                {cpls.map((c, i) => <li key={i}>CPL-{i+1}: {c}</li>)}
+              </ul>
+            ) : <div style={{ color: '#94a3b8', margin: '0 0 10px 0' }}>—</div>}
+            
+            <div style={{ fontWeight: 700, color: '#475569', marginBottom: 4 }}>CPMK (Capaian Pembelajaran Mata Kuliah):</div>
+            {cpmks.length > 0 ? (
+              <ul style={{ margin: '0 0 0 16px', padding: 0 }}>
+                {cpmks.map((c, i) => (
+                  <li key={i} style={{ marginBottom: 4 }}>
+                    <strong>{c.kode || `CPMK-${i+1}`}:</strong> {c.deskripsi}
+                    {c.cpl_ref && c.cpl_ref.length > 0 && (
+                      <span style={{ marginLeft: 6, background: '#e0e7ff', color: '#4338ca', fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: 99 }}>
+                        Ref: {c.cpl_ref.join(', ')}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : <div style={{ color: '#94a3b8' }}>—</div>}
+          </div>
+        );
+      }
+      case 'b1_identitas_mk':
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '6px' }}>
+            <span style={{ color: '#64748b' }}>Nama MK</span><span>: <strong>{rps.mk?.nama_mk || '—'}</strong></span>
+            <span style={{ color: '#64748b' }}>Kode MK</span><span>: {rps.mk?.kode_mk || '—'}</span>
+            <span style={{ color: '#64748b' }}>SKS</span><span>: {rps.mk?.sks} SKS</span>
+            <span style={{ color: '#64748b' }}>Semester</span><span>: {rps.mk?.semester}</span>
+            <span style={{ color: '#64748b' }}>Program Studi</span><span>: {rps.mk?.prodi?.nama || '—'}</span>
+            <span style={{ color: '#64748b' }}>Tahun Akademik</span><span>: {rps.tahun_akademik} ({rps.semester_aktif})</span>
+          </div>
+        );
+      case 'b2_penanggung_jawab': {
+        const members = teamMembers.map(m => m.nama_lengkap).join(', ') || '—';
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '6px' }}>
+            <span style={{ color: '#64748b' }}>Dosen Pengampu</span><span>: <strong>{rps.dosen?.nama_lengkap || '—'}</strong> (NIDN: {rps.dosen?.nidn || '—'})</span>
+            <span style={{ color: '#64748b' }}>Tim Pengajar</span><span>: {members}</span>
+            <span style={{ color: '#64748b' }}>Tanggal Dibuat</span><span>: {new Date(rps.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          </div>
+        );
+      }
+      case 'b4_deskripsi_mk':
+        return (
+          <div>
+            <div style={{ fontWeight: 700, color: '#475569', marginBottom: 4 }}>Deskripsi Singkat Mata Kuliah:</div>
+            <p style={{ margin: 0, lineHeight: 1.5 }}>{rps.deskripsi_mk || 'Tidak ada deskripsi.'}</p>
+          </div>
+        );
+      case 'b5_bahan_kajian': {
+        const items = (rps.rencana_pembelajaran || [])
+          .map(p => p.bahan_kajian)
+          .filter(Boolean);
+        const uniq = [...new Set(items)];
+        return (
+          <div>
+            <div style={{ fontWeight: 700, color: '#475569', marginBottom: 4 }}>Bahan Kajian yang Dipelajari:</div>
+            {uniq.length > 0 ? (
+              <ul style={{ margin: '0 0 0 16px', padding: 0 }}>
+                {uniq.map((bk, i) => <li key={i} style={{ marginBottom: 2 }}>{bk}</li>)}
+              </ul>
+            ) : <span style={{ color: '#94a3b8' }}>Tidak ada bahan kajian terdaftar.</span>}
+          </div>
+        );
+      }
+      case 'b6_referensi': {
+        const refs = rps.referensi || [];
+        return (
+          <div>
+            <div style={{ fontWeight: 700, color: '#475569', marginBottom: 4 }}>Daftar Referensi Utama & Pendukung:</div>
+            {refs.length > 0 ? (
+              <ol style={{ margin: '0 0 0 20px', padding: 0 }}>
+                {refs.map((r, i) => <li key={i} style={{ marginBottom: 4 }}>{r}</li>)}
+              </ol>
+            ) : <span style={{ color: '#94a3b8' }}>Tidak ada referensi terdaftar.</span>}
+          </div>
+        );
+      }
+      case 'b7_media_pembelajaran':
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px' }}>
+            <span style={{ color: '#64748b', fontWeight: 'bold' }}>Perangkat Lunak</span>
+            <span>: Windows/OS, MS Office, Web Browser, IDE (VS Code, dll.), atau software penunjang praktikum.</span>
+            <span style={{ color: '#64748b', fontWeight: 'bold' }}>Perangkat Keras</span>
+            <span>: Laptop/PC, LCD Proyektor, Koneksi Internet, Whiteboard.</span>
+          </div>
+        );
+      case 'b8_prasyarat':
+        return (
+          <div>
+            <span style={{ color: '#64748b' }}>Mata Kuliah Prasyarat</span>: Tidak ada prasyarat khusus (mengikuti ketentuan kurikulum prodi).
+          </div>
+        );
+      case 'b9_komposisi':
+        return (
+          <div>
+            <span style={{ color: '#64748b' }}>Komposisi Pembelajaran</span>: Teori & Praktikum disesuaikan dengan SKS (Kuliah: {rps.mk?.sks} SKS).
+          </div>
+        );
+      case 'c1_minggu_ke':
+        return (
+          <div>
+            Terdapat <strong>{(rps.rencana_pembelajaran || []).length} pertemuan</strong> terstruktur dalam matriks pembelajaran mingguan (Target: 16 pertemuan termasuk UTS & UAS).
+          </div>
+        );
+      case 'c2_kemampuan_akhir':
+      case 'c3_bahan_kajian_rps':
+      case 'c4_metode_pembelajaran':
+      case 'c5_waktu':
+      case 'c6_pengalaman_belajar':
+      case 'c7_kriteria_penilaian': {
+        const fieldMap = {
+          c2_kemampuan_akhir: { label: 'Kemampuan Akhir', key: 'kemampuan_akhir' },
+          c3_bahan_kajian_rps: { label: 'Bahan Kajian', key: 'bahan_kajian' },
+          c4_metode_pembelajaran: { label: 'Metode Pembelajaran', key: 'metode' },
+          c5_waktu: { label: 'Waktu', key: 'waktu', suffix: ' menit' },
+          c6_pengalaman_belajar: { label: 'Pengalaman Belajar', key: 'pengalaman_belajar' },
+          c7_kriteria_penilaian: { label: 'Kriteria Penilaian', key: 'kriteria_penilaian' }
+        };
+        const config = fieldMap[key];
+        return (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #cbd5e1', textAlign: 'left', color: '#475569' }}>
+                  <th style={{ padding: '6px 4px', width: '70px' }}>Minggu</th>
+                  <th style={{ padding: '6px 4px' }}>{config.label}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(rps.rencana_pembelajaran || []).map((p, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #e2e8f0', background: p.is_uts ? '#fffbeb' : p.is_uas ? '#f0fdf4' : 'transparent' }}>
+                    <td style={{ padding: '6px 4px', fontWeight: 'bold' }}>Minggu {p.no}</td>
+                    <td style={{ padding: '6px 4px' }}>
+                      {p.is_uts ? <strong>Ujian Tengah Semester (UTS)</strong> : p.is_uas ? <strong>Ujian Akhir Semester (UAS)</strong> : (
+                        p[config.key] ? `${p[config.key]}${config.suffix || ''}` : '—'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+      case 'c8_bobot_nilai': {
+        const penObj = rps.penilaian || {};
+        const total = Object.values(penObj).reduce((a, b) => a + Number(b || 0), 0);
+        return (
+          <div>
+            <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #cbd5e1' }}>
+              <strong>Komponen Evaluasi & Bobot Utama: </strong>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+                {Object.entries(penObj).filter(([,v]) => Number(v) > 0).map(([k, v]) => (
+                  <span key={k} style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '10px', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                    {k.toUpperCase()}: {v}%
+                  </span>
+                ))}
+                <span style={{ background: '#d1fae5', color: '#065f46', fontSize: '10px', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                  TOTAL: {total}%
+                </span>
+              </div>
+            </div>
+            <strong>Bobot Penilaian per Pertemuan:</strong>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 6, marginTop: 6 }}>
+              {(rps.rencana_pembelajaran || []).map((p, i) => (
+                <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 4, padding: '4px 6px', textAlign: 'center', fontSize: '10px' }}>
+                  <div style={{ color: '#64748b', fontWeight: 'bold' }}>Mgu {p.no}</div>
+                  <div style={{ color: '#4f46e5', fontWeight: 800, fontSize: '11px' }}>{p.bobot || 0}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+      case 'c9_referensi_rps':
+        return (
+          <div>
+            <span style={{ color: '#64748b' }}>Referensi Pertemuan</span>: Pembelajaran mingguan mengacu pada daftar referensi utama/pendukung [1] s/d [{rps.referensi?.length || 1}].
+          </div>
+        );
+      default:
+        return <span style={{ color: '#94a3b8' }}>Tidak ada data terkait.</span>;
+    }
+  }
+
 
   function setField(key, value) {
     setReview(prev => ({ ...prev, [key]: value }))
@@ -219,6 +473,30 @@ export default function RpsReviewPage() {
         >
           <Printer size={13} /> Cetak Laporan
         </button>
+
+        {isKaprodi && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={runAiReview}
+            disabled={aiLoading || saving}
+            style={{
+              background: 'linear-gradient(135deg, #e0e7ff 0%, #f5f3ff 100%)',
+              borderColor: '#c7d2fe',
+              color: '#4338ca',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              fontWeight: 700
+            }}
+          >
+            {aiLoading ? (
+              <RefreshCw size={13} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Sparkles size={13} color="#4338ca" />
+            )}
+            {aiLoading ? 'Menganalisis...' : 'Review dengan AI'}
+          </button>
+        )}
 
         {isKaprodi && (
           <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}
@@ -379,6 +657,45 @@ export default function RpsReviewPage() {
                         {item.label}
                       </div>
                       <div style={{ fontSize: 11, color: '#94a3b8' }}>{item.desc}</div>
+                    </div>
+
+                    {/* Collapsible RPS Content Section */}
+                    <div style={{ marginTop: 8, marginBottom: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleRpsData(item.key)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#4f46e5',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: 0
+                        }}
+                      >
+                        {showRpsData[item.key] ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        {showRpsData[item.key] ? 'Sembunyikan Isi RPS Terkait' : 'Lihat Isi RPS Terkait'}
+                      </button>
+                      {showRpsData[item.key] && (
+                        <div style={{
+                          marginTop: 6,
+                          padding: '10px 14px',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 6,
+                          fontSize: '11.5px',
+                          color: '#334155',
+                          lineHeight: '1.5',
+                          maxHeight: 200,
+                          overflowY: 'auto',
+                        }}>
+                          {renderRpsContent(item.key)}
+                        </div>
+                      )}
                     </div>
 
                     {/* Rating buttons */}

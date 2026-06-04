@@ -139,6 +139,7 @@ export default function AppRouter() {
           <Route path="/admin/prodi/:kode" element={<ProtectedRoute allowedRoles={['admin']}><ComingSoon title="Detail Program Studi" /></ProtectedRoute>} />
           <Route path="/admin/roles"    element={<ProtectedRoute allowedRoles={['admin']}><ComingSoon title="Kelola Role" /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><ComingSoon title="Pengaturan Sistem" /></ProtectedRoute>} />
+          <Route path="/rps/:id/review" element={<ProtectedRoute allowedRoles={['kaprodi','dosen']}><RpsReviewPage /></ProtectedRoute>} />
 
         </Route>
 
@@ -148,7 +149,6 @@ export default function AppRouter() {
 
         {/* Standalone Protected Print Page */}
         <Route path="/rps/:id/print" element={<ProtectedRoute><RpsPrintPage /></ProtectedRoute>} />
-        <Route path="/rps/:id/review" element={<ProtectedRoute allowedRoles={['kaprodi','dosen']}><RpsReviewPage /></ProtectedRoute>} />
         <Route path="/rps/:id/review/print" element={<ProtectedRoute><RpsReviewPrintPage /></ProtectedRoute>} />
         <Route path="/kurikulum/print" element={<ProtectedRoute allowedRoles={['kaprodi']}><KurikulumPrintPage /></ProtectedRoute>} />
 

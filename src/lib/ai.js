@@ -330,3 +330,85 @@ export async function generateCourseDescription(courseName) {
 
   return callAi(prompt, true);
 }
+
+// 7. Review RPS Lengkap Berdasarkan 19 Aspek Blanko Review
+export async function reviewRpsFull(rpsData) {
+  const prompt = `
+    Anda adalah auditor dan asesor akademik perguruan tinggi STIKOM Yos Sudarso.
+    Tugas Anda adalah meninjau (review) dokumen Rencana Pembelajaran Semester (RPS) berikut secara mendalam terhadap 19 aspek evaluasi standardisasi kurikulum perguruan tinggi.
+
+    Data RPS yang akan ditinjau:
+    - Nama Mata Kuliah: "${rpsData.mk?.nama_mk || '—'}"
+    - Kode MK: "${rpsData.mk?.kode_mk || '—'}"
+    - SKS: ${rpsData.mk?.sks || 0}
+    - Semester: ${rpsData.mk?.semester || 0}
+    - Program Studi: "${rpsData.mk?.prodi?.nama || '—'}"
+    - Dosen Pengampu: "${rpsData.dosen?.nama_lengkap || '—'}" (NIDN: "${rpsData.dosen?.nidn || '—'}")
+    - Deskripsi MK: "${rpsData.deskripsi_mk || '—'}"
+    - CPL yang Dibebankan: ${JSON.stringify(rpsData.capaian_pembelajaran?.cpl || [])}
+    - CPMK: ${JSON.stringify(rpsData.capaian_pembelajaran?.cpmk || [])}
+    - Rencana Pembelajaran (16 Pertemuan): ${JSON.stringify(rpsData.rencana_pembelajaran || [])}
+    - Penilaian/Asesmen: ${JSON.stringify(rpsData.penilaian || {})}
+    - Referensi: ${JSON.stringify(rpsData.referensi || [])}
+
+    Lakukan ulasan analitis deskriptif kritis terhadap 19 aspek berikut. Untuk masing-masing aspek, tentukan:
+    1. Rating: Wajib bernilai "sesuai", "cukup", atau "tidak_sesuai".
+    2. Catatan: Penjelasan deskriptif ringkas dalam Bahasa Indonesia (maksimal 2 kalimat) mengapa rating tersebut diberikan dan saran perbaikan yang spesifik jika ada.
+
+    19 Aspek Evaluasi:
+    A. Peta Capaian Pembelajaran:
+       1. a_cpmk_subcpmk: Kesesuaian CPMK dan Sub-CPMK dengan CPL yang dibebankan pada mata kuliah.
+    B. Profil Mata Kuliah:
+       2. b1_identitas_mk: Kelengkapan Kode MK, nama MK, SKS, semester, dan program studi.
+       3. b2_penanggung_jawab: Keberadaan dosen pengampu, penanggung jawab, Kaprodi, dan tanggal penyusunan.
+       4. b3_cpl_cpmk: CPL-Prodi yang dibebankan dan CPMK yang didefinisikan dengan jelas.
+       5. b4_deskripsi_mk: Deskripsi singkat mata kuliah menggambarkan ringkasan materi.
+       6. b5_bahan_kajian: Kelayakan bahan kajian atau kedalaman materi pembelajaran.
+       7. b6_referensi: Daftar pustaka/referensi lengkap, mutakhir (10 tahun terakhir jika memungkinkan), dan relevan.
+       8. b7_media_pembelajaran: Media software (perangkat lunak) dan hardware (perangkat keras) pendukung.
+       9. b8_prasyarat: Kejelasan prasyarat mata kuliah (jika ada).
+       10. b9_komposisi: Kesesuaian komposisi teori dan praktek mata kuliah.
+    C. Rencana Pembelajaran Semester (RPS) Mingguan:
+       11. c1_minggu_ke: Rencana 16 pertemuan lengkap (minggu 1-16).
+       12. c2_kemampuan_akhir: Rumusan kemampuan akhir mahasiswa per pertemuan yang terukur.
+       13. c3_bahan_kajian_rps: Materi ajar per pertemuan selaras dengan kemampuan akhir.
+       14. c4_metode_pembelajaran: Metode belajar (ceramah, diskusi, PBL, case study) aktif dan relevan.
+       15. c5_waktu: Alokasi waktu per pertemuan logis (misal 50 menit x SKS per minggu).
+       16. c6_pengalaman_belajar: Deskripsi bentuk aktivitas/pengalaman belajar mahasiswa yang konkret.
+       17. c7_kriteria_penilaian: Indikator dan kriteria penilaian per pertemuan yang jelas.
+       18. c8_bobot_nilai: Penentuan bobot nilai evaluasi per pertemuan (sesuai tingkat kesulitan).
+       19. c9_referensi_rps: Referensi yang ditunjuk per pertemuan relevan.
+
+    Rekomendasi Umum:
+    Berikan satu rekomendasi umum (1 paragraf) untuk keseluruhan kelayakan RPS ini.
+
+    Format Respons Wajib berupa JSON Object dengan struktur:
+    {
+      "a_cpmk_subcpmk": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b1_identitas_mk": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b2_penanggung_jawab": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b3_cpl_cpmk": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b4_deskripsi_mk": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b5_bahan_kajian": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b6_referensi": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b7_media_pembelajaran": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b8_prasyarat": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "b9_komposisi": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c1_minggu_ke": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c2_kemampuan_akhir": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c3_bahan_kajian_rps": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c4_metode_pembelajaran": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c5_waktu": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c6_pengalaman_belajar": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c7_kriteria_penilaian": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c8_bobot_nilai": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "c9_referensi_rps": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
+      "rekomendasi": "Catatan ulasan dan kesimpulan rekomendasi umum secara ringkas..."
+    }
+
+    PENTING: Hanya kembalikan JSON Object murni tanpa teks pengantar maupun penutup.
+  `;
+
+  return callAi(prompt, true);
+}
+
