@@ -32,6 +32,34 @@ const ASPECT_LABELS = {
   c9_referensi_rps: 'Referensi per Pertemuan'
 }
 
+const cleanMarkdown = (text) => {
+  if (!text) return '';
+  return text
+    .split('\n')
+    .map(line => {
+      let l = line.trim();
+      
+      // 1. Remove leading headers '#'
+      if (l.startsWith('#')) {
+        l = l.replace(/^#+\s*/, '');
+      }
+      
+      // 2. Convert bullet points starting with '*' to a clean '-' bullet
+      // Only if it's not starting with '**' (bold)
+      if (l.startsWith('* ') && !l.startsWith('**')) {
+        l = '- ' + l.substring(2);
+      }
+      
+      // 3. Remove all bold/italic markers '**' and '*'
+      l = l.replace(/\*\*|\*/g, '');
+      
+      // Preserve original leading whitespace/indentation if any
+      const indent = line.match(/^\s*/)[0];
+      return indent + l;
+    })
+    .join('\n');
+};
+
 export default function ReviewRpsListPage() {
   const { profile } = useAuth()
   const navigate = useNavigate()
@@ -98,6 +126,17 @@ export default function ReviewRpsListPage() {
   }, [prodiId, tahun, semester])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (showCompileModal) {
+      document.body.classList.add('compilation-modal-open')
+    } else {
+      document.body.classList.remove('compilation-modal-open')
+    }
+    return () => {
+      document.body.classList.remove('compilation-modal-open')
+    }
+  }, [showCompileModal])
 
   const handleSelectRps = (id) => {
     setSelectedIds(prev => 
@@ -200,7 +239,7 @@ export default function ReviewRpsListPage() {
       const report = await generateCompilationReport(prodiName, coursesData, stats);
       
       if (report) {
-        setCompilationNotes(report);
+        setCompilationNotes(cleanMarkdown(report));
         toast.dismiss(loadToast);
         toast.success('Laporan Analisa Deskriptif berhasil disusun oleh AI! 📑');
       } else {
@@ -215,6 +254,61 @@ export default function ReviewRpsListPage() {
     }
   };
 
+  const renderFormattedNotes = (text) => {
+    if (!text) return null;
+    
+    // Split into paragraphs/lines
+    const lines = text.split('\n');
+    return lines.map((line, idx) => {
+      let trimmed = line.trim();
+      
+      // Horizontal rule
+      if (trimmed === '---') {
+        return <hr key={idx} style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '12px 0' }} />;
+      }
+      
+      // List items starting with '-' or '•'
+      const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('• ');
+      if (isBullet) {
+        const cleanText = trimmed.replace(/^[-•\s]+/, '').replace(/\*\*|\*/g, '');
+        return (
+          <div key={idx} style={{ display: 'flex', gap: 8, paddingLeft: 12, marginBottom: 4 }}>
+            <span style={{ color: '#4f46e5' }}>•</span>
+            <span style={{ flex: 1, fontSize: '12px', lineHeight: '1.6' }}>{cleanText}</span>
+          </div>
+        );
+      }
+      
+      // Main headers (e.g. 1. ANALISIS KEKUATAN & KEPATUHAN (Strengths) or I. DAFTAR MATA KULIAH...)
+      const isMainHeader = /^[0-9]+\.\s+[A-Z\s&()\-]+$/.test(trimmed) || /^[IVXLCDM]+\.\s+[A-Z\s&()\-]+$/.test(trimmed);
+      if (isMainHeader) {
+        return (
+          <h3 key={idx} style={{ fontSize: '13px', fontWeight: 800, margin: '20px 0 8px 0', color: '#1e293b', textTransform: 'uppercase' }}>
+            {trimmed}
+          </h3>
+        );
+      }
+      
+      // Subheaders (e.g. 1.1. Ketepatan...)
+      const isSubHeader = /^[0-9]+\.[0-9]+\.\s+/.test(trimmed);
+      if (isSubHeader) {
+        return (
+          <h4 key={idx} style={{ fontSize: '12px', fontWeight: 700, margin: '14px 0 6px 0', color: '#334155' }}>
+            {trimmed}
+          </h4>
+        );
+      }
+
+      // Fallback clean of any markdown characters
+      trimmed = trimmed.replace(/#+\s*/g, '').replace(/\*\*|\*/g, '');
+      
+      return (
+        <p key={idx} style={{ margin: '0 0 8px 0', minHeight: trimmed ? 'auto' : '8px', fontSize: '12px', lineHeight: '1.6' }}>
+          {trimmed}
+        </p>
+      );
+    });
+  };
 
   // Count filled aspects in a review
   function countFilledAspects(review) {
@@ -267,7 +361,8 @@ export default function ReviewRpsListPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="no-print">
+        <div className="page-header">
         <h1 className="page-title">Review RPS</h1>
         <p className="page-subtitle">Review kelengkapan dan kesesuaian RPS yang sudah disetujui, sesuai standar Blanko Review STIKOM</p>
       </div>
@@ -493,6 +588,7 @@ export default function ReviewRpsListPage() {
           })}
         </div>
       )}
+      </div>
 
       {/* Floating Action Bar */}
       {selectedIds.length > 0 && (
@@ -544,7 +640,7 @@ export default function ReviewRpsListPage() {
         const prodiName = rpsList[0]?.mk?.prodi?.nama || 'Program Studi';
 
         return (
-          <div style={{
+          <div className="compilation-modal-overlay" style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(15, 23, 42, 0.65)',
@@ -559,33 +655,77 @@ export default function ReviewRpsListPage() {
             {/* Styles for printing inside this modal */}
             <style dangerouslySetInnerHTML={{__html: `
               @media print {
-                body * {
-                  visibility: hidden !important;
-                }
-                #compilation-print-area, #compilation-print-area * {
-                  visibility: visible !important;
-                }
-                #compilation-print-area {
-                  position: absolute !important;
-                  left: 0 !important;
-                  top: 0 !important;
-                  width: 100% !important;
+                /* Force AppLayout shell and wrappers to display statically in print */
+                body.compilation-modal-open,
+                body.compilation-modal-open #root,
+                body.compilation-modal-open #app,
+                body.compilation-modal-open .app-shell,
+                body.compilation-modal-open .app-main,
+                body.compilation-modal-open .app-content {
+                  height: auto !important;
+                  min-height: 0 !important;
+                  overflow: visible !important;
+                  display: block !important;
+                  position: static !important;
+                  background: white !important;
                   padding: 0 !important;
                   margin: 0 !important;
+                }
+                
+                /* Hide sidebar, header, and general navigation elements */
+                body.compilation-modal-open .app-sidebar,
+                body.compilation-modal-open .app-header,
+                body.compilation-modal-open .no-print {
+                  display: none !important;
+                }
+
+                /* Override compilation overlay styles so it prints statically */
+                body.compilation-modal-open .compilation-modal-overlay {
+                  position: static !important;
                   background: white !important;
-                  color: black !important;
-                  box-shadow: none !important;
-                  border: none !important;
+                  padding: 0 !important;
+                  display: block !important;
                   height: auto !important;
                   overflow: visible !important;
+                  backdrop-filter: none !important;
                 }
-                .no-print {
-                  display: none !important;
+
+                body.compilation-modal-open .compilation-modal-card {
+                  position: static !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  height: auto !important;
+                  display: block !important;
+                  overflow: visible !important;
+                  background: white !important;
+                }
+
+                body.compilation-modal-open #compilation-print-area {
+                  position: static !important;
+                  display: block !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  padding: 0 !important;
+                  margin: 0 !important;
+                  overflow: visible !important;
+                  background: white !important;
+                }
+
+                body.compilation-modal-open {
+                  background: #ffffff !important;
+                  color: #000000 !important;
+                }
+
+                @page {
+                  size: A4;
+                  margin: 15mm;
                 }
               }
             `}} />
 
-            <div className="card" style={{
+            <div className="card compilation-modal-card" style={{
               width: '100%',
               maxWidth: 1000,
               height: '90vh',
@@ -803,20 +943,19 @@ export default function ReviewRpsListPage() {
                     />
                   </div>
 
-                  {/* Raw formatted text block (Visible in print, and also shown in modal) */}
+                  {/* Formatted preview and print ulasan (Visible in print, and also shown in modal) */}
                   <div style={{
                     fontSize: '12px',
                     color: '#334155',
                     lineHeight: 1.6,
-                    whiteSpace: 'pre-wrap',
                     fontFamily: 'inherit',
                     padding: compilationNotes ? '12px 16px' : '20px',
                     background: '#f8fafc',
                     border: '1px solid #e2e8f0',
                     borderRadius: 6
                   }}>
-                    {compilationNotes || (
-                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>
+                    {compilationNotes ? renderFormattedNotes(compilationNotes) : (
+                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }} className="no-print">
                         Belum ada laporan naratif. Silakan tulis manual di atas atau klik tombol <strong>"Hasilkan Analisa AI"</strong> untuk pre-fill laporan secara cerdas.
                       </span>
                     )}
