@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -12,7 +13,6 @@ import AuthCallback from '@/pages/auth/AuthCallback'
 import DashboardDosen   from '@/pages/dashboard/DashboardDosen'
 import DashboardKaprodi from '@/pages/dashboard/DashboardKaprodi'
 import DashboardAdmin   from '@/pages/dashboard/DashboardAdmin'
-import DashboardMahasiswa from '@/pages/dashboard/DashboardMahasiswa'
 import LecturerGradebookPage from '@/pages/dosen/LecturerGradebookPage'
 
 // Public Pages
@@ -45,9 +45,61 @@ import AdminUsersPage from '@/pages/admin/AdminUsersPage'
 import AdminProdiPage from '@/pages/admin/AdminProdiPage'
 import AiSettingsPage from '@/pages/settings/AiSettingsPage'
 
+function UnverifiedScreen() {
+  const { signOut, profile } = useAuth()
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  async function handleLogout() {
+    setLoggingOut(true)
+    try {
+      await signOut()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoggingOut(false)
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: '#f1f5f9', padding: '0 16px', fontFamily: "'Inter', system-ui, sans-serif",
+      zIndex: 9999
+    }}>
+      <div style={{ width: '100%', maxWidth: 440 }}>
+        <div style={{ height: 4, borderRadius: '8px 8px 0 0', background: 'linear-gradient(to right, #f59e0b, #d97706)' }} />
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '36px 32px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 24 }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 32 }}>⏳</span>
+            </div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1f2937', margin: '0 0 8px 0' }}>Akun Belum Aktif</h1>
+            <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5, margin: 0 }}>
+              Akun Anda <strong>{profile?.email}</strong> terdaftar, tetapi belum disetujui oleh Administrator SIRA-SYS.
+            </p>
+          </div>
+          <div style={{ borderTop: '1px solid #f1f5f9', marginBottom: 20 }} />
+          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '12px 14px', fontSize: 12.5, color: '#4b5563', lineHeight: 1.6, marginBottom: 24 }}>
+            💡 <strong>Langkah Selanjutnya:</strong><br />
+            Silakan hubungi Administrator atau Kepala Program Studi Anda untuk memverifikasi dan mengaktifkan akun Anda agar dapat mengakses dashboard SIRA-SYS.
+          </div>
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="btn btn-secondary"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', fontWeight: 600 }}
+          >
+            {loggingOut ? 'Mengeluarkan...' : 'Keluar dari Akun'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Protected route ────────────────────────────────────────────
 function ProtectedRoute({ children, allowedRoles }) {
-  const { user, role, loading } = useAuth()
+  const { user, role, profile, loading } = useAuth()
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', flexDirection:'column', gap:16 }}>
@@ -57,6 +109,12 @@ function ProtectedRoute({ children, allowedRoles }) {
   )
 
   if (!user) return <Navigate to="/login" replace />
+
+  // Gating status verifikasi: jika profile dimuat dan is_verified === false, tampilkan UnverifiedScreen
+  if (profile && profile.is_verified === false) {
+    return <UnverifiedScreen />
+  }
+
   if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/dashboard" replace />
   return children
 }
@@ -66,7 +124,6 @@ function DashboardRouter() {
   const { role } = useAuth()
   if (role === 'admin')   return <DashboardAdmin />
   if (role === 'kaprodi') return <DashboardKaprodi />
-  if (role === 'mahasiswa') return <DashboardMahasiswa />
   return <DashboardDosen />  // dosen (default)
 }
 

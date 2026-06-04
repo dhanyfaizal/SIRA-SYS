@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Shield, UserCheck, RefreshCw, ChevronDown } from 'lucide-react'
+import { Search, Shield, UserCheck, RefreshCw, ChevronDown, Trash2, CheckCircle, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { dbProdi } from '@/lib/db'
 import toast from 'react-hot-toast'
 
-const ROLES = ['dosen', 'kaprodi', 'mahasiswa', 'admin']
+const ROLES = ['dosen', 'kaprodi', 'admin']
 const ROLE_LABELS = {
   admin:     { label: 'Administrator', class: 'badge-red'    },
   kaprodi:   { label: 'Ka. Prodi',     class: 'badge-indigo' },
   dosen:     { label: 'Dosen',         class: 'badge-green'  },
-  mahasiswa: { label: 'Mahasiswa',     class: 'badge-amber'  },
 }
 
 export default function AdminUsersPage() {
@@ -22,16 +21,22 @@ export default function AdminUsersPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: profiles }, { data: prodiData }] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, nama_lengkap, nidn, email, role, prodi_id, foto_url, created_at, program_studi(kode, nama)')
-        .order('created_at', { ascending: false }),
-      supabase.from('program_studi').select('id, kode, nama').order('nama'),
-    ])
-    setUsers(profiles ?? [])
-    setProdi(prodiData ?? [])
-    setLoading(false)
+    try {
+      const [{ data: profiles }, { data: prodiData }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, nama_lengkap, nidn, email, role, prodi_id, foto_url, created_at, is_verified, program_studi(kode, nama)')
+          .order('created_at', { ascending: false }),
+        supabase.from('program_studi').select('id, kode, nama').order('nama'),
+      ])
+      setUsers(profiles ?? [])
+      setProdi(prodiData ?? [])
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal memuat data pengguna: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -47,16 +52,36 @@ export default function AdminUsersPage() {
     setSaving(p => ({ ...p, [id]: true }))
     const { error } = await supabase
       .from('profiles')
-      .update({ [field]: value || null })
+      .update({ [field]: value })
       .eq('id', id)
 
     if (error) {
-      toast.error('Gagal update: ' + error.message)
+      toast.error('Gagal memperbarui: ' + error.message)
     } else {
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, [field]: value || null } : u))
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, [field]: value } : u))
       toast.success('Berhasil diperbarui')
     }
     setSaving(p => ({ ...p, [id]: false }))
+  }
+
+  async function deleteUser(id, name) {
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus pengguna "${name || 'User'}"? Semua data terkait (seperti draf RPS) akan terhapus permanen dari auth database.`)) {
+      return
+    }
+
+    setSaving(p => ({ ...p, [id]: true }))
+    try {
+      const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: id })
+      if (error) throw error
+
+      setUsers(prev => prev.filter(u => u.id !== id))
+      toast.success('Pengguna berhasil dihapus secara permanen!')
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal menghapus pengguna: ' + err.message)
+    } finally {
+      setSaving(p => ({ ...p, [id]: false }))
+    }
   }
 
   // Stats
@@ -65,12 +90,14 @@ export default function AdminUsersPage() {
     return acc
   }, {})
 
+  const unverifiedCount = users.filter(u => !u.is_verified).length
+
   return (
     <div>
       <div className="page-header" style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
         <div>
           <h1 className="page-title">Daftar Pengguna</h1>
-          <p className="page-subtitle">Kelola akun, role, dan penugasan program studi semua pengguna</p>
+          <p className="page-subtitle">Kelola akun, role, persetujuan verifikasi, dan penugasan program studi semua pengguna</p>
         </div>
         <button className="btn btn-secondary" onClick={load} disabled={loading}>
           <RefreshCw size={14} className={loading ? 'spin' : ''} /> Refresh
@@ -82,6 +109,10 @@ export default function AdminUsersPage() {
         <div className="stat-card">
           <div className="stat-card-label">Total Pengguna</div>
           <div className="stat-card-value">{users.length}</div>
+        </div>
+        <div className="stat-card" style={{ borderLeft: '3px solid #f59e0b' }}>
+          <div className="stat-card-label" style={{ color: '#d97706', fontWeight: 600 }}>Butuh Verifikasi</div>
+          <div className="stat-card-value" style={{ color: '#d97706' }}>{unverifiedCount}</div>
         </div>
         {ROLES.map(r => {
           const cfg = ROLE_LABELS[r]
@@ -133,9 +164,11 @@ export default function AdminUsersPage() {
                 <tr>
                   <th>Pengguna</th>
                   <th>NIDN</th>
-                  <th style={{ width: 160 }}>Role</th>
-                  <th style={{ width: 200 }}>Program Studi</th>
-                  <th style={{ width: 80 }}>Bergabung</th>
+                  <th style={{ width: 140 }}>Role</th>
+                  <th style={{ width: 180 }}>Program Studi</th>
+                  <th style={{ width: 150, textAlign:'center' }}>Status Verifikasi</th>
+                  <th style={{ width: 90 }}>Bergabung</th>
+                  <th style={{ width: 120, textAlign:'center' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +178,7 @@ export default function AdminUsersPage() {
                     .split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
                   return (
-                    <tr key={u.id}>
+                    <tr key={u.id} style={{ opacity: u.is_verified ? 1 : 0.85, background: u.is_verified ? 'transparent' : '#fffbeb' }}>
                       {/* Avatar + name */}
                       <td>
                         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -154,7 +187,8 @@ export default function AdminUsersPage() {
                           ) : (
                             <div style={{
                               width:32, height:32, borderRadius:'50%',
-                              background:'#eef2ff', color:'#6366f1',
+                              background: u.is_verified ? '#eef2ff' : '#fff3cd',
+                              color: u.is_verified ? '#6366f1' : '#d97706',
                               display:'flex', alignItems:'center', justifyContent:'center',
                               fontSize:11, fontWeight:700, flexShrink:0,
                             }}>
@@ -162,8 +196,9 @@ export default function AdminUsersPage() {
                             </div>
                           )}
                           <div>
-                            <div style={{ fontWeight:600, fontSize:13, color:'#1e293b' }}>
+                            <div style={{ fontWeight:600, fontSize:13, color:'#1e293b', display:'flex', alignItems:'center', gap:6 }}>
                               {u.nama_lengkap || '—'}
+                              {!u.is_verified && <span className="badge-pill badge-amber" style={{ fontSize: 9, padding: '2px 6px' }}>Baru</span>}
                             </div>
                             <div style={{ fontSize:11, color:'#94a3b8' }}>{u.email}</div>
                           </div>
@@ -174,7 +209,7 @@ export default function AdminUsersPage() {
                       <td>
                         <input
                           className="input"
-                          style={{ padding:'4px 8px', fontSize:12, width:110 }}
+                          style={{ padding:'4px 8px', fontSize:12, width:95 }}
                           defaultValue={u.nidn || ''}
                           placeholder="—"
                           onBlur={e => {
@@ -209,7 +244,7 @@ export default function AdminUsersPage() {
                           style={{ padding:'4px 8px', fontSize:12, width:'100%' }}
                           value={u.prodi_id || ''}
                           disabled={isSaving}
-                          onChange={e => updateUser(u.id, 'prodi_id', e.target.value)}
+                          onChange={e => updateUser(u.id, 'prodi_id', e.target.value || null)}
                         >
                           <option value="">— Belum ditetapkan —</option>
                           {prodi.map(p => (
@@ -218,9 +253,67 @@ export default function AdminUsersPage() {
                         </select>
                       </td>
 
+                      {/* Status Verifikasi */}
+                      <td style={{ textAlign: 'center' }}>
+                        {u.is_verified ? (
+                          <span className="badge-pill badge-green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <CheckCircle size={10} /> Terverifikasi
+                          </span>
+                        ) : (
+                          <span className="badge-pill badge-amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <AlertTriangle size={10} /> Butuh Aktivasi
+                          </span>
+                        )}
+                      </td>
+
                       {/* Bergabung */}
                       <td style={{ fontSize:11, color:'#94a3b8', whiteSpace:'nowrap' }}>
                         {new Date(u.created_at).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'2-digit' })}
+                      </td>
+
+                      {/* Aksi */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                          {!u.is_verified && (
+                            <button
+                              className="btn btn-primary btn-xs"
+                              disabled={isSaving}
+                              onClick={() => updateUser(u.id, 'is_verified', true)}
+                              style={{
+                                background: '#10b981',
+                                borderColor: '#059669',
+                                color: '#fff',
+                                fontWeight: 700,
+                                fontSize: '10px',
+                                padding: '4px 10px',
+                              }}
+                            >
+                              Terima
+                            </button>
+                          )}
+                          {u.is_verified && (
+                            <button
+                              className="btn btn-secondary btn-xs"
+                              disabled={isSaving}
+                              onClick={() => updateUser(u.id, 'is_verified', false)}
+                              style={{
+                                fontSize: '10px',
+                                padding: '4px 8px',
+                              }}
+                            >
+                              Blokir
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-ghost btn-icon btn-sm"
+                            disabled={isSaving}
+                            onClick={() => deleteUser(u.id, u.nama_lengkap)}
+                            style={{ color: '#ef4444', padding: 4 }}
+                            title="Hapus Pengguna Permanen"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -232,7 +325,7 @@ export default function AdminUsersPage() {
       </div>
 
       <p style={{ fontSize:11, color:'#94a3b8', marginTop:12 }}>
-        {filtered.length} dari {users.length} pengguna ditampilkan · Perubahan role & prodi langsung disimpan
+        {filtered.length} dari {users.length} pengguna ditampilkan · Perubahan langsung tersimpan ke database
       </p>
     </div>
   )

@@ -95,15 +95,7 @@ function DosenMenu() {
   )
 }
 
-// ── Menu Mahasiswa ────────────────────────────────────────────
-function MahasiswaMenu() {
-  return (
-    <>
-      <div className="sidebar-section-label">Beranda</div>
-      <NavItem label="Dashboard Saya" icon={LayoutDashboard} to="/dashboard" />
-    </>
-  )
-}
+
 
 // ── Menu Kaprodi (hanya muncul untuk role kaprodi) ────────────
 function KaprodiMenu() {
@@ -122,8 +114,6 @@ function KaprodiMenu() {
       <NavItem label="Repositori Kurikulum" icon={Database} to="/kurikulum" />
 
       <div className="sidebar-section-label">Data Master</div>
-      <NavItem label="Daftar Mata Kuliah" icon={BookOpen}      to="/master/mk" />
-      <NavItem label="Penugasan Dosen"    icon={Users}         to="/master/penugasan" />
       <NavItem label="Import CSV"         icon={Upload}        to="/master/import" />
     </>
   )
@@ -167,7 +157,6 @@ export default function Sidebar() {
   const showDosen   = role === 'dosen' || role === 'kaprodi'
   const showKaprodi = role === 'kaprodi'
   const showAdmin   = role === 'admin'
-  const showMahasiswa = role === 'mahasiswa'
 
   return (
     <aside className="app-sidebar"
@@ -195,7 +184,6 @@ export default function Sidebar() {
         {showDosen  && <DosenMenu />}
         {showKaprodi && <KaprodiMenu />}
         {showAdmin  && <AdminMenu />}
-        {showMahasiswa && <MahasiswaMenu />}
 
         {/* Profil & Pengaturan — semua role */}
         {role && (

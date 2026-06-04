@@ -61,6 +61,11 @@ export default function RpsFormPage() {
     mk:             null,   // full mk object
     tahun_akademik: cur.tahun,
     semester_aktif: cur.semester,
+    manualProdiId:  '',
+    manualKodeMk:   '',
+    manualNamaMk:   '',
+    manualSks:      2,
+    manualSemester: 1,
 
     // Step 2
     deskripsi_mk: '',
@@ -119,7 +124,69 @@ export default function RpsFormPage() {
 
   async function handleNext() {
     // Validasi per step
-    if (step === 1 && !form.mk) { toast.error('Pilih Mata Kuliah terlebih dahulu'); return }
+    if (step === 1) {
+      if (!form.manualProdiId) { toast.error('Pilih Program Studi terlebih dahulu'); return }
+      if (!form.manualKodeMk.trim()) { toast.error('Kode Mata Kuliah wajib diisi'); return }
+      if (!form.manualNamaMk.trim()) { toast.error('Nama Mata Kuliah wajib diisi'); return }
+      if (!form.manualSks || form.manualSks < 1) { toast.error('SKS tidak valid'); return }
+      if (!form.manualSemester || form.manualSemester < 1 || form.manualSemester > 8) { toast.error('Semester tidak valid'); return }
+
+      setSaving(true)
+      const loadToast = toast.loading('Memproses data mata kuliah...')
+      try {
+        // Cek apakah MK sudah ada di database
+        const { data: existingMk } = await supabase
+          .from('mata_kuliah')
+          .select('*')
+          .eq('prodi_id', form.manualProdiId)
+          .eq('kode_mk', form.manualKodeMk.trim().toUpperCase())
+          .maybeSingle()
+
+        let mkData
+        if (existingMk) {
+          // Update data jika berubah
+          const { data: updatedMk, error: updateErr } = await supabase
+            .from('mata_kuliah')
+            .update({
+              nama_mk: form.manualNamaMk.trim(),
+              sks: Number(form.manualSks),
+              semester: Number(form.manualSemester)
+            })
+            .eq('id', existingMk.id)
+            .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id')
+            .single()
+
+          if (updateErr) throw updateErr
+          mkData = updatedMk
+        } else {
+          // Buat data MK baru
+          const { data: newMk, error: insertErr } = await supabase
+            .from('mata_kuliah')
+            .insert({
+              prodi_id: form.manualProdiId,
+              kode_mk: form.manualKodeMk.trim().toUpperCase(),
+              nama_mk: form.manualNamaMk.trim(),
+              sks: Number(form.manualSks),
+              semester: Number(form.manualSemester)
+            })
+            .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id')
+            .single()
+
+          if (insertErr) throw insertErr
+          mkData = newMk
+        }
+
+        setForm(p => ({ ...p, mk: mkData }))
+        toast.dismiss(loadToast)
+      } catch (err) {
+        console.error(err)
+        toast.dismiss(loadToast)
+        toast.error('Gagal menetapkan Mata Kuliah: ' + err.message)
+        setSaving(false)
+        return
+      }
+      setSaving(false)
+    }
     if (step === 2 && !form.deskripsi_mk.trim()) { toast.error('Deskripsi MK wajib diisi'); return }
     if (step === 3 && form.cpmk.length === 0) { toast.error('Tambahkan minimal 1 CPMK'); return }
     if (step < 5) { setStep(s => s + 1); return }
@@ -215,7 +282,7 @@ export default function RpsFormPage() {
 
       {/* Step content */}
       <div className="card" style={{ padding:'28px 32px', minHeight:400 }}>
-        {step === 1 && <Step1Mk form={form} setF={setF} userId={user?.id} />}
+        {step === 1 && <Step1Mk form={form} setF={setF} userId={user?.id} userProdiId={profile?.prodi_id} />}
         {step === 2 && <Step2Identitas form={form} setF={setF} />}
         {step === 3 && <Step3Cpmk form={form} setF={setF} />}
         {step === 4 && <Step4Pertemuan form={form} setF={setF} />}
