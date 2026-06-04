@@ -31,6 +31,9 @@ import RpsDetailPage from '@/pages/rps/RpsDetailPage'
 import RpsEditPage   from '@/pages/rps/RpsEditPage'
 import ProdiRpsPage  from '@/pages/rps/ProdiRpsPage'
 import RpsPrintPage  from '@/pages/rps/RpsPrintPage'
+import ReviewRpsListPage   from '@/pages/rps/ReviewRpsListPage'
+import RpsReviewPage       from '@/pages/rps/RpsReviewPage'
+import RpsReviewPrintPage  from '@/pages/rps/RpsReviewPrintPage'
 
 // Kurikulum (Kaprodi)
 import KurikulumPage       from '@/pages/kurikulum/KurikulumPage'
@@ -121,6 +124,7 @@ export default function AppRouter() {
           {/* Kaprodi only */}
           <Route path="/prodi/dashboard" element={<ProtectedRoute allowedRoles={['kaprodi']}><DashboardKaprodi /></ProtectedRoute>} />
           <Route path="/prodi/rps"       element={<ProtectedRoute allowedRoles={['kaprodi']}><ProdiRpsPage /></ProtectedRoute>} />
+          <Route path="/prodi/review-rps" element={<ProtectedRoute allowedRoles={['kaprodi']}><ReviewRpsListPage /></ProtectedRoute>} />
           <Route path="/prodi/spmi"      element={<ProtectedRoute allowedRoles={['kaprodi']}><ComingSoon title="Review SPMI" /></ProtectedRoute>} />
           <Route path="/prodi/siakad"    element={<ProtectedRoute allowedRoles={['kaprodi']}><SiakadIntegrationPage /></ProtectedRoute>} />
           <Route path="/kurikulum"       element={<ProtectedRoute allowedRoles={['kaprodi']}><KurikulumPage /></ProtectedRoute>} />
@@ -144,6 +148,8 @@ export default function AppRouter() {
 
         {/* Standalone Protected Print Page */}
         <Route path="/rps/:id/print" element={<ProtectedRoute><RpsPrintPage /></ProtectedRoute>} />
+        <Route path="/rps/:id/review" element={<ProtectedRoute allowedRoles={['kaprodi','dosen']}><RpsReviewPage /></ProtectedRoute>} />
+        <Route path="/rps/:id/review/print" element={<ProtectedRoute><RpsReviewPrintPage /></ProtectedRoute>} />
         <Route path="/kurikulum/print" element={<ProtectedRoute allowedRoles={['kaprodi']}><KurikulumPrintPage /></ProtectedRoute>} />
 
         {/* Fallback */}

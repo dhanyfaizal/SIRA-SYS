@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, PlusCircle, BookOpen,
   ChevronRight, ChevronDown, LogOut,
-  Users, Settings, GraduationCap, Shield,
+  Users, Settings, GraduationCap, Shield, ClipboardCheck,
   BarChart2, Upload, Database, FolderOpen, Building2,
 } from 'lucide-react'
 import { useAuth }    from '@/contexts/AuthContext'
@@ -113,6 +113,7 @@ function KaprodiMenu() {
       <div className="sidebar-section-label">Manajemen Prodi</div>
       <NavItem label="Dashboard Prodi" icon={BarChart2}    to="/prodi/dashboard" />
       <NavItem label="Semua RPS Prodi" icon={FolderOpen}   to="/prodi/rps" />
+      <NavItem label="Review RPS"     icon={ClipboardCheck} to="/prodi/review-rps" />
       <NavItem label="Review SPMI"     icon={Shield}        to="/prodi/spmi" />
       <NavItem label="Integrasi SIAKAD" icon={Database}      to="/prodi/siakad" />
 

@@ -5,7 +5,7 @@ import {
   Share2, Pencil, Send, X, Download, Sparkles, RefreshCw, Trash2
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { dbRPS, dbComments, dbNotifications } from '@/lib/db'
+import { dbRPS, dbComments, dbNotifications, dbReviewRps } from '@/lib/db'
 import { reviewSpmi } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -60,6 +60,9 @@ export default function RpsDetailPage() {
   const [token,   setToken]   = useState(null)
   const [auditing, setAuditing] = useState(false)
 
+  // Review RPS state
+  const [latestReview, setLatestReview] = useState(null)
+
   // Team teaching states
   const [teamMembers, setTeamMembers] = useState([])
   const [prodiLecturers, setProdiLecturers] = useState([])
@@ -106,6 +109,10 @@ export default function RpsDetailPage() {
     }
     load()
     loadComments()
+    // Load latest review
+    dbReviewRps.getLatestByRpsId(id).then(({ data }) => {
+      if (data) setLatestReview(data)
+    })
   }, [id])
 
   const isOwner   = rps?.dosen_id === user?.id
@@ -688,6 +695,67 @@ export default function RpsDetailPage() {
               <span style={{ color:'#334155' }}>{r}</span>
             </div>
           ))}
+        </Section>
+      )}
+
+      {/* ── SECTION: Hasil Review RPS ──────────────────────────── */}
+      {rps.status === 'approved' && (
+        <Section title="Hasil Review RPS">
+          {latestReview ? (() => {
+            const ALL_KEYS = [
+              'a_cpmk_subcpmk',
+              'b1_identitas_mk','b2_penanggung_jawab','b3_cpl_cpmk','b4_deskripsi_mk',
+              'b5_bahan_kajian','b6_referensi','b7_media_pembelajaran','b8_prasyarat','b9_komposisi',
+              'c1_minggu_ke','c2_kemampuan_akhir','c3_bahan_kajian_rps','c4_metode_pembelajaran',
+              'c5_waktu','c6_pengalaman_belajar','c7_kriteria_penilaian','c8_bobot_nilai','c9_referensi_rps'
+            ]
+            const sesuai = ALL_KEYS.filter(k => latestReview[k] === 'sesuai').length
+            const cukup = ALL_KEYS.filter(k => latestReview[k] === 'cukup').length
+            const tidak = ALL_KEYS.filter(k => latestReview[k] === 'tidak_sesuai').length
+            const filled = ALL_KEYS.filter(k => latestReview[k]).length
+            return (
+              <div>
+                <div style={{ display: 'flex', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
+                  <div style={{ padding: '10px 16px', background: '#d1fae5', borderRadius: 8, textAlign: 'center', flex: '1 1 100px' }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#10b981' }}>{sesuai}</div>
+                    <div style={{ fontSize: 11, color: '#065f46', fontWeight: 600 }}>Sesuai</div>
+                  </div>
+                  <div style={{ padding: '10px 16px', background: '#fef3c7', borderRadius: 8, textAlign: 'center', flex: '1 1 100px' }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>{cukup}</div>
+                    <div style={{ fontSize: 11, color: '#92400e', fontWeight: 600 }}>Cukup</div>
+                  </div>
+                  <div style={{ padding: '10px 16px', background: '#fee2e2', borderRadius: 8, textAlign: 'center', flex: '1 1 100px' }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>{tidak}</div>
+                    <div style={{ fontSize: 11, color: '#991b1b', fontWeight: 600 }}>Tidak Sesuai</div>
+                  </div>
+                  <div style={{ padding: '10px 16px', background: '#eef2ff', borderRadius: 8, textAlign: 'center', flex: '1 1 100px' }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#4f46e5' }}>{filled}/19</div>
+                    <div style={{ fontSize: 11, color: '#3730a3', fontWeight: 600 }}>Terisi</div>
+                  </div>
+                </div>
+                {latestReview.rekomendasi && (
+                  <div style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, marginBottom: 12, fontSize: 12, color: '#334155' }}>
+                    <strong style={{ color: '#64748b' }}>Rekomendasi:</strong> {latestReview.rekomendasi}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 6, fontSize: 11, color: '#94a3b8', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Terakhir direview: {new Date(latestReview.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} oleh {latestReview.reviewer?.nama_lengkap || 'Ka. Prodi'}</span>
+                  <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/rps/${id}/review`)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    Lihat Detail Review
+                  </button>
+                </div>
+              </div>
+            )
+          })() : (
+            <div style={{ textAlign: 'center', padding: '16px 20px', color: '#94a3b8', fontSize: 13 }}>
+              RPS ini belum direview.
+              {isKaprodi && (
+                <button className="btn btn-primary btn-sm" onClick={() => navigate(`/rps/${id}/review`)} style={{ marginLeft: 10, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  Mulai Review
+                </button>
+              )}
+            </div>
+          )}
         </Section>
       )}
 

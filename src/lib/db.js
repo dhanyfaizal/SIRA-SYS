@@ -221,3 +221,55 @@ export const dbNotifications = {
     supabase.from('notifications').insert({ user_id: userId, title, message, link }),
 }
 
+// ── Review RPS ────────────────────────────────────────────────
+export const dbReviewRps = {
+  /** Ambil review terbaru untuk satu RPS */
+  getLatestByRpsId: (rpsId) =>
+    supabase.from('rps_reviews')
+      .select(`
+        *,
+        reviewer:profiles!reviewer_id(id, nama_lengkap, nidn)
+      `)
+      .eq('rps_id', rpsId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+
+  /** Ambil semua riwayat review untuk satu RPS */
+  getAllByRpsId: (rpsId) =>
+    supabase.from('rps_reviews')
+      .select(`
+        *,
+        reviewer:profiles!reviewer_id(id, nama_lengkap, nidn)
+      `)
+      .eq('rps_id', rpsId)
+      .order('created_at', { ascending: false }),
+
+  /** Ambil review terbaru untuk semua RPS approved di prodi (untuk daftar) */
+  getByProdi: (prodiId) =>
+    supabase.from('rps_reviews')
+      .select(`
+        id, rps_id, reviewer_id, created_at, updated_at,
+        a_cpmk_subcpmk,
+        b1_identitas_mk, b2_penanggung_jawab, b3_cpl_cpmk, b4_deskripsi_mk,
+        b5_bahan_kajian, b6_referensi, b7_media_pembelajaran, b8_prasyarat, b9_komposisi,
+        c1_minggu_ke, c2_kemampuan_akhir, c3_bahan_kajian_rps, c4_metode_pembelajaran,
+        c5_waktu, c6_pengalaman_belajar, c7_kriteria_penilaian, c8_bobot_nilai, c9_referensi_rps,
+        rekomendasi,
+        reviewer:profiles!reviewer_id(nama_lengkap),
+        rps:rps!rps_id(
+          id, mk_id, dosen_id, status,
+          mk:mata_kuliah!mk_id(prodi_id)
+        )
+      `)
+      .eq('rps.mk.prodi_id', prodiId)
+      .order('created_at', { ascending: false }),
+
+  /** Buat review baru */
+  create: (data) =>
+    supabase.from('rps_reviews').insert(data).select().single(),
+
+  /** Update review yang sudah ada */
+  update: (id, data) =>
+    supabase.from('rps_reviews').update(data).eq('id', id).select().single(),
+}
