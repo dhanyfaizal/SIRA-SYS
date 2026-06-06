@@ -116,6 +116,16 @@ export default function RpsPublicViewPage() {
 
   const cpmkList = cp.cpmk ?? []
 
+  const getProdiColor = (prodiName) => {
+    const name = prodiName?.toLowerCase() || ''
+    if (name.includes('sistem informasi')) return '#7f1d1d'
+    if (name.includes('komputerisasi akuntansi')) return '#064e3b'
+    if (name.includes('teknik informatika')) return '#9a3412'
+    if (name.includes('desain komunikasi visual')) return '#581c87'
+    return '#312e81'
+  }
+  const prodiColor = mk.prodi?.nama ? getProdiColor(mk.prodi.nama) : '#312e81'
+
   return (
     <>
       {/* Styles khusus cetak PDF dan Layout */}
@@ -166,7 +176,7 @@ export default function RpsPublicViewPage() {
           }
           /* Cover & Flowchart Page A4 Page Scaling */
           .cover-page {
-            background-color: #4f46e5 !important;
+            background-color: var(--prodi-cover-color, #4f46e5) !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color: #ffffff !important;
@@ -609,7 +619,7 @@ export default function RpsPublicViewPage() {
       </div>
 
       {/* ===== Print View ===== */}
-      <div className="print-layout-only">
+      <div className="print-layout-only" style={{ '--prodi-cover-color': prodiColor }}>
         {/* ── HALAMAN 1: COVER PAGE (PURPLE) ────────────────────────── */}
         <div className="cover-page">
           <div className="cover-title">

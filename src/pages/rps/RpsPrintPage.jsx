@@ -129,8 +129,18 @@ export default function RpsPrintPage() {
     .filter((v, i, self) => self.indexOf(v) === i) // filter duplicate
     .slice(0, 12) // Batasi agar pas di satu halaman
 
+  const getProdiColor = (prodiName) => {
+    const name = prodiName?.toLowerCase() || ''
+    if (name.includes('sistem informasi')) return '#7f1d1d'
+    if (name.includes('komputerisasi akuntansi')) return '#064e3b'
+    if (name.includes('teknik informatika')) return '#9a3412'
+    if (name.includes('desain komunikasi visual')) return '#581c87'
+    return '#312e81'
+  }
+  const prodiColor = rps.mk?.prodi?.nama ? getProdiColor(rps.mk.prodi.nama) : '#312e81'
+
   return (
-    <div className="print-container">
+    <div className="print-container" style={{ '--prodi-cover-color': prodiColor }}>
       {/* Styles khusus cetak PDF dan Layout */}
       <style>{`
         @media print {
@@ -166,7 +176,7 @@ export default function RpsPrintPage() {
           }
           /* Cover & Flowchart Page A4 Page Scaling */
           .cover-page {
-            background-color: #4f46e5 !important;
+            background-color: var(--prodi-cover-color, #4f46e5) !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color: #ffffff !important;
@@ -282,7 +292,7 @@ export default function RpsPrintPage() {
           align-items: center;
           padding: 80px 50px;
           text-align: center;
-          background-color: #4f46e5;
+          background-color: var(--prodi-cover-color, #4f46e5);
           color: #ffffff;
           border: 3px double #ffffff;
         }

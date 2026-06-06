@@ -133,8 +133,18 @@ export default function KurikulumPrintPage() {
     year: 'numeric'
   })
 
+  const getProdiColor = (prodiName) => {
+    const name = prodiName?.toLowerCase() || ''
+    if (name.includes('sistem informasi')) return '#7f1d1d'
+    if (name.includes('komputerisasi akuntansi')) return '#064e3b'
+    if (name.includes('teknik informatika')) return '#9a3412'
+    if (name.includes('desain komunikasi visual')) return '#581c87'
+    return '#312e81'
+  }
+  const prodiColor = prodi?.nama ? getProdiColor(prodi.nama) : '#312e81'
+
   return (
-    <div className="print-container">
+    <div className="print-container" style={{ '--prodi-cover-color': prodiColor }}>
       <style>{`
         @media print {
           html, body, #root, #app, .app-shell, .app-main, .app-content {
@@ -167,7 +177,7 @@ export default function KurikulumPrintPage() {
             margin: 15mm;
           }
           .cover-page {
-            background-color: #4f46e5 !important;
+            background-color: var(--prodi-cover-color, #4f46e5) !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color: #ffffff !important;
@@ -244,7 +254,7 @@ export default function KurikulumPrintPage() {
           align-items: center;
           padding: 80px 50px;
           text-align: center;
-          background-color: #4f46e5;
+          background-color: var(--prodi-cover-color, #4f46e5);
           color: #ffffff;
           border: 3px double #ffffff;
         }
