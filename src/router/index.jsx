@@ -184,8 +184,8 @@ export default function AppRouter() {
           <Route path="/prodi/review-rps" element={<ProtectedRoute allowedRoles={['kaprodi']}><ReviewRpsListPage /></ProtectedRoute>} />
           <Route path="/prodi/spmi"      element={<ProtectedRoute allowedRoles={['kaprodi']}><ComingSoon title="Review SPMI" /></ProtectedRoute>} />
           <Route path="/prodi/siakad"    element={<ProtectedRoute allowedRoles={['kaprodi']}><SiakadIntegrationPage /></ProtectedRoute>} />
-          <Route path="/kurikulum"       element={<ProtectedRoute allowedRoles={['kaprodi']}><KurikulumPage /></ProtectedRoute>} />
-          <Route path="/kurikulum/upload" element={<ProtectedRoute allowedRoles={['kaprodi']}><KurikulumUploadPage /></ProtectedRoute>} />
+          <Route path="/kurikulum"       element={<ProtectedRoute allowedRoles={['kaprodi', 'admin']}><KurikulumPage /></ProtectedRoute>} />
+          <Route path="/kurikulum/upload" element={<ProtectedRoute allowedRoles={['kaprodi', 'admin']}><KurikulumUploadPage /></ProtectedRoute>} />
           <Route path="/master/mk"       element={<ProtectedRoute allowedRoles={['kaprodi','admin']}><MataKuliahPage /></ProtectedRoute>} />
           <Route path="/master/penugasan" element={<ProtectedRoute allowedRoles={['kaprodi','admin']}><PenugasanPage /></ProtectedRoute>} />
           <Route path="/master/import"   element={<ProtectedRoute allowedRoles={['kaprodi']}><ComingSoon title="Import CSV" /></ProtectedRoute>} />
@@ -207,7 +207,7 @@ export default function AppRouter() {
         {/* Standalone Protected Print Page */}
         <Route path="/rps/:id/print" element={<ProtectedRoute><RpsPrintPage /></ProtectedRoute>} />
         <Route path="/rps/:id/review/print" element={<ProtectedRoute><RpsReviewPrintPage /></ProtectedRoute>} />
-        <Route path="/kurikulum/print" element={<ProtectedRoute allowedRoles={['kaprodi']}><KurikulumPrintPage /></ProtectedRoute>} />
+        <Route path="/kurikulum/print" element={<ProtectedRoute allowedRoles={['kaprodi', 'admin']}><KurikulumPrintPage /></ProtectedRoute>} />
 
         {/* Fallback */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

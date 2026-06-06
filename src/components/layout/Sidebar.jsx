@@ -142,6 +142,10 @@ function AdminMenu() {
         <SubItem key={p.id} label={p.nama} icon={GraduationCap} to={`/admin/prodi/${p.kode.toLowerCase()}`} />
       ))}
 
+      <div className="sidebar-section-label">Kurikulum & RAG</div>
+      <NavItem label="Upload Kurikulum"    icon={Upload}   to="/kurikulum/upload" />
+      <NavItem label="Repositori Kurikulum" icon={Database} to="/kurikulum" />
+
       <div className="sidebar-section-label">Sistem</div>
       <NavItem label="Pengaturan" icon={Settings} to="/admin/settings" />
     </>
