@@ -79,7 +79,7 @@ export default function RpsPrintPage() {
   if (!rps) return null
 
   const cp = rps.capaian_pembelajaran ?? {}
-  const cplList = cp.cpl ?? []
+  const cplList = (cp.cpl && cp.cpl.length > 0) ? cp.cpl : (rps.mk?.cpl ?? [])
   const cpmkList = cp.cpmk ?? []
   const renc = rps.rencana_pembelajaran ?? []
   const pen = rps.penilaian ?? {}

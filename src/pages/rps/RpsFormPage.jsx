@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, ChevronLeft, Check, BookOpen, FileText, Target, Calendar, BarChart2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -83,26 +83,127 @@ export default function RpsFormPage() {
 
   const setF = (key, val) => setForm(p => ({ ...p, [key]: val }))
 
-  // Auto-save sebagai draft setiap 30 detik
+  // Ref to always get the latest form state inside the interval
+  const formRef = useRef(form)
   useEffect(() => {
-    if (!form.mk || !user) return
-    const id = setInterval(() => saveDraft(false), 30_000)
-    return () => clearInterval(id)
-  }, [form, user])
+    formRef.current = form
+  }, [form])
 
-  async function saveDraft(notify = true) {
-    if (!form.mk || !user) return
-    const payload = buildPayload('draft')
+  // Ref to always get the latest user state inside the interval
+  const userRef = useRef(user)
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
+
+  // Ref to always get the latest draftId state inside the interval
+  const draftIdRef = useRef(draftId)
+  useEffect(() => {
+    draftIdRef.current = draftId
+  }, [draftId])
+
+  // Ref for saveDraft function to prevent calling old closures
+  const saveDraftRef = useRef(null)
+  saveDraftRef.current = async function(notify = true) {
+    const currentForm = formRef.current
+    const currentUser = userRef.current
+    const currentDraftId = draftIdRef.current
+
+    if (!currentForm.mk || !currentUser) return { error: new Error('Mata kuliah not selected or user not logged in') }
+
+    const payload = {
+      dosen_id:       currentUser.id,
+      mk_id:          currentForm.mk?.id,
+      tahun_akademik: currentForm.tahun_akademik,
+      semester_aktif: currentForm.semester_aktif,
+      status:         'draft',
+      deskripsi_mk:   currentForm.deskripsi_mk,
+      capaian_pembelajaran: {
+        cpl:  currentForm.mk?.cpl ?? [],
+        cpmk: currentForm.cpmk,
+      },
+      rencana_pembelajaran: currentForm.pertemuan,
+      penilaian:  currentForm.penilaian,
+      referensi:  currentForm.referensi,
+    }
+
     let result
-    if (draftId) {
-      result = await dbRPS.update(draftId, payload)
+    if (currentDraftId) {
+      result = await dbRPS.update(currentDraftId, payload)
     } else {
       result = await dbRPS.create(payload)
       if (result.data) setDraftId(result.data.id)
     }
     if (notify && !result.error) toast.success('Draft tersimpan')
     if (result.error) console.error('Draft save error:', result.error)
+    return result
   }
+
+  const saveDraft = useCallback((notify = true) => {
+    if (saveDraftRef.current) {
+      return saveDraftRef.current(notify)
+    }
+  }, [])
+
+  // Auto-save sebagai draft setiap 30 detik
+  useEffect(() => {
+    if (!user) return
+    const id = setInterval(() => {
+      if (formRef.current.mk) {
+        saveDraft(false)
+      }
+    }, 30_000)
+    return () => clearInterval(id)
+  }, [user, saveDraft])
+
+  // Auto-fetch curriculum CPL if course doesn't have CPL mapped
+  useEffect(() => {
+    if (!form.mk) return
+    if (form.mk.cpl && form.mk.cpl.length > 0) return
+
+    async function loadCurriculumCpl() {
+      const prodiId = form.mk.prodi_id || form.manualProdiId
+      if (!prodiId) return
+      try {
+        // Try fetching active curriculum first
+        let { data, error } = await supabase
+          .from('kurikulum_docs')
+          .select('extracted_data')
+          .eq('prodi_id', prodiId)
+          .eq('jenis', 'kurikulum')
+          .eq('is_active', true)
+          .limit(1)
+
+        // Fallback to latest if no active curriculum
+        if (error || !data || data.length === 0) {
+          const { data: latestData, error: latestError } = await supabase
+            .from('kurikulum_docs')
+            .select('extracted_data')
+            .eq('prodi_id', prodiId)
+            .eq('jenis', 'kurikulum')
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (!latestError && latestData) {
+            data = latestData
+          }
+        }
+
+        if (data && data.length > 0) {
+          const list = data[0].extracted_data?.cpl ?? []
+          const cplArray = list.map(c => `${c.kode}: ${c.deskripsi}`)
+          setForm(prev => ({
+            ...prev,
+            mk: {
+              ...prev.mk,
+              cpl: cplArray
+            }
+          }))
+        }
+      } catch (err) {
+        console.error('Error fetching curriculum CPLs:', err)
+      }
+    }
+    loadCurriculumCpl()
+  }, [form.mk?.id, form.mk?.prodi_id, form.manualProdiId])
 
   function buildPayload(status) {
     return {
@@ -144,20 +245,29 @@ export default function RpsFormPage() {
 
         let mkData
         if (existingMk) {
-          // Update data jika berubah
-          const { data: updatedMk, error: updateErr } = await supabase
-            .from('mata_kuliah')
-            .update({
-              nama_mk: form.manualNamaMk.trim(),
-              sks: Number(form.manualSks),
-              semester: Number(form.manualSemester)
-            })
-            .eq('id', existingMk.id)
-            .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id')
-            .single()
+          const isPowerUser = profile?.role === 'kaprodi' || profile?.role === 'admin'
+          const hasChanged = existingMk.nama_mk !== form.manualNamaMk.trim() ||
+                             existingMk.sks !== Number(form.manualSks) ||
+                             existingMk.semester !== Number(form.manualSemester)
 
-          if (updateErr) throw updateErr
-          mkData = updatedMk
+          if (isPowerUser && hasChanged) {
+            // Update data jika berubah
+            const { data: updatedMk, error: updateErr } = await supabase
+              .from('mata_kuliah')
+              .update({
+                nama_mk: form.manualNamaMk.trim(),
+                sks: Number(form.manualSks),
+                semester: Number(form.manualSemester)
+              })
+              .eq('id', existingMk.id)
+              .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id')
+              .single()
+
+            if (updateErr) throw updateErr
+            mkData = updatedMk
+          } else {
+            mkData = existingMk
+          }
         } else {
           // Buat data MK baru
           const { data: newMk, error: insertErr } = await supabase

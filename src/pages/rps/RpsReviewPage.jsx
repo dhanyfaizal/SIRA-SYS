@@ -171,7 +171,9 @@ export default function RpsReviewPage() {
     switch (key) {
       case 'a_cpmk_subcpmk':
       case 'b3_cpl_cpmk': {
-        const cpls = rps.capaian_pembelajaran?.cpl || [];
+        const cpls = (rps.capaian_pembelajaran?.cpl && rps.capaian_pembelajaran.cpl.length > 0)
+          ? rps.capaian_pembelajaran.cpl
+          : (rps.mk?.cpl || []);
         const cpmks = rps.capaian_pembelajaran?.cpmk || [];
         return (
           <div>

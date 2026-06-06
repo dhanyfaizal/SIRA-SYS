@@ -16,10 +16,37 @@ export default function KurikulumPage() {
   const [activeTab, setActiveTab] = useState('cpl') // 'cpl' | 'profil' | 'matrix' | 'history'
   const [deleteConfirmDocId, setDeleteConfirmDocId] = useState(null)
 
-  const prodiId = profile?.prodi_id
+  const [prodiList, setProdiList] = useState([])
+  const [selectedProdiId, setSelectedProdiId] = useState('')
+
+  // Load program studi list
+  useEffect(() => {
+    async function loadProdis() {
+      try {
+        const { data, error } = await supabase
+          .from('program_studi')
+          .select('id, kode, nama')
+          .order('nama')
+        if (error) throw error
+        if (data) {
+          setProdiList(data)
+          // Default to user's prodi if set
+          const userProdi = data.find(p => p.id === profile?.prodi_id)
+          if (userProdi) {
+            setSelectedProdiId(userProdi.id)
+          } else if (data.length > 0) {
+            setSelectedProdiId(data[0].id)
+          }
+        }
+      } catch (err) {
+        console.error('Gagal memuat Program Studi:', err)
+      }
+    }
+    loadProdis()
+  }, [profile?.prodi_id])
 
   async function load() {
-    if (!prodiId) return
+    if (!selectedProdiId) return
     setLoading(true)
     try {
       // 1. Fetch kurikulum docs
@@ -29,7 +56,7 @@ export default function KurikulumPage() {
           id, nama_dokumen, jenis, storage_path, created_at, extracted_data, is_active,
           uploader:profiles!uploaded_by(nama_lengkap)
         `)
-        .eq('prodi_id', prodiId)
+        .eq('prodi_id', selectedProdiId)
         .eq('jenis', 'kurikulum')
         .order('created_at', { ascending: false })
 
@@ -40,7 +67,7 @@ export default function KurikulumPage() {
       const { data: courseData, error: courseError } = await supabase
         .from('mata_kuliah')
         .select('*')
-        .eq('prodi_id', prodiId)
+        .eq('prodi_id', selectedProdiId)
         .order('semester')
         .order('kode_mk')
 
@@ -56,7 +83,7 @@ export default function KurikulumPage() {
 
   useEffect(() => {
     load()
-  }, [prodiId])
+  }, [selectedProdiId])
 
   async function handleSetActive(id) {
     try {
@@ -120,12 +147,23 @@ export default function KurikulumPage() {
     }
   }
 
-  if (!prodiId) return (
-    <div className="page-header">
-      <h1 className="page-title">Kurikulum & CPL</h1>
-      <p style={{ color: '#ef4444', fontSize: 13 }}>⚠️ Akun Anda belum ditetapkan ke Program Studi. Hubungi Admin.</p>
-    </div>
-  )
+  if (loading && prodiList.length === 0) {
+    return (
+      <div className="card card-body" style={{ textAlign: 'center', padding: 48, color: '#94a3b8' }}>
+        <div className="spinner" style={{ margin: '0 auto 12px' }} />
+        Memuat data…
+      </div>
+    )
+  }
+
+  if (prodiList.length === 0) {
+    return (
+      <div className="page-header">
+        <h1 className="page-title">Kurikulum & CPL</h1>
+        <p style={{ color: '#ef4444', fontSize: 13 }}>⚠️ Akun Anda belum ditetapkan ke Program Studi. Hubungi Admin.</p>
+      </div>
+    )
+  }
 
   const activeDoc = docs.find(d => d.is_active) || docs[0]
   const hasData = docs.length > 0
@@ -141,12 +179,45 @@ export default function KurikulumPage() {
           <p className="page-subtitle">Kelola Profil Lulusan dan Capaian Pembelajaran Lulusan (CPL) program studi Anda</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary" onClick={() => window.open('/kurikulum/print', '_blank')}>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => window.open(`/kurikulum/print?prodi_id=${selectedProdiId}`, '_blank')}
+            disabled={!selectedProdiId}
+          >
             <Printer size={14} style={{ marginRight: 6 }} /> Cetak Buku Kurikulum
           </button>
           <button className="btn btn-primary" onClick={() => navigate('/kurikulum/upload')}>
             <Plus size={14} /> Upload Kurikulum Baru
           </button>
+        </div>
+      </div>
+
+      {/* Program Studi Selector */}
+      <div className="card" style={{ padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <GraduationCap size={20} color="#6366f1" />
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Program Studi</label>
+            <select
+              value={selectedProdiId}
+              onChange={e => setSelectedProdiId(e.target.value)}
+              style={{
+                border: '1px solid #cbd5e1',
+                borderRadius: 6,
+                padding: '6px 32px 6px 12px',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#1e293b',
+                background: '#fff',
+                cursor: 'pointer',
+                minWidth: 260
+              }}
+            >
+              {prodiList.map(p => (
+                <option key={p.id} value={p.id}>{p.kode} — {p.nama}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

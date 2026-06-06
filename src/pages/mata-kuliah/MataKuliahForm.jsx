@@ -21,15 +21,31 @@ export default function MataKuliahForm({ mk, prodiId, onClose, onSaved }) {
   useEffect(() => {
     async function loadCurriculum() {
       if (!prodiId) return
-      const { data, error } = await supabase
+      
+      // Try active first
+      let { data, error } = await supabase
         .from('kurikulum_docs')
         .select('extracted_data')
         .eq('prodi_id', prodiId)
         .eq('jenis', 'kurikulum')
-        .order('created_at', { ascending: false })
+        .eq('is_active', true)
         .limit(1)
 
-      if (!error && data && data.length > 0) {
+      // Fallback to latest
+      if (error || !data || data.length === 0) {
+        const { data: latestData, error: latestError } = await supabase
+          .from('kurikulum_docs')
+          .select('extracted_data')
+          .eq('prodi_id', prodiId)
+          .eq('jenis', 'kurikulum')
+          .order('created_at', { ascending: false })
+          .limit(1)
+        if (!latestError && latestData) {
+          data = latestData
+        }
+      }
+
+      if (data && data.length > 0) {
         setCurriculumCpls(data[0].extracted_data?.cpl ?? [])
       }
     }

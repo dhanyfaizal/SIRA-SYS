@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight, ChevronLeft, Check, BookOpen, FileText, Target, Calendar, BarChart2, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
 import Step2Identitas from './steps/Step2Identitas'
@@ -49,8 +50,9 @@ export default function RpsEditPage() {
       setReviewNotes(data.review_notes ?? {})
 
       const cp = data.capaian_pembelajaran ?? {}
+      const cplList = (cp.cpl && cp.cpl.length > 0) ? cp.cpl : (data.mk?.cpl ?? [])
       setForm({
-        mk:             data.mk,
+        mk:             { ...data.mk, cpl: cplList },
         tahun_akademik: data.tahun_akademik,
         semester_aktif: data.semester_aktif,
         deskripsi_mk:   data.deskripsi_mk ?? '',
@@ -64,7 +66,101 @@ export default function RpsEditPage() {
     load()
   }, [id, user])
 
+  // Auto-fetch curriculum CPL if course doesn't have CPL mapped
+  useEffect(() => {
+    if (!form?.mk) return
+    if (form.mk.cpl && form.mk.cpl.length > 0) return
+
+    async function loadCurriculumCpl() {
+      const prodiId = form.mk.prodi_id
+      if (!prodiId) return
+      try {
+        // Try fetching active curriculum first
+        let { data, error } = await supabase
+          .from('kurikulum_docs')
+          .select('extracted_data')
+          .eq('prodi_id', prodiId)
+          .eq('jenis', 'kurikulum')
+          .eq('is_active', true)
+          .limit(1)
+
+        // Fallback to latest if no active curriculum
+        if (error || !data || data.length === 0) {
+          const { data: latestData, error: latestError } = await supabase
+            .from('kurikulum_docs')
+            .select('extracted_data')
+            .eq('prodi_id', prodiId)
+            .eq('jenis', 'kurikulum')
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (!latestError && latestData) {
+            data = latestData
+          }
+        }
+
+        if (data && data.length > 0) {
+          const list = data[0].extracted_data?.cpl ?? []
+          const cplArray = list.map(c => `${c.kode}: ${c.deskripsi}`)
+          setForm(prev => ({
+            ...prev,
+            mk: {
+              ...prev.mk,
+              cpl: cplArray
+            }
+          }))
+        }
+      } catch (err) {
+        console.error('Error fetching curriculum CPLs:', err)
+      }
+    }
+    loadCurriculumCpl()
+  }, [form?.mk?.id, form?.mk?.prodi_id])
+
   const setF = (key, val) => setForm(p => ({ ...p, [key]: val }))
+
+  // Ref to always get the latest form state inside the interval
+  const formRef = useRef(form)
+  useEffect(() => {
+    formRef.current = form
+  }, [form])
+
+  const handleSaveRef = useRef(null)
+  handleSaveRef.current = async function(status = 'draft', notify = false) {
+    const currentForm = formRef.current
+    if (!currentForm) return { error: new Error('Form not loaded') }
+
+    const payload = {
+      status,
+      deskripsi_mk:   currentForm.deskripsi_mk,
+      capaian_pembelajaran: {
+        cpl:  currentForm.mk?.cpl ?? [],
+        cpmk: currentForm.cpmk,
+      },
+      rencana_pembelajaran: currentForm.pertemuan,
+      penilaian:  currentForm.penilaian,
+      referensi:  currentForm.referensi,
+    }
+
+    const { error } = await dbRPS.update(id, payload)
+    if (error) {
+      console.error('Auto-save error:', error)
+      if (notify) toast.error('Gagal menyimpan: ' + error.message)
+      return { error }
+    }
+    if (notify) toast.success(status === 'submitted' ? 'RPS diajukan ulang untuk review! ✅' : 'Draft tersimpan')
+    return { error: null }
+  }
+
+  // Auto-save sebagai draft setiap 30 detik
+  useEffect(() => {
+    if (!user) return
+    const intervalId = setInterval(() => {
+      if (formRef.current) {
+        handleSaveRef.current('draft', false)
+      }
+    }, 30_000)
+    return () => clearInterval(intervalId)
+  }, [user])
 
   function buildPayload(status) {
     return {
@@ -93,11 +189,11 @@ export default function RpsEditPage() {
 
   async function handleSave(status = 'draft') {
     setSaving(true)
-    const { error } = await dbRPS.update(id, buildPayload(status))
+    const { error } = await handleSaveRef.current(status, true)
     setSaving(false)
-    if (error) { toast.error('Gagal menyimpan: ' + error.message); return }
-    toast.success(status === 'submitted' ? 'RPS diajukan ulang untuk review! ✅' : 'Draft tersimpan')
-    navigate(`/rps/${id}`)
+    if (!error) {
+      navigate(`/rps/${id}`)
+    }
   }
 
   const pct = ((step - 1) / (STEPS.length - 1)) * 100

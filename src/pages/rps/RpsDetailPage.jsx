@@ -443,6 +443,7 @@ export default function RpsDetailPage() {
   if (!rps) return null
 
   const cp   = rps.capaian_pembelajaran ?? {}
+  const cplList = (cp.cpl && cp.cpl.length > 0) ? cp.cpl : (rps.mk?.cpl ?? [])
   const renc = rps.rencana_pembelajaran ?? []
   const pen  = rps.penilaian ?? {}
   const ref  = rps.referensi ?? []
@@ -631,12 +632,12 @@ export default function RpsDetailPage() {
 
       {/* ── SECTION 2: CPL & CPMK ───────────────────────────────── */}
       <Section title="Capaian Pembelajaran">
-        {(cp.cpl ?? []).length > 0 && (
+        {cplList.length > 0 && (
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:11, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:8 }}>
               CPL — Capaian Program Lulusan
             </div>
-            {(cp.cpl ?? []).map((c, i) => (
+            {cplList.map((c, i) => (
               <div key={i} style={{ display:'flex', gap:10, padding:'7px 10px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12, marginBottom:6 }}>
                 <span className="badge-pill badge-indigo" style={{ flexShrink:0 }}>CPL-{i+1}</span>
                 <span style={{ color:'#334155' }}>{c}</span>

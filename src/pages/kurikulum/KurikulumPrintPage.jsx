@@ -17,7 +17,11 @@ export default function KurikulumPrintPage() {
 
   useEffect(() => {
     if (authLoading) return
-    if (!profile?.prodi_id) {
+
+    const queryParams = new URLSearchParams(window.location.search)
+    const prodiId = queryParams.get('prodi_id') || profile?.prodi_id
+
+    if (!prodiId) {
       toast.error('Akun Anda belum terhubung dengan Program Studi')
       navigate('/kurikulum')
       return
@@ -26,7 +30,6 @@ export default function KurikulumPrintPage() {
     async function loadAllData() {
       setLoading(true)
       try {
-        const prodiId = profile.prodi_id
 
         // 1. Fetch Program Studi
         const { data: prodiData, error: prodiError } = await supabase

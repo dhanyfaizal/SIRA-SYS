@@ -56,6 +56,7 @@ export default function RpsPublicViewPage() {
   const pen = rps.penilaian ?? {}
   const ref = rps.referensi ?? []
   const mk = rps.mk ?? {}
+  const cplList = (cp.cpl && cp.cpl.length > 0) ? cp.cpl : (mk.cpl ?? [])
 
   // Hitung total penilaian
   const totalPenilaian = Object.values(pen).reduce((a, b) => a + Number(b || 0), 0)
@@ -477,12 +478,12 @@ export default function RpsPublicViewPage() {
           </div>
           <div className="card-body">
             {/* CPL */}
-            {(cp.cpl ?? []).length > 0 && (
+            {cplList.length > 0 && (
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>
                   CPL — Capaian Pembelajaran Lulusan (Prodi)
                 </div>
-                {(cp.cpl ?? []).map((c, i) => (
+                {cplList.map((c, i) => (
                   <div key={i} className="cp-item" style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, marginBottom: 6 }}>
                     <span className="badge-pill badge-indigo" style={{ flexShrink: 0 }}>CPL-{i + 1}</span>
                     <span style={{ color: '#334155' }}>{c}</span>

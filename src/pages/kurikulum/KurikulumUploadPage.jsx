@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Upload, Sparkles, RefreshCw, Plus, Trash2, ArrowLeft, Save, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -22,7 +22,33 @@ export default function KurikulumUploadPage() {
   })
   const [hasExtracted, setHasExtracted] = useState(false)
 
-  const prodiId = profile?.prodi_id
+  const [prodiList, setProdiList] = useState([])
+  const [selectedProdiId, setSelectedProdiId] = useState('')
+
+  useEffect(() => {
+    async function loadProdis() {
+      try {
+        const { data, error } = await supabase
+          .from('program_studi')
+          .select('id, kode, nama')
+          .order('nama')
+        if (error) throw error
+        if (data) {
+          setProdiList(data)
+          // Default to user's prodi if set
+          const userProdi = data.find(p => p.id === profile?.prodi_id)
+          if (userProdi) {
+            setSelectedProdiId(userProdi.id)
+          } else if (data.length > 0) {
+            setSelectedProdiId(data[0].id)
+          }
+        }
+      } catch (err) {
+        console.error('Gagal memuat Program Studi:', err)
+      }
+    }
+    loadProdis()
+  }, [profile?.prodi_id])
 
   // Helper to extract text from PDF using PDF.js CDN
   async function extractTextFromPdf(file) {
@@ -170,8 +196,8 @@ export default function KurikulumUploadPage() {
 
   // Save to Database
   async function handleSave() {
-    if (!prodiId) {
-      toast.error('Prodi ID tidak ditemukan pada profil Anda.')
+    if (!selectedProdiId) {
+      toast.error('Program Studi wajib dipilih.')
       return
     }
     if (!namaDokumen.trim()) {
@@ -186,7 +212,7 @@ export default function KurikulumUploadPage() {
     setSaving(true)
     try {
       const payload = {
-        prodi_id: prodiId,
+        prodi_id: selectedProdiId,
         nama_dokumen: namaDokumen.trim(),
         jenis: 'kurikulum',
         storage_path: 'text-input',
@@ -227,6 +253,21 @@ export default function KurikulumUploadPage() {
             <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Konten Dokumen Kurikulum</span>
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="input-group">
+              <label className="input-label">Program Studi *</label>
+              <select
+                className="input"
+                value={selectedProdiId}
+                onChange={e => setSelectedProdiId(e.target.value)}
+                required
+              >
+                <option value="" disabled>-- Pilih Program Studi --</option>
+                {prodiList.map(p => (
+                  <option key={p.id} value={p.id}>{p.kode} — {p.nama}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="input-group">
               <label className="input-label">Nama Dokumen Kurikulum *</label>
               <input
