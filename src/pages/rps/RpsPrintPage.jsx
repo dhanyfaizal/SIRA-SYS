@@ -184,7 +184,7 @@ export default function RpsPrintPage() {
             height: calc(297mm - 30mm) !important;
             min-height: calc(297mm - 30mm) !important;
             box-sizing: border-box !important;
-            padding: 30px !important;
+            padding: 15px 30px !important;
             border: none !important;
             display: flex !important;
             flex-direction: column !important;
@@ -332,7 +332,7 @@ export default function RpsPrintPage() {
           width: 100%;
           box-sizing: border-box;
           border: none;
-          padding: 40px;
+          padding: 20px 40px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -342,11 +342,11 @@ export default function RpsPrintPage() {
           background-color: #d1fae5;
           color: #b91c1c;
           border: 2px solid #16a34a;
-          padding: 10px 24px;
-          font-size: 14pt;
+          padding: 6px 16px;
+          font-size: 11pt;
           font-weight: bold;
           border-radius: 4px;
-          margin-bottom: 30px;
+          margin-bottom: 15px;
           text-align: center;
           width: 70%;
           text-transform: uppercase;
@@ -355,32 +355,32 @@ export default function RpsPrintPage() {
         .cpmk-box {
           background-color: #eff6ff;
           border: 2px solid #2563eb;
-          padding: 14px 20px;
+          padding: 8px 12px;
           width: 85%;
           text-align: center;
           border-radius: 6px;
-          font-size: 11pt;
+          font-size: 9.5pt;
           font-weight: bold;
           color: #1e3a8a;
-          margin-bottom: 10px;
+          margin-bottom: 6px;
         }
 
         .flowchart-node {
           background-color: #f8fafc;
           border: 1.5px solid #64748b;
-          padding: 10px 18px;
+          padding: 6px 12px;
           width: 80%;
           text-align: center;
           border-radius: 6px;
-          font-size: 10pt;
+          font-size: 8.5pt;
           color: #334155;
         }
 
         .flowchart-arrow {
-          font-size: 14pt;
+          font-size: 10pt;
           color: #4f46e5;
           font-weight: bold;
-          margin: 2px 0;
+          margin: 1px 0;
         }
 
         /* 3. Kop & Tabel Standard */
