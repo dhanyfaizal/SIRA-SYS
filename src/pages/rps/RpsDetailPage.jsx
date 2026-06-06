@@ -493,15 +493,56 @@ export default function RpsDetailPage() {
       }, 2500)
     }
 
-    const handleProgress = (statusText) => {
-      if (statusText === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
-        startSubTimer()
-      } else {
+    const handleProgress = (event) => {
+      // Jika bertipe string, merupakan fase inisiasi koneksi awal
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          startSubTimer()
+        } else {
+          if (subTimer) {
+            clearInterval(subTimer)
+            subTimer = null
+          }
+          setAiProgressText(event)
+        }
+        return
+      }
+
+      // Jika merupakan event chunk data streaming dari AI
+      if (event && event.type === 'chunk') {
         if (subTimer) {
           clearInterval(subTimer)
           subTimer = null
         }
-        setAiProgressText(statusText)
+
+        const text = event.text
+        const charCount = text.length
+
+        if (type === 'slide') {
+          // Cari nomor slide terakhir yang sedang ditulis oleh AI di dalam JSON buffer
+          const slideMatches = text.match(/"slide_no"\s*:\s*(\d+)/g)
+          let currentSlide = 1
+          if (slideMatches && slideMatches.length > 0) {
+            const lastMatch = slideMatches[slideMatches.length - 1]
+            const numMatch = lastMatch.match(/\d+/)
+            if (numMatch) {
+              currentSlide = parseInt(numMatch[0])
+            }
+          }
+          setAiProgressText(`AI sedang menulis: Menyusun Slide ${currentSlide}... (${charCount.toLocaleString('id-ID')} karakter)`)
+        } else {
+          // Cari nomor soal terakhir yang sedang ditulis oleh AI di dalam JSON buffer
+          const questionMatches = text.match(/"no"\s*:\s*(\d+)/g)
+          let currentQuestion = 1
+          if (questionMatches && questionMatches.length > 0) {
+            const lastMatch = questionMatches[questionMatches.length - 1]
+            const numMatch = lastMatch.match(/\d+/)
+            if (numMatch) {
+              currentQuestion = parseInt(numMatch[0])
+            }
+          }
+          setAiProgressText(`AI sedang menulis: Merumuskan Soal Essay ${currentQuestion}... (${charCount.toLocaleString('id-ID')} karakter)`)
+        }
       }
     }
 

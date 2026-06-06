@@ -81,34 +81,77 @@ export async function callAi(prompt, isJson = true, onProgress = null) {
           messages: [
             { role: 'user', content: prompt }
           ],
-          response_format: isJson ? { type: "json_object" } : undefined
+          response_format: isJson ? { type: "json_object" } : undefined,
+          stream: true
         })
       });
-
-      if (onProgress) {
-        onProgress("Membaca stream data & mengunduh respon...");
-      }
 
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
-      const data = await response.json();
-      
-      if (data?.error) {
-        throw new Error(data.error.message || JSON.stringify(data.error));
+      if (!response.body) {
+        if (onProgress) {
+          onProgress("Membaca data respon...");
+        }
+        const data = await response.json();
+        if (data?.error) {
+          throw new Error(data.error.message || JSON.stringify(data.error));
+        }
+        const resultText = data.choices?.[0]?.message?.content;
+        if (!resultText) throw new Error("Respons AI kosong.");
+        const cleanText = resultText.replace(/```json\n?|```/g, '').trim();
+        return isJson ? JSON.parse(cleanText) : cleanText;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let accumulatedText = "";
+      let buffer = "";
+
+      if (onProgress) {
+        onProgress("Koneksi berhasil! Mulai mengunduh stream data dari AI...");
+      }
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const cleanedLine = line.trim();
+          if (!cleanedLine) continue;
+          if (cleanedLine.startsWith("data: ")) {
+            const dataStr = cleanedLine.slice(6).trim();
+            if (dataStr === "[DONE]") continue;
+            try {
+              const dataObj = JSON.parse(dataStr);
+              const content = dataObj.choices?.[0]?.delta?.content || "";
+              accumulatedText += content;
+
+              if (onProgress) {
+                onProgress({
+                  type: 'chunk',
+                  text: accumulatedText
+                });
+              }
+            } catch (e) {
+              // Abaikan parsing error parsial pada stream
+            }
+          }
+        }
       }
 
       if (onProgress) {
         onProgress("Mendekode & memvalidasi struktur JSON...");
       }
 
-      const resultText = data.choices?.[0]?.message?.content;
-      if (!resultText) throw new Error("Respons AI kosong.");
-
-      // Bersihkan markdown code block jika AI secara tidak sengaja menyertakannya
-      const cleanText = resultText.replace(/```json\n?|```/g, '').trim();
+      const cleanText = accumulatedText.replace(/```json\n?|```/g, '').trim();
+      if (!cleanText) throw new Error("Respons stream AI kosong.");
 
       if (onProgress) {
         onProgress("Memverifikasi kelayakan format materi...");
