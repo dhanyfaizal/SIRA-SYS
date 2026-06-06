@@ -30,6 +30,14 @@ export default function Step1Mk({ form, setF, userId, userProdiId }) {
     loadProdis()
   }, [userProdiId])
 
+  useEffect(() => {
+    const isGanjil = form.semester_aktif === 'Ganjil'
+    const allowed = isGanjil ? [1, 3, 5, 7] : [2, 4, 6, 8]
+    if (!allowed.includes(Number(form.manualSemester))) {
+      setF('manualSemester', allowed[0])
+    }
+  }, [form.semester_aktif, form.manualSemester, setF])
+
   return (
     <div>
       <h2 style={{ fontSize:16, fontWeight:700, color:'#1e293b', marginBottom:4 }}>
@@ -113,14 +121,15 @@ export default function Step1Mk({ form, setF, userId, userProdiId }) {
             </div>
             <div className="input-group" style={{ margin:0 }}>
               <label className="input-label">Semester Mata Kuliah *</label>
-              <input
-                type="number"
+              <select
                 className="input"
-                min="1"
-                max="8"
                 value={form.manualSemester}
                 onChange={e => setF('manualSemester', Number(e.target.value))}
-              />
+              >
+                {(form.semester_aktif === 'Ganjil' ? [1, 3, 5, 7] : [2, 4, 6, 8]).map(sem => (
+                  <option key={sem} value={sem}>Semester {sem}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
