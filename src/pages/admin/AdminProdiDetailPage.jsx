@@ -18,12 +18,13 @@ export default function AdminProdiDetailPage() {
 
   const [prodi, setProdi] = useState(null)
   const [rpsList, setRpsList] = useState([])
+  const [prodiList, setProdiList] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Edit Modal State
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [editForm, setEditForm] = useState({ kode: '', nama: '' })
+  // Reassign Modal State
+  const [reassignRps, setReassignRps] = useState(null) // stores active rps object being edited
+  const [targetProdiId, setTargetProdiId] = useState('')
 
   // Delete RPS Confirmation State
   const [deleteConfirmRpsId, setDeleteConfirmRpsId] = useState(null)
@@ -46,7 +47,6 @@ export default function AdminProdiDetailPage() {
       }
 
       setProdi(prodiData)
-      setEditForm({ kode: prodiData.kode, nama: prodiData.nama })
 
       // 2. Fetch RPS and Mata Kuliah details
       const { data: rpsData, error: rpsError } = await supabase
@@ -54,7 +54,7 @@ export default function AdminProdiDetailPage() {
         .select(`
           id, status, tahun_akademik, semester_aktif, created_at, updated_at,
           dosen:profiles!dosen_id(nama_lengkap, nidn),
-          mk:mata_kuliah!mk_id!inner(kode_mk, nama_mk, sks, semester, prodi_id)
+          mk:mata_kuliah!mk_id!inner(id, kode_mk, nama_mk, sks, semester, prodi_id)
         `)
         .eq('mk.prodi_id', prodiData.id)
         .order('updated_at', { ascending: false })
@@ -69,42 +69,48 @@ export default function AdminProdiDetailPage() {
     }
   }, [kode, navigate])
 
-  useEffect(() => {
-    loadAll()
-  }, [loadAll])
-
-  async function handleUpdateProdi(e) {
-    e.preventDefault()
-    if (!editForm.kode.trim() || !editForm.nama.trim()) {
-      toast.error('Kode dan Nama prodi wajib diisi')
-      return
-    }
-    setSaving(true)
+  const loadProdiList = useCallback(async () => {
     try {
-      const payload = {
-        kode: editForm.kode.trim().toUpperCase(),
-        nama: editForm.nama.trim()
-      }
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('program_studi')
-        .update(payload)
-        .eq('id', prodi.id)
-
-      if (error) throw error
-
-      toast.success('Program Studi berhasil diperbarui')
-      setShowEditModal(false)
-      
-      // If code changed, navigate to new URL
-      if (payload.kode !== prodi.kode) {
-        navigate(`/admin/prodi/${payload.kode.toLowerCase()}`, { replace: true })
-      } else {
-        loadAll()
+        .select('id, kode, nama')
+        .order('nama')
+      if (!error && data) {
+        setProdiList(data)
       }
     } catch (err) {
       console.error(err)
-      toast.error('Gagal memperbarui Program Studi: ' + err.message)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadAll()
+    loadProdiList()
+  }, [loadAll, loadProdiList])
+
+  function openReassignModal(rps) {
+    setReassignRps(rps)
+    setTargetProdiId(rps.mk?.prodi_id || '')
+  }
+
+  async function handleReassignProdi(e) {
+    e.preventDefault()
+    if (!reassignRps || !targetProdiId) return
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('mata_kuliah')
+        .update({ prodi_id: targetProdiId })
+        .eq('id', reassignRps.mk.id)
+
+      if (error) throw error
+
+      toast.success(`Program studi mata kuliah "${reassignRps.mk.nama_mk}" berhasil dipindahkan!`)
+      setReassignRps(null)
+      loadAll()
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal memindahkan program studi: ' + err.message)
     } finally {
       setSaving(false)
     }
@@ -160,9 +166,6 @@ export default function AdminProdiDetailPage() {
           <button className="btn btn-secondary" onClick={loadAll} disabled={loading}>
             <RefreshCw size={14} className={loading ? 'spin' : ''} />
           </button>
-          <button className="btn btn-primary" onClick={() => setShowEditModal(true)}>
-            <Pencil size={14} style={{ marginRight: 6 }} /> Edit Prodi
-          </button>
         </div>
       </div>
 
@@ -216,7 +219,7 @@ export default function AdminProdiDetailPage() {
                     <th>Dosen Pengampu</th>
                     <th>Tahun / Semester</th>
                     <th>Status</th>
-                    <th style={{ width: 140, textAlign: 'center' }}>Aksi</th>
+                    <th style={{ width: 180, textAlign: 'center' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,6 +255,14 @@ export default function AdminProdiDetailPage() {
                               <Eye size={12} /> Buka
                             </button>
                             <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => openReassignModal(rps)}
+                              style={{ display: 'flex', alignItems: 'center', padding: '6px 8px' }}
+                              title="Ubah Program Studi"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
                               className="btn btn-danger btn-sm"
                               onClick={() => setDeleteConfirmRpsId(rps.id)}
                               style={{ display: 'flex', alignItems: 'center', padding: '6px 8px' }}
@@ -271,46 +282,50 @@ export default function AdminProdiDetailPage() {
         </div>
       </div>
 
-      {/* Edit Prodi Modal */}
-      {showEditModal && (
+      {/* Reassign Program Studi Modal */}
+      {reassignRps && (
         <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 400 }}>
+          <div className="modal" style={{ maxWidth: 420 }}>
             <div className="modal-header">
-              <span className="modal-title">Edit Program Studi</span>
-              <button className="btn btn-ghost btn-icon" onClick={() => setShowEditModal(false)}>
+              <span className="modal-title">Ubah Program Studi RPS</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setReassignRps(null)}>
                 <X size={16} />
               </button>
             </div>
-            <form onSubmit={handleUpdateProdi}>
+            <form onSubmit={handleReassignProdi}>
               <div className="modal-body">
-                <div className="input-group">
-                  <label className="input-label">Kode Prodi *</label>
-                  <input
-                    className="input"
-                    placeholder="SI, TI, KA, DKV…"
-                    value={editForm.kode}
-                    onChange={e => setEditForm(p => ({ ...p, kode: e.target.value.toUpperCase() }))}
-                    maxLength={10}
-                    required
-                    autoFocus
-                  />
-                  <span className="input-hint">Singkatan kapital, maks 10 karakter</span>
+                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Mata Kuliah</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#334155', marginTop: 4 }}>
+                    {reassignRps.mk?.kode_mk} — {reassignRps.mk?.nama_mk}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                    Dosen: {reassignRps.dosen?.nama_lengkap || '—'}
+                  </div>
                 </div>
+
                 <div className="input-group">
-                  <label className="input-label">Nama Program Studi *</label>
-                  <input
+                  <label className="input-label">Program Studi Tujuan *</label>
+                  <select
                     className="input"
-                    placeholder="Teknik Informatika"
-                    value={editForm.nama}
-                    onChange={e => setEditForm(p => ({ ...p, nama: e.target.value }))}
+                    value={targetProdiId}
+                    onChange={e => setTargetProdiId(e.target.value)}
                     required
-                  />
+                  >
+                    <option value="" disabled>-- Pilih Program Studi --</option>
+                    {prodiList.map(p => (
+                      <option key={p.id} value={p.id}>{p.kode} — {p.nama}</option>
+                    ))}
+                  </select>
+                  <span className="input-hint">
+                    Memindahkan program studi akan memindahkan mata kuliah ini beserta dokumen RPS-nya ke program studi baru.
+                  </span>
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Batal</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setReassignRps(null)}>Batal</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Menyimpan…' : 'Simpan Perubahan'}
+                  {saving ? 'Memproses…' : 'Simpan Perubahan'}
                 </button>
               </div>
             </form>
