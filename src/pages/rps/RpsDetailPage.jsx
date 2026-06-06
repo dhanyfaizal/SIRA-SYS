@@ -454,8 +454,14 @@ export default function RpsDetailPage() {
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       {/* Back + Status header */}
       <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20, flexWrap:'wrap' }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate(-1)}>
-          <ArrowLeft size={14} /> Kembali
+        <button className="btn btn-ghost btn-sm" onClick={() => {
+          if (rps.status === 'submitted' || rps.status === 'approved') {
+            navigate('/rps')
+          } else {
+            navigate(-1)
+          }
+        }}>
+          <ArrowLeft size={14} /> {rps.status === 'submitted' || rps.status === 'approved' ? 'Keluar' : 'Kembali'}
         </button>
         <div style={{ flex:1 }} />
         <span className={`badge-pill ${cfg.class}`} style={{ fontSize:12, padding:'4px 12px' }}>
