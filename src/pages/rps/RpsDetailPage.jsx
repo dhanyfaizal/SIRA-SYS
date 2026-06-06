@@ -89,6 +89,47 @@ export default function RpsDetailPage() {
   })
 
   const [aiContentModal, setAiContentModal] = useState(null)
+  const [aiProgressText, setAiProgressText] = useState('')
+
+  useEffect(() => {
+    if (!aiContentModal || !aiContentModal.loading) {
+      setAiProgressText('')
+      return
+    }
+
+    const type = aiContentModal.type
+    const slideSteps = [
+      "Menganalisis Kemampuan Akhir & Bahan Kajian...",
+      "Mengintegrasikan Referensi Pustaka RPS...",
+      "Merancang Outline & Struktur Presentasi (Minimal 15 Slide)...",
+      "Mengembangkan Contoh Kasus & Penerapan Industri...",
+      "Menyusun Perbandingan Konsep & Penjelasan Detail...",
+      "Melakukan Ulasan Akhir & Memformat Data..."
+    ]
+
+    const essaySteps = [
+      "Menganalisis Kemampuan Akhir & Topik Evaluasi...",
+      "Merancang Soal Essay berbasis HOTS (Higher Order Thinking Skills)...",
+      "Menyusun Rubrik Penilaian & Kriteria Koreksi...",
+      "Menyeimbangkan Bobot Nilai Soal (Total 100%)...",
+      "Melakukan Ulasan Akhir & Memformat Data..."
+    ]
+
+    const steps = type === 'slide' ? slideSteps : essaySteps
+    setAiProgressText(steps[0])
+
+    let currentStep = 0
+    const interval = setInterval(() => {
+      currentStep++
+      if (currentStep < steps.length) {
+        setAiProgressText(steps[currentStep])
+      } else {
+        setAiProgressText("Menyelesaikan dokumen... Mohon tunggu sebentar lagi...")
+      }
+    }, 2500)
+
+    return () => clearInterval(interval)
+  }, [aiContentModal?.loading, aiContentModal?.type])
 
   const openConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Ya', cancelText = 'Batal') => {
     setConfirmConfig({
@@ -1282,16 +1323,42 @@ export default function RpsDetailPage() {
               </div>
 
               {aiContentModal.loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 16 }}>
-                  <RefreshCw className="spinner" size={32} style={{ color: 'var(--indigo-600)', animation: 'spin 1s linear infinite' }} />
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#4f46e5', textAlign: 'center' }}>
-                    {aiContentModal.type === 'slide' 
-                      ? 'AI sedang menyusun rancangan materi slide...' 
-                      : 'AI sedang merumuskan soal ujian essay HOTS...'
-                    }
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '40px 20px', 
+                  gap: 16,
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ position: 'relative', display: 'inline-flex' }}>
+                    <RefreshCw className="spinner" size={36} style={{ color: 'var(--indigo-600)', animation: 'spin 1.2s linear infinite' }} />
+                    <Sparkles size={16} color="var(--indigo-500)" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>
-                    Proses ini mungkin memakan waktu hingga 10-15 detik. Mohon tunggu sebentar.
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
+                    <span style={{ 
+                      fontSize: 10, 
+                      fontWeight: 700, 
+                      color: 'var(--indigo-600)', 
+                      background: 'var(--indigo-50)', 
+                      padding: '3px 10px', 
+                      borderRadius: 12,
+                      textTransform: 'uppercase',
+                      letterSpacing: '.5px'
+                    }}>
+                      Workflow AI Aktif
+                    </span>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', minHeight: 24, transition: 'all 0.3s' }}>
+                      {aiProgressText}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', maxWidth: 300, marginTop: 4 }}>
+                      AI sedang memproses permintaan Anda secara mendalam. Mohon tunggu beberapa saat.
+                    </div>
                   </div>
                 </div>
               ) : aiContentModal.data ? (
