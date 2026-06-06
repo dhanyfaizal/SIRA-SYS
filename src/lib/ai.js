@@ -520,16 +520,19 @@ export async function generateObeMapping(courseName, cpmkList, assessmentCompone
 }
 
 // 11. Generate Materi Slide untuk Pertemuan
-export async function generateSlideContent(courseName, meetingNo, topic, capability) {
+export async function generateSlideContent(courseName, meetingNo, topic, capability, references = []) {
   const prompt = `
-    Anda adalah pakar akademis dan desainer instruksional. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline slide presentasi terstruktur untuk perkuliahan berikut:
+    Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline slide presentasi terstruktur untuk perkuliahan berikut:
     Mata Kuliah: "${courseName}"
     Pertemuan Ke: ${meetingNo}
     Topik / Bahan Kajian: "${topic || '—'}"
     Kemampuan Akhir Mahasiswa: "${capability || '—'}"
+    Referensi Pustaka Utama RPS: ${JSON.stringify(references)}
 
-    Hasilkan outline slide presentasi yang komprehensif, mendalam, dan menarik (minimal 5 slide, maksimal 10 slide).
-    Setiap slide harus memiliki judul yang jelas dan beberapa poin materi detail (bukan hanya kalimat pendek, tapi penjelasan yang bermakna).
+    Hasilkan outline slide presentasi yang sangat komprehensif, mendalam, dan kaya materi dengan ketentuan berikut:
+    1. Jumlah Slide: MINIMAL 15 SLIDE (slide 1 s.d. slide 15+).
+    2. Integrasi Referensi: Hubungkan penjelasan materi dengan referensi pustaka utama RPS di atas yang relevan (cantumkan kutipan/rujukan buku atau artikel ilmiah tersebut pada slide yang relevan).
+    3. Kedalaman Konten: Berikan penjelasan yang mendalam dan bermakna pada setiap slide. Di dalam poin-poin materi, berikan CONTOH konkret, PENERAPAN praktis di industri/studi kasus nyata, PERBANDINGAN teori/konsep/metode, dan penjelasan pelengkap lainnya yang dapat mengembangkan wawasan materi ini secara maksimal. Poin penjelasan harus berupa kalimat informatif yang kaya konten (bukan frasa pendek atau ringkasan seadanya).
 
     Format output harus berupa JSON OBJECT murni dengan struktur:
     {
@@ -537,11 +540,11 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
       "slides": [
         {
           "slide_no": 1,
-          "title": "Judul Slide 1 (contoh: Pendahuluan)",
+          "title": "Judul Slide 1 (contoh: Pendahuluan & Rujukan)",
           "content": [
-            "Poin penjelasan 1 yang mendalam tentang...",
-            "Poin penjelasan 2 tentang...",
-            "Poin penjelasan 3..."
+            "Poin penjelasan mendalam tentang konsep dasar...",
+            "Rujukan pustaka dan perannya dalam bab ini...",
+            "Contoh kasus nyata..."
           ]
         },
         ...

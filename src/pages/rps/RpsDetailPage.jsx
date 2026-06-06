@@ -464,7 +464,8 @@ export default function RpsDetailPage() {
           courseName,
           meeting.no,
           meeting.bahan_kajian,
-          meeting.kemampuan_akhir
+          meeting.kemampuan_akhir,
+          rps.referensi ?? []
         )
       } else {
         const examType = meeting.is_uts ? 'UTS' : 'UAS'
