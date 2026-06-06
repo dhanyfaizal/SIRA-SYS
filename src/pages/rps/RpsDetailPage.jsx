@@ -545,90 +545,92 @@ export default function RpsDetailPage() {
       </Section>
 
       {/* ── SECTION: AI Audit SPMI ───────────────────────────────── */}
-      <Section
-        title="Audit Penjaminan Mutu (SPMI AI)"
-        action={
-          (isOwner || isKaprodi) && (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={runAiAudit}
-              disabled={auditing}
-              style={{
-                background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
-                borderColor: 'var(--indigo-200)',
-                color: 'var(--indigo-700)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4
-              }}
-            >
-              {auditing ? (
-                <RefreshCw size={13} className="spinner" style={{ animation: 'spin 1s linear infinite', borderTopColor: 'var(--indigo-600)' }} />
-              ) : (
-                <Sparkles size={13} color="var(--indigo-600)" />
+      {(isKaprodi || isAdmin) && (
+        <Section
+          title="Audit Penjaminan Mutu (SPMI AI)"
+          action={
+            (isOwner || isKaprodi) && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={runAiAudit}
+                disabled={auditing}
+                style={{
+                  background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
+                  borderColor: 'var(--indigo-200)',
+                  color: 'var(--indigo-700)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                {auditing ? (
+                  <RefreshCw size={13} className="spinner" style={{ animation: 'spin 1s linear infinite', borderTopColor: 'var(--indigo-600)' }} />
+                ) : (
+                  <Sparkles size={13} color="var(--indigo-600)" />
+                )}
+                {auditing ? 'Mengaudit...' : rps.ai_review_result?.ai_audit ? 'Audit Ulang' : 'Jalankan Audit'}
+              </button>
+            )
+          }
+        >
+          {auditing && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 0', flexDirection:'column', gap:10 }}>
+              <div className="spinner" style={{ width:24, height:24 }} />
+              <p style={{ color:'#94a3b8', fontSize:12 }}>AI sedang mengevaluasi keselarasan materi dan instrumen SPMI...</p>
+            </div>
+          )}
+
+          {!auditing && !rps.ai_review_result?.ai_audit && (
+            <div style={{ padding: '16px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+              Dokumen RPS ini belum diaudit kelayakannya oleh SPMI AI. Klik <strong>"Jalankan Audit"</strong> di atas.
+            </div>
+          )}
+
+          {!auditing && rps.ai_review_result?.ai_audit && (
+            <div style={{ animation: 'fadeIn 0.25s ease' }}>
+              {/* Status indicator row */}
+              <div className={`spmi-row spmi-${rps.ai_review_result.ai_audit.status?.toLowerCase()}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+                  {rps.ai_review_result.ai_audit.status === 'GREEN' && <span>🟢 Kepatuhan Tinggi (Green)</span>}
+                  {rps.ai_review_result.ai_audit.status === 'YELLOW' && <span>🟡 Perlu Perbaikan Minor (Yellow)</span>}
+                  {rps.ai_review_result.ai_audit.status === 'RED' && <span>🔴 Kepatuhan Rendah (Red)</span>}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 800 }}>
+                  Skor Kelayakan: {rps.ai_review_result.ai_audit.score ?? 0}/100
+                </div>
+              </div>
+
+              {/* Audit summary */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>
+                  Ringkasan Evaluasi
+                </div>
+                <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, margin: 0 }}>
+                  {rps.ai_review_result.ai_audit.summary}
+                </p>
+              </div>
+
+              {/* Recommendations */}
+              {rps.ai_review_result.ai_audit.recommendations?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>
+                    Rekomendasi Perbaikan
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {rps.ai_review_result.ai_audit.recommendations.map((rec, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }}>
+                        <span style={{ color: 'var(--indigo-600)', fontWeight: 700 }}>✓</span>
+                        <span style={{ color: '#475569' }}>{rec}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-              {auditing ? 'Mengaudit...' : rps.ai_review_result?.ai_audit ? 'Audit Ulang' : 'Jalankan Audit'}
-            </button>
-          )
-        }
-      >
-        {auditing && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 0', flexDirection:'column', gap:10 }}>
-            <div className="spinner" style={{ width:24, height:24 }} />
-            <p style={{ color:'#94a3b8', fontSize:12 }}>AI sedang mengevaluasi keselarasan materi dan instrumen SPMI...</p>
-          </div>
-        )}
-
-        {!auditing && !rps.ai_review_result?.ai_audit && (
-          <div style={{ padding: '16px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-            Dokumen RPS ini belum diaudit kelayakannya oleh SPMI AI. Klik <strong>"Jalankan Audit"</strong> di atas.
-          </div>
-        )}
-
-        {!auditing && rps.ai_review_result?.ai_audit && (
-          <div style={{ animation: 'fadeIn 0.25s ease' }}>
-            {/* Status indicator row */}
-            <div className={`spmi-row spmi-${rps.ai_review_result.ai_audit.status?.toLowerCase()}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-                {rps.ai_review_result.ai_audit.status === 'GREEN' && <span>🟢 Kepatuhan Tinggi (Green)</span>}
-                {rps.ai_review_result.ai_audit.status === 'YELLOW' && <span>🟡 Perlu Perbaikan Minor (Yellow)</span>}
-                {rps.ai_review_result.ai_audit.status === 'RED' && <span>🔴 Kepatuhan Rendah (Red)</span>}
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 800 }}>
-                Skor Kelayakan: {rps.ai_review_result.ai_audit.score ?? 0}/100
-              </div>
             </div>
-
-            {/* Audit summary */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>
-                Ringkasan Evaluasi
-              </div>
-              <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, margin: 0 }}>
-                {rps.ai_review_result.ai_audit.summary}
-              </p>
-            </div>
-
-            {/* Recommendations */}
-            {rps.ai_review_result.ai_audit.recommendations?.length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>
-                  Rekomendasi Perbaikan
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {rps.ai_review_result.ai_audit.recommendations.map((rec, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12 }}>
-                      <span style={{ color: 'var(--indigo-600)', fontWeight: 700 }}>✓</span>
-                      <span style={{ color: '#475569' }}>{rec}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </Section>
+          )}
+        </Section>
+      )}
 
       {/* ── SECTION 2: CPL & CPMK ───────────────────────────────── */}
       <Section title="Capaian Pembelajaran">
