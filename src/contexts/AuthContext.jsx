@@ -69,7 +69,7 @@ export default function AuthProvider({ children }) {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user && active) {
           setUser(session.user)
-          await fetchProfile(session.user)
+          fetchProfile(session.user).catch(console.error)
         }
       } catch (err) {
         console.error('Error during auth initialization:', err)
@@ -86,7 +86,7 @@ export default function AuthProvider({ children }) {
       async (_event, session) => {
         if (session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user)
+          fetchProfile(session.user).catch(console.error)
         } else {
           setUser(null)
           setProfile(null)
@@ -112,9 +112,14 @@ export default function AuthProvider({ children }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error during supabase.auth.signOut:', err)
+    } finally {
+      setUser(null)
+      setProfile(null)
+    }
   }
 
   const role = profile?.role ?? null

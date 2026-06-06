@@ -111,6 +111,16 @@ function ProtectedRoute({ children, allowedRoles }) {
 
   if (!user) return <Navigate to="/login" replace />
 
+  // Tampilkan spinner jika profile masih dimuat di background
+  if (user && !profile) {
+    return (
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', flexDirection:'column', gap:16 }}>
+        <div className="spinner" />
+        <p style={{ fontSize:13, color:'var(--gray-400)' }}>Memuat profil…</p>
+      </div>
+    )
+  }
+
   // Gating status verifikasi: jika profile dimuat dan is_verified === false, tampilkan UnverifiedScreen
   if (profile && profile.is_verified === false) {
     return <UnverifiedScreen />
