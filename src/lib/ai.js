@@ -519,3 +519,76 @@ export async function generateObeMapping(courseName, cpmkList, assessmentCompone
   return callAi(prompt, true)
 }
 
+// 11. Generate Materi Slide untuk Pertemuan
+export async function generateSlideContent(courseName, meetingNo, topic, capability) {
+  const prompt = `
+    Anda adalah pakar akademis dan desainer instruksional. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline slide presentasi terstruktur untuk perkuliahan berikut:
+    Mata Kuliah: "${courseName}"
+    Pertemuan Ke: ${meetingNo}
+    Topik / Bahan Kajian: "${topic || '—'}"
+    Kemampuan Akhir Mahasiswa: "${capability || '—'}"
+
+    Hasilkan outline slide presentasi yang komprehensif, mendalam, dan menarik (minimal 5 slide, maksimal 10 slide).
+    Setiap slide harus memiliki judul yang jelas dan beberapa poin materi detail (bukan hanya kalimat pendek, tapi penjelasan yang bermakna).
+
+    Format output harus berupa JSON OBJECT murni dengan struktur:
+    {
+      "title": "Judul Utama Presentasi",
+      "slides": [
+        {
+          "slide_no": 1,
+          "title": "Judul Slide 1 (contoh: Pendahuluan)",
+          "content": [
+            "Poin penjelasan 1 yang mendalam tentang...",
+            "Poin penjelasan 2 tentang...",
+            "Poin penjelasan 3..."
+          ]
+        },
+        ...
+      ]
+    }
+
+    ATURAN:
+    - Gunakan Bahasa Indonesia formal akademik.
+    - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
+  `;
+
+  return callAi(prompt, true);
+}
+
+// 12. Generate Soal Ujian Essay untuk UTS/UAS
+export async function generateEssayQuestions(courseName, examType, topic, capability) {
+  const prompt = `
+    Anda adalah dosen senior dan pakar evaluasi akademik. Tugas Anda adalah membuat soal ujian dalam bentuk Essay (soal uraian) untuk evaluasi perkuliahan berikut:
+    Mata Kuliah: "${courseName}"
+    Jenis Evaluasi: "${examType}" (UTS / UAS)
+    Topik Utama: "${topic || 'Evaluasi pembelajaran'}"
+    Kemampuan Akhir / CPMK Terkait: "${capability || 'Mengukur pemahaman materi perkuliahan'}"
+
+    Hasilkan daftar soal essay (minimal 3 soal, maksimal 5 soal) yang berkualitas tinggi, bertipe HOTS (Higher Order Thinking Skills), analitis, dan aplikatif.
+    Setiap soal harus dilengkapi dengan bobot skor maksimal (total bobot seluruh soal harus 100) dan rubrik kriteria penilaian singkat untuk memudahkan koreksi.
+
+    Format output harus berupa JSON OBJECT murni dengan struktur:
+    {
+      "title": "Soal Ujian Essay ${examType} - ${courseName}",
+      "questions": [
+        {
+          "no": 1,
+          "question": "Pertanyaan essay nomor 1 yang analitis...",
+          "max_score": 25,
+          "rubric": "Rubrik penilaian: Skor 25 jika mahasiswa menjelaskan konsep A, B, C dengan sangat lengkap dan memberikan contoh kasus nyata. Skor 10-20 jika penjelasan cukup lengkap tapi tidak ada contoh. Skor <10 jika jawaban tidak relevan."
+        },
+        ...
+      ]
+    }
+
+    ATURAN:
+    - Gunakan Bahasa Indonesia formal akademik yang jelas dan tidak ambigu.
+    - Jumlah max_score dari seluruh soal wajib berjumlah tepat 100.
+    - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
+  `;
+
+  return callAi(prompt, true);
+}
+
+

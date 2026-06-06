@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
 import {
   ArrowLeft, CheckCircle, AlertCircle, Clock, FileText,
-  Share2, Pencil, Send, X, Download, Sparkles, RefreshCw, Trash2
+  Share2, Pencil, Send, X, Download, Sparkles, RefreshCw, Trash2, Copy
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, dbComments, dbNotifications, dbReviewRps } from '@/lib/db'
-import { reviewSpmi } from '@/lib/ai'
+import { reviewSpmi, generateSlideContent, generateEssayQuestions } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
@@ -87,6 +87,8 @@ export default function RpsDetailPage() {
     type: 'danger',
     onConfirm: null,
   })
+
+  const [aiContentModal, setAiContentModal] = useState(null)
 
   const openConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Ya', cancelText = 'Batal') => {
     setConfirmConfig({
@@ -433,6 +435,108 @@ export default function RpsDetailPage() {
     }
   }
 
+  const handleTriggerAiContent = async (meeting, index) => {
+    const isExam = meeting.is_uts || meeting.is_uas
+    const type = isExam ? 'essay' : 'slide'
+    const existingData = isExam ? meeting.essay_questions : meeting.slide_content
+    
+    setAiContentModal({
+      isOpen: true,
+      meetingIndex: index,
+      meeting,
+      loading: !existingData,
+      data: existingData || null,
+      type
+    })
+
+    if (!existingData) {
+      await generateAiContent(meeting, index, type)
+    }
+  }
+
+  const generateAiContent = async (meeting, index, type) => {
+    setAiContentModal(prev => prev ? { ...prev, loading: true, data: null } : null)
+    try {
+      let result = null
+      const courseName = rps.mk?.nama_mk || 'Mata Kuliah'
+      if (type === 'slide') {
+        result = await generateSlideContent(
+          courseName,
+          meeting.no,
+          meeting.bahan_kajian,
+          meeting.kemampuan_akhir
+        )
+      } else {
+        const examType = meeting.is_uts ? 'UTS' : 'UAS'
+        result = await generateEssayQuestions(
+          courseName,
+          examType,
+          meeting.bahan_kajian,
+          meeting.kemampuan_akhir
+        )
+      }
+      
+      setAiContentModal(prev => prev ? { ...prev, loading: false, data: result } : null)
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal generate konten AI: ' + err.message)
+      setAiContentModal(prev => prev ? { ...prev, loading: false, data: null } : null)
+    }
+  }
+
+  const handleSaveAiContent = async (meetingIndex, contentType, data) => {
+    const newRenc = [...renc]
+    newRenc[meetingIndex] = {
+      ...newRenc[meetingIndex],
+      [contentType]: data
+    }
+    
+    setSaving(true)
+    try {
+      const { error } = await dbRPS.update(id, {
+        rencana_pembelajaran: newRenc
+      })
+      if (error) throw error
+      
+      setRps(prev => ({
+        ...prev,
+        rencana_pembelajaran: newRenc
+      }))
+      toast.success('Konten AI berhasil disimpan ke RPS!')
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal menyimpan ke RPS: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCopySlideContent = (data) => {
+    if (!data) return
+    let text = `=== ${data.title} ===\n\n`
+    data.slides?.forEach(slide => {
+      text += `Slide ${slide.slide_no}: ${slide.title}\n`
+      slide.content?.forEach(poin => {
+        text += `- ${poin}\n`
+      })
+      text += `\n`
+    })
+    navigator.clipboard.writeText(text)
+    toast.success('Materi slide berhasil disalin ke clipboard!')
+  }
+
+  const handleCopyEssayQuestions = (data) => {
+    if (!data) return
+    let text = `=== ${data.title} ===\n\n`
+    data.questions?.forEach(q => {
+      text += `Soal ${q.no} (Bobot: ${q.max_score}%)\n`
+      text += `Pertanyaan:\n${q.question}\n`
+      text += `Rubrik/Kriteria Penilaian:\n${q.rubric}\n\n`
+    })
+    navigator.clipboard.writeText(text)
+    toast.success('Soal ujian essay berhasil disalin ke clipboard!')
+  }
+
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:80, flexDirection:'column', gap:16 }}>
       <div className="spinner" style={{ width:32, height:32 }} />
@@ -687,6 +791,7 @@ export default function RpsDetailPage() {
                 <th style={{ width:120 }}>Metode</th>
                 <th style={{ width:70 }}>Waktu</th>
                 <th>Kriteria Penilaian</th>
+                <th style={{ width:120, textAlign:'center' }}>Aksi AI</th>
               </tr>
             </thead>
             <tbody>
@@ -712,6 +817,27 @@ export default function RpsDetailPage() {
                   <td style={{ fontSize:12 }}>{p.metode}</td>
                   <td style={{ fontSize:12 }}>{p.waktu} mnt</td>
                   <td style={{ fontSize:12 }}>{p.kriteria_penilaian || <span style={{ color:'#cbd5e1' }}>—</span>}</td>
+                  <td style={{ textAlign:'center', verticalAlign:'middle' }}>
+                    <button
+                      className="btn btn-sm"
+                      style={{
+                        background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
+                        borderColor: 'var(--indigo-200)',
+                        color: 'var(--indigo-700)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: 11,
+                        padding: '4px 8px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onClick={() => handleTriggerAiContent(p, i)}
+                    >
+                      <Sparkles size={11} color="var(--indigo-600)" />
+                      {p.is_uts || p.is_uas ? 'Soal Essay' : 'Materi Slide'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1121,7 +1247,198 @@ export default function RpsDetailPage() {
           </div>
         </div>
       )}
-      
+
+      {/* ── Modal AI Content (Slide / Essay) ──────────────────────── */}
+      {aiContentModal && aiContentModal.isOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1050 }}>
+          <div className="modal" style={{ maxWidth: 700 }}>
+            <div className="modal-header">
+              <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={16} color="var(--indigo-600)" />
+                {aiContentModal.type === 'slide' 
+                  ? `Materi Slide - Pertemuan ${aiContentModal.meeting.no}`
+                  : `Soal Ujian Essay - Pertemuan ${aiContentModal.meeting.no} (${aiContentModal.meeting.is_uts ? 'UTS' : 'UAS'})`
+                }
+              </span>
+              <button className="btn btn-ghost btn-icon" onClick={() => setAiContentModal(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ background: '#f8fafc', padding: 20 }}>
+              <div style={{ marginBottom: 14, padding: '10px 12px', background: '#ffffff', borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 12 }}>
+                <div style={{ fontWeight: 700, color: '#475569', marginBottom: 2 }}>
+                  Kemampuan Akhir:
+                </div>
+                <div style={{ color: '#1e293b', marginBottom: 8 }}>
+                  {aiContentModal.meeting.kemampuan_akhir || '—'}
+                </div>
+                <div style={{ fontWeight: 700, color: '#475569', marginBottom: 2 }}>
+                  Bahan Kajian / Topik:
+                </div>
+                <div style={{ color: '#1e293b' }}>
+                  {aiContentModal.meeting.bahan_kajian || '—'}
+                </div>
+              </div>
+
+              {aiContentModal.loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: 16 }}>
+                  <RefreshCw className="spinner" size={32} style={{ color: 'var(--indigo-600)', animation: 'spin 1s linear infinite' }} />
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#4f46e5', textAlign: 'center' }}>
+                    {aiContentModal.type === 'slide' 
+                      ? 'AI sedang menyusun rancangan materi slide...' 
+                      : 'AI sedang merumuskan soal ujian essay HOTS...'
+                    }
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>
+                    Proses ini mungkin memakan waktu hingga 10-15 detik. Mohon tunggu sebentar.
+                  </div>
+                </div>
+              ) : aiContentModal.data ? (
+                <>
+                  {aiContentModal.type === 'slide' ? (
+                    <div style={{ maxHeight: 380, overflowY: 'auto', paddingRight: 6, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>
+                        Outline: {aiContentModal.data.title}
+                      </div>
+                      {aiContentModal.data.slides?.map((slide) => (
+                        <div key={slide.slide_no} style={{
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: 8,
+                          padding: '16px 20px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                          position: 'relative'
+                        }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: 12,
+                            right: 16,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: '#64748b',
+                            background: '#f1f5f9',
+                            padding: '2px 8px',
+                            borderRadius: 12
+                          }}>
+                            Slide {slide.slide_no}
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#4f46e5', marginBottom: 10, maxWidth: '85%' }}>
+                            {slide.title}
+                          </div>
+                          <ul style={{ margin: 0, paddingLeft: 20, color: '#334155', fontSize: 12.5, lineHeight: 1.6 }}>
+                            {slide.content?.map((poin, idx) => (
+                              <li key={idx} style={{ marginBottom: 4 }}>{poin}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight: 380, overflowY: 'auto', paddingRight: 6, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>
+                        {aiContentModal.data.title}
+                      </div>
+                      {aiContentModal.data.questions?.map((q) => (
+                        <div key={q.no} style={{
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: 8,
+                          padding: '16px 20px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>
+                              Pertanyaan {q.no}
+                            </span>
+                            <span className="badge-pill badge-indigo" style={{ fontSize: 10, padding: '2px 8px' }}>
+                              Bobot: {q.max_score}%
+                            </span>
+                          </div>
+                          <p style={{ 
+                            fontSize: 13, 
+                            color: '#1e293b', 
+                            fontWeight: 500, 
+                            lineHeight: 1.5, 
+                            margin: '0 0 12px 0', 
+                            background: '#f8fafc', 
+                            padding: 10, 
+                            borderRadius: 6, 
+                            borderLeft: '3px solid #6366f1' 
+                          }}>
+                            {q.question}
+                          </p>
+                          <div style={{
+                            background: '#fffbef',
+                            border: '1px solid #fde68a',
+                            borderRadius: 6,
+                            padding: '10px 12px',
+                            fontSize: 12,
+                            color: '#92400e'
+                          }}>
+                            <strong style={{ display: 'block', marginBottom: 4, fontSize: 11 }}>Kriteria / Rubrik Penilaian:</strong>
+                            {q.rubric}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ padding: '24px 0', textAlign: 'center', color: '#ef4444', fontSize: 13 }}>
+                  Gagal mendapatkan konten AI atau format respon tidak sesuai.
+                </div>
+              )}
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => generateAiContent(aiContentModal.meeting, aiContentModal.meetingIndex, aiContentModal.type)}
+                  disabled={aiContentModal.loading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <RefreshCw size={12} className={aiContentModal.loading ? 'spinner' : ''} />
+                  {aiContentModal.data ? 'Generate Ulang' : 'Coba Lagi'}
+                </button>
+                {aiContentModal.data && (
+                  <button 
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      if (aiContentModal.type === 'slide') {
+                        handleCopySlideContent(aiContentModal.data)
+                      } else {
+                        handleCopyEssayQuestions(aiContentModal.data)
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <Copy size={12} />
+                    Salin ke Clipboard
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setAiContentModal(null)}>
+                  Tutup
+                </button>
+                {isOwnerOrTeam && aiContentModal.data && (
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      const field = aiContentModal.type === 'slide' ? 'slide_content' : 'essay_questions'
+                      handleSaveAiContent(aiContentModal.meetingIndex, field, aiContentModal.data)
+                    }}
+                    disabled={saving}
+                  >
+                    {saving ? 'Menyimpan...' : 'Simpan ke RPS'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmModal
         isOpen={confirmConfig.isOpen}
         title={confirmConfig.title}
