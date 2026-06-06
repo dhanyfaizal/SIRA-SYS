@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import { generateWeeklyPlan } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 const METODE_OPTIONS = [
@@ -107,6 +108,7 @@ function PertemuanRow({ p, idx, onChange }) {
 export default function Step4Pertemuan({ form, setF }) {
   const pertemuan = form.pertemuan
   const [generating, setGenerating] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   function update(idx, changes) {
     setF('pertemuan', pertemuan.map((p, i) => i === idx ? { ...p, ...changes } : p))
@@ -126,12 +128,51 @@ export default function Step4Pertemuan({ form, setF }) {
     const targetWaktu = sks * 50
 
     setGenerating(true)
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Kebutuhan SKS & Waktu...",
+      "Menyusun CPMK & Capaian Minggu Pertama...",
+      "Merancang Struktur UTS di Pertemuan 8...",
+      "Merancang Struktur UAS di Pertemuan 16...",
+      "Mengembangkan Metode & Pengalaman Belajar per Minggu...",
+      "Mempersiapkan Rencana Perkuliahan..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang menyusun rencana pertemuan... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const text = event.text
+        const charCount = text.length
+        const matchCount = (text.match(/"no"\s*:\s*/g) || []).length
+        setProgressText(`AI sedang menyusun: Pertemuan ${matchCount}... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
       const result = await generateWeeklyPlan(
         form.mk.nama_mk,
         form.deskripsi_mk,
         form.cpmk,
-        sks
+        sks,
+        handleProgress
       )
 
       if (Array.isArray(result) && result.length === 16) {
@@ -144,6 +185,7 @@ export default function Step4Pertemuan({ form, setF }) {
       console.error(err)
       toast.error('Gagal membuat rencana pertemuan: ' + err.message)
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setGenerating(false)
     }
   }
@@ -207,6 +249,7 @@ export default function Step4Pertemuan({ form, setF }) {
       {pertemuan.map((p, i) => (
         <PertemuanRow key={i} p={p} idx={i} onChange={changes => update(i, changes)} />
       ))}
+      <AiProgressModal isOpen={generating} title="Penyusunan Rencana 16 Pertemuan" progressText={progressText} />
     </div>
   )
 }

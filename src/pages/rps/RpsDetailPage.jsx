@@ -10,6 +10,7 @@ import { reviewSpmi, generateSlideContent, generateEssayQuestions } from '@/lib/
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 
 const STATUS_CONFIG = {
   draft:     { label:'Draft',          class:'rps-status-draft',     icon: Clock        },
@@ -412,8 +413,43 @@ export default function RpsDetailPage() {
 
   async function runAiAudit() {
     setAuditing(true)
+    setAiProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Kepatuhan CPMK dengan CPL...",
+      "Meninjau Cakupan Rencana 16 Pertemuan...",
+      "Evaluasi Relevansi Asesmen Penilaian...",
+      "Memeriksa Relevansi & Kemutakhiran Referensi Pustaka...",
+      "Menyusun Laporan Evaluasi Auditor..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setAiProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setAiProgressText(steps[currentStep])
+            } else {
+              setAiProgressText("AI sedang menyusun laporan audit... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setAiProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const charCount = event.text.length
+        setAiProgressText(`AI sedang mengaudit kelayakan RPS... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
-      const result = await reviewSpmi(rps)
+      const result = await reviewSpmi(rps, handleProgress)
       if (result && result.status) {
         const newReviewResult = {
           ...rps.ai_review_result,
@@ -432,6 +468,7 @@ export default function RpsDetailPage() {
       console.error(err)
       toast.error('Gagal menjalankan audit AI: ' + err.message)
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setAuditing(false)
     }
   }
@@ -1560,6 +1597,7 @@ export default function RpsDetailPage() {
         </div>
       )}
 
+      <AiProgressModal isOpen={auditing} title="Audit Penjaminan Mutu (SPMI)" progressText={aiProgressText} />
       <ConfirmModal
         isOpen={confirmConfig.isOpen}
         title={confirmConfig.title}

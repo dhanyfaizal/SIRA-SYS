@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, currentTahunAkademik, TAHUN_AKADEMIK_LIST, SEMESTER_LIST } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { generateCompilationReport } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 const ASPECT_LABELS = {
@@ -78,6 +79,7 @@ export default function ReviewRpsListPage() {
   const [showCompileModal, setShowCompileModal] = useState(false)
   const [compilationNotes, setCompilationNotes] = useState('')
   const [compilationAiLoading, setCompilationAiLoading] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   const prodiId = profile?.prodi_id
 
@@ -210,7 +212,42 @@ export default function ReviewRpsListPage() {
   const runCompilationAiAnalysis = async () => {
     if (selectedIds.length === 0) return;
     setCompilationAiLoading(true);
-    const loadToast = toast.loading('AI sedang menyusun Laporan Naratif Kompilasi... 🤖');
+    setProgressText("Menghubungi Gateway API Server...");
+
+    let subTimer = null
+    const steps = [
+      "Membaca Catatan & Hasil Ulasan Asesor...",
+      "Menghitung Persentase Kepatuhan Tiap Aspek...",
+      "Menganalisis Kekuatan & Kepatuhan Kurikulum (Strengths)...",
+      "Mengidentifikasi Akar Masalah & Area Revisi (Weaknesses)...",
+      "Merumuskan Rencana Tindak Lanjut & Rekomendasi...",
+      "Menyusun Laporan Naratif Kompilasi..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang menyusun laporan naratif... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const charCount = event.text.length
+        setProgressText(`AI sedang menyusun: Menulis draft laporan... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
       const prodiName = rpsList[0]?.mk?.prodi?.nama || 'Program Studi';
       const selectedRps = rpsList.filter(r => selectedIds.includes(r.id));
@@ -236,20 +273,19 @@ export default function ReviewRpsListPage() {
       });
 
       const { stats } = calculateCompilationStats();
-      const report = await generateCompilationReport(prodiName, coursesData, stats);
+      const report = await generateCompilationReport(prodiName, coursesData, stats, handleProgress);
       
       if (report) {
         setCompilationNotes(cleanMarkdown(report));
-        toast.dismiss(loadToast);
         toast.success('Laporan Analisa Deskriptif berhasil disusun oleh AI! 📑');
       } else {
         throw new Error('Hasil laporan AI kosong.');
       }
     } catch (err) {
       console.error(err);
-      toast.dismiss(loadToast);
       toast.error('Gagal menyusun laporan AI: ' + err.message);
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setCompilationAiLoading(false);
     }
   };
@@ -1111,6 +1147,7 @@ export default function ReviewRpsListPage() {
           </div>
         );
       })()}
+      <AiProgressModal isOpen={compilationAiLoading} title="Kompilasi Laporan Naratif" progressText={progressText} />
     </div>
   )
 }

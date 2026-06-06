@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2, Sparkles, RefreshCw } from 'lucide-react'
 import { generateReferences } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 export default function Step5Penilaian({ form, setF }) {
@@ -8,6 +9,7 @@ export default function Step5Penilaian({ form, setF }) {
   const referensi = form.referensi
   const [newRef, setNewRef] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   async function handleAiGenerateRefs() {
     const courseName = form.mk?.nama_mk
@@ -17,9 +19,43 @@ export default function Step5Penilaian({ form, setF }) {
     }
 
     setGenerating(true)
-    const loadToast = toast.loading('Mencari referensi pustaka mutakhir via AI...')
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Nama Mata Kuliah & CPMK...",
+      "Mencari Buku Teks Akademik Mutakhir...",
+      "Mencari Artikel & Jurnal Ilmiah Terbaru...",
+      "Memformat Sitasi dengan Standar APA Style...",
+      "Mempersiapkan Rekomendasi Pustaka..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang menyusun rujukan pustaka... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const charCount = event.text.length
+        setProgressText(`AI sedang merumuskan referensi... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
-      const result = await generateReferences(courseName, form.cpmk)
+      const result = await generateReferences(courseName, form.cpmk, handleProgress)
       if (Array.isArray(result) && result.length > 0) {
         const existing = new Set(referensi)
         const newAdded = []
@@ -41,7 +77,7 @@ export default function Step5Penilaian({ form, setF }) {
       console.error(err)
       toast.error(err.message || 'Gagal merekomendasikan referensi.')
     } finally {
-      toast.dismiss(loadToast)
+      if (subTimer) clearInterval(subTimer)
       setGenerating(false)
     }
   }
@@ -298,6 +334,7 @@ export default function Step5Penilaian({ form, setF }) {
           </div>
         )}
       </div>
+      <AiProgressModal isOpen={generating} title="Rekomendasi Referensi Pustaka" progressText={progressText} />
     </div>
   )
 }

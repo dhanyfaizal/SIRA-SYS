@@ -208,7 +208,7 @@ export async function testConnection(key, url) {
 }
 
 // 1. Generate CPMK berdasarkan CPL dan deskripsi mata kuliah
-export async function generateCpmk(courseName, courseDesc, cplList) {
+export async function generateCpmk(courseName, courseDesc, cplList, onProgress = null) {
   const prompt = `
     Anda adalah pakar kurikulum Outcome-Based Education (OBE). Berdasarkan data mata kuliah berikut:
     Nama Mata Kuliah: "${courseName}"
@@ -232,11 +232,11 @@ export async function generateCpmk(courseName, courseDesc, cplList) {
     - Hasilkan minimal 3 dan maksimal 6 CPMK yang komprehensif.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 // 2. Generate 16 Pertemuan mingguan berdasarkan CPMK dan deskripsi mata kuliah
-export async function generateWeeklyPlan(courseName, courseDesc, cpmkList, sks = 3) {
+export async function generateWeeklyPlan(courseName, courseDesc, cpmkList, sks = 3, onProgress = null) {
   const targetWaktu = (Number(sks) || 3) * 50;
   const prompt = `
     Anda adalah perancang instruksional akademik untuk STIKOM Yos Sudarso. Berdasarkan data mata kuliah:
@@ -274,11 +274,11 @@ export async function generateWeeklyPlan(courseName, courseDesc, cpmkList, sks =
     - Hasilkan draf lengkap tanpa memotong respons.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 // 3. Review SPMI kelayakan RPS
-export async function reviewSpmi(rpsData) {
+export async function reviewSpmi(rpsData, onProgress = null) {
   const prompt = `
     Anda adalah auditor Sistem Penjaminan Mutu Internal (SPMI) perguruan tinggi STIKOM Yos Sudarso.
     Tugas Anda adalah mengevaluasi dokumen Rencana Pembelajaran Semester (RPS) berikut untuk menilai keselarasan instruksional (constructive alignment):
@@ -315,11 +315,11 @@ export async function reviewSpmi(rpsData) {
     Gunakan Bahasa Indonesia yang ramah namun kritis dan berstandar akademik tinggi.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 // 4. Ekstrak Profil Lulusan dan CPL dari dokumen kurikulum
-export async function extractCurriculum(text) {
+export async function extractCurriculum(text, onProgress = null) {
   const prompt = `
     Anda adalah pakar kurikulum Outcome-Based Education (OBE). Tugas Anda adalah menganalisis dokumen kurikulum berikut dan mengekstrak:
     1. Profil Lulusan (PL) yang berisi peran/profil dan deskripsi singkatnya.
@@ -354,11 +354,11 @@ export async function extractCurriculum(text) {
     - Hasilkan JSON murni tanpa ada penjelasan tambahan di luar JSON.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 // 5. Rekomendasikan CPL yang relevan dari kurikulum program studi berdasarkan Nama Mata Kuliah
-export async function generateCplForCourse(courseName, curriculumCpls) {
+export async function generateCplForCourse(courseName, curriculumCpls, onProgress = null) {
   const prompt = `
     Anda adalah pakar kurikulum Outcome-Based Education (OBE). Tugas Anda adalah memilih/merekomendasikan CPL (Capaian Pembelajaran Lulusan) mana saja yang relevan dari daftar CPL program studi yang tersedia untuk mata kuliah berikut:
     
@@ -379,11 +379,11 @@ export async function generateCplForCourse(courseName, curriculumCpls) {
     - Hasilkan JSON ARRAY murni tanpa ada penjelasan tambahan di luar JSON.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 // 6. Generate Deskripsi Mata Kuliah berdasarkan Nama Mata Kuliah
-export async function generateCourseDescription(courseName) {
+export async function generateCourseDescription(courseName, onProgress = null) {
   const prompt = `
     Anda adalah perancang kurikulum pendidikan tinggi. Berdasarkan nama mata kuliah berikut:
     Nama Mata Kuliah: "${courseName}"
@@ -400,11 +400,11 @@ export async function generateCourseDescription(courseName) {
     Hasilkan JSON murni tanpa ada penjelasan tambahan di luar JSON.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 // 7. Review RPS Lengkap Berdasarkan 19 Aspek Blanko Review
-export async function reviewRpsFull(rpsData) {
+export async function reviewRpsFull(rpsData, onProgress = null) {
   const prompt = `
     Anda adalah auditor dan asesor akademik perguruan tinggi STIKOM Yos Sudarso.
     Tugas Anda adalah meninjau (review) dokumen Rencana Pembelajaran Semester (RPS) berikut secara mendalam terhadap 19 aspek evaluasi standardisasi kurikulum perguruan tinggi.
@@ -475,17 +475,17 @@ export async function reviewRpsFull(rpsData) {
       "c7_kriteria_penilaian": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
       "c8_bobot_nilai": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
       "c9_referensi_rps": { "rating": "sesuai"|"cukup"|"tidak_sesuai", "catatan": "..." },
-      "rekomendasi": "Catatan ulasan dan kesimpulan rekomendasi umum secara ringkas..."
+      "rekomendasi": "Catatan ulasan and kesimpulan rekomendasi umum secara ringkas..."
     }
 
     PENTING: Hanya kembalikan JSON Object murni tanpa teks pengantar maupun penutup.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
-// 8. Hasilkan Laporan Naratif Deskriptif Kompilasi Review RPS
-export async function generateCompilationReport(prodiName, coursesData, stats) {
+// 8. Hasilkan Laporan Naratif Deskriptif Kompilasi
+export async function generateCompilationReport(prodiName, coursesData, stats, onProgress = null) {
   const prompt = `
     Anda adalah asesor dan auditor akademik senior di Sekolah Tinggi Ilmu Komputer Yos Sudarso.
     Tugas Anda adalah menyusun Laporan Hasil Evaluasi dan Kompilasi Review Rencana Pembelajaran Semester (RPS) untuk Program Studi "${prodiName}".
@@ -517,11 +517,11 @@ export async function generateCompilationReport(prodiName, coursesData, stats) {
     Kembalikan hasil dalam format teks Markdown akademik yang siap dicetak/disalin. Jangan sertakan teks pengantar maupun penutup di luar isi laporan.
   `;
 
-  return callAi(prompt, false); // return raw text/markdown
+  return callAi(prompt, false, onProgress);
 }
 
 // 9. Generate Referensi Pustaka berdasarkan Nama Mata Kuliah dan CPMK
-export async function generateReferences(courseName, cpmkList) {
+export async function generateReferences(courseName, cpmkList, onProgress = null) {
   const currentYear = new Date().getFullYear()
   const startYear = currentYear - 3
   const prompt = `
@@ -549,11 +549,11 @@ export async function generateReferences(courseName, cpmkList) {
     Hanya kembalikan JSON array murni tanpa ada penjelasan tambahan di luar JSON.
   `
 
-  return callAi(prompt, true)
+  return callAi(prompt, true, onProgress)
 }
 
 // 10. Generate Rekomendasi Pemetaan Asesmen OBE
-export async function generateObeMapping(courseName, cpmkList, assessmentComponents) {
+export async function generateObeMapping(courseName, cpmkList, assessmentComponents, onProgress = null) {
   const prompt = `
     Anda adalah pakar kurikulum Outcome-Based Education (OBE) tingkat tinggi.
     Tugas Anda adalah merancang konfigurasi pemetaan sub-komponen asesmen/soal ke Capaian Pembelajaran Mata Kuliah (CPMK) untuk mata kuliah berikut:
@@ -586,7 +586,7 @@ export async function generateObeMapping(courseName, cpmkList, assessmentCompone
     Jangan berikan penjelasan tambahan apapun, hanya kembalikan JSON array murni.
   `
 
-  return callAi(prompt, true)
+  return callAi(prompt, true, onProgress)
 }
 
 // 11. Generate Materi Slide untuk Pertemuan

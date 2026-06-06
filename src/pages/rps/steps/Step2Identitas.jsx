@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import { generateCourseDescription } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 export default function Step2Identitas({ form, setF }) {
   const mk = form.mk
   const [generating, setGenerating] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   async function handleAiGenerateDesc() {
     if (!mk?.nama_mk) {
@@ -14,8 +16,43 @@ export default function Step2Identitas({ form, setF }) {
     }
 
     setGenerating(true)
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Nama Mata Kuliah...",
+      "Mengidentifikasi Fokus Utama Pembelajaran...",
+      "Menyusun Deskripsi Relevansi Keilmuan...",
+      "Menyusun Kompetensi Akhir & Topik Kunci...",
+      "Mempersiapkan Deskripsi..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang merampungkan deskripsi... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const charCount = event.text.length
+        setProgressText(`AI sedang menulis deskripsi... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
-      const result = await generateCourseDescription(mk.nama_mk)
+      const result = await generateCourseDescription(mk.nama_mk, handleProgress)
       if (result && result.deskripsi) {
         setF('deskripsi_mk', result.deskripsi)
         toast.success('Deskripsi Mata Kuliah berhasil dibuat dengan AI! 🎉')
@@ -26,6 +63,7 @@ export default function Step2Identitas({ form, setF }) {
       console.error(err)
       toast.error(err.message || 'Gagal menghasilkan deskripsi.')
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setGenerating(false)
     }
   }
@@ -102,6 +140,7 @@ export default function Step2Identitas({ form, setF }) {
         />
         <span className="input-hint">{form.deskripsi_mk.length} karakter · minimal 50 karakter disarankan</span>
       </div>
+      <AiProgressModal isOpen={generating} title="Penyusunan Deskripsi MK" progressText={progressText} />
     </div>
   )
 }

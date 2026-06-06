@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Link2, Sparkles, RefreshCw, X } from 'lucide-react'
 import { generateCpmk, generateCplForCourse } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -11,6 +12,7 @@ export default function Step3Cpmk({ form, setF }) {
   const cpmk = form.cpmk
   const [generating, setGenerating] = useState(false)
   const [generatingCpl, setGeneratingCpl] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   const [curriculumCpls, setCurriculumCpls] = useState([])
   const [loadingCpls, setLoadingCpls] = useState(false)
@@ -112,7 +114,41 @@ export default function Step3Cpmk({ form, setF }) {
     }
 
     setGeneratingCpl(true)
-    const loadToast = toast.loading('Mencari CPL yang relevan dari kurikulum prodi via AI...')
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Nama Mata Kuliah...",
+      "Mengakses Dokumen Kurikulum Program Studi...",
+      "Membaca Daftar Capaian Pembelajaran Lulusan (CPL)...",
+      "Menyelaraskan Kompetensi MK dengan CPL...",
+      "Menyusun Rekomendasi CPL Relevan..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang menyelaraskan CPL... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const charCount = event.text.length
+        setProgressText(`AI sedang menyelaraskan CPL... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
       // 1. Fetch active curriculum first
       let { data, error } = await supabase
@@ -149,7 +185,7 @@ export default function Step3Cpmk({ form, setF }) {
       }
 
       // 2. Call AI generate function
-      const result = await generateCplForCourse(courseName, curriculumCpls)
+      const result = await generateCplForCourse(courseName, curriculumCpls, handleProgress)
       if (Array.isArray(result) && result.length > 0) {
         const mappedCpls = result.map(code => {
           const match = curriculumCpls.find(c => c.kode === code)
@@ -187,7 +223,7 @@ export default function Step3Cpmk({ form, setF }) {
       console.error(err)
       toast.error('Gagal menyelaraskan CPL: ' + err.message)
     } finally {
-      toast.dismiss(loadToast)
+      if (subTimer) clearInterval(subTimer)
       setGeneratingCpl(false)
     }
   }
@@ -204,11 +240,49 @@ export default function Step3Cpmk({ form, setF }) {
     }
 
     setGenerating(true)
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Deskripsi Mata Kuliah...",
+      "Membaca Daftar CPL Terkait...",
+      "Menentukan Kata Kerja Operasional Taksonomi Bloom...",
+      "Merumuskan Capaian Pembelajaran Mata Kuliah (CPMK)...",
+      "Mempersiapkan Output CPMK..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang merumuskan CPMK... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const text = event.text
+        const charCount = text.length
+        const matchCount = (text.match(/"kode"\s*:\s*"/g) || []).length
+        setProgressText(`AI sedang merumuskan: CPMK ${matchCount}... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
       const result = await generateCpmk(
         form.mk.nama_mk,
         form.deskripsi_mk,
-        cpl
+        cpl,
+        handleProgress
       )
 
       if (Array.isArray(result) && result.length > 0) {
@@ -222,6 +296,7 @@ export default function Step3Cpmk({ form, setF }) {
       console.error(err)
       toast.error('Gagal membuat CPMK: ' + err.message)
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setGenerating(false)
     }
   }
@@ -473,6 +548,8 @@ export default function Step3Cpmk({ form, setF }) {
           </div>
         </div>
       )}
+      <AiProgressModal isOpen={generatingCpl} title="Penyelarasan CPL Kurikulum" progressText={progressText} />
+      <AiProgressModal isOpen={generating} title="Perumusan CPMK OBE" progressText={progressText} />
     </div>
   )
 }

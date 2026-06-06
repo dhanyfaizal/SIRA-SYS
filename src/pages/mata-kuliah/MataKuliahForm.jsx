@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Sparkles, RefreshCw } from 'lucide-react'
 import { dbMK } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { generateCplForCourse } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 const EMPTY = { kode_mk:'', nama_mk:'', sks:2, semester:1, cpl:[] }
@@ -13,6 +14,7 @@ export default function MataKuliahForm({ mk, prodiId, onClose, onSaved }) {
   const [saving,  setSaving]  = useState(false)
   const [newCpl,  setNewCpl]  = useState('')
   const [generatingCpl, setGeneratingCpl] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   // State for curriculum CPLs
   const [curriculumCpls, setCurriculumCpls] = useState([])
@@ -64,8 +66,43 @@ export default function MataKuliahForm({ mk, prodiId, onClose, onSaved }) {
     }
 
     setGeneratingCpl(true)
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Nama Mata Kuliah...",
+      "Mengakses Dokumen Kurikulum Program Studi...",
+      "Membaca Daftar Capaian Pembelajaran Lulusan (CPL)...",
+      "Menyelaraskan Kompetensi MK dengan CPL...",
+      "Menyusun Rekomendasi CPL Relevan..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang merekomendasikan CPL... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const charCount = event.text.length
+        setProgressText(`AI sedang memetakan CPL... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
-      const result = await generateCplForCourse(form.nama_mk, curriculumCpls)
+      const result = await generateCplForCourse(form.nama_mk, curriculumCpls, handleProgress)
       if (Array.isArray(result) && result.length > 0) {
         // Petakan kode CPL (misal CPL-1) kembali ke deskripsi lengkapnya dari kurikulum
         const mappedCpls = result.map(code => {
@@ -92,6 +129,7 @@ export default function MataKuliahForm({ mk, prodiId, onClose, onSaved }) {
       console.error(err)
       toast.error('Gagal merekomendasikan CPL: ' + err.message)
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setGeneratingCpl(false)
     }
   }
@@ -274,6 +312,7 @@ export default function MataKuliahForm({ mk, prodiId, onClose, onSaved }) {
             </button>
           </div>
         </form>
+      <AiProgressModal isOpen={generatingCpl} title="Rekomendasi CPL Kurikulum" progressText={progressText} />
       </div>
     </div>
   )

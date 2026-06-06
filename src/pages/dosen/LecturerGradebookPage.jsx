@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { generateObeMapping } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 
 // Client-side UUID generator helper (RFC4122 v4 compliant)
 function generateUUID() {
@@ -332,6 +333,7 @@ export default function LecturerGradebookPage() {
   }
 
   const [aiLoading, setAiLoading] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   const handleAiRecommendMapping = async () => {
     if (!selectedRps) return
@@ -359,10 +361,46 @@ export default function LecturerGradebookPage() {
     }
 
     setAiLoading(true)
-    const loadToast = toast.loading('AI sedang merancang rekomendasi pemetaan soal ke CPMK... 🤖')
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Bobot Komponen Penilaian RPS...",
+      "Membaca Kebutuhan Capaian CPMK Mata Kuliah...",
+      "Mendesain Pemetaan Soal Asesmen OBE...",
+      "Membagi Distribusi Persentase Bobot Sub-Komponen...",
+      "Menyelaraskan Soal dengan Target CPMK...",
+      "Mempersiapkan Output Draft Pemetaan OBE..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang merancang pemetaan OBE... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const text = event.text
+        const charCount = text.length
+        const matchCount = (text.match(/"nama_asesmen"\s*:/g) || []).length
+        setProgressText(`AI sedang merancang: Asesmen ${matchCount}... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
 
     try {
-      const recommendations = await generateObeMapping(courseName, cpmkList, activeComponents)
+      const recommendations = await generateObeMapping(courseName, cpmkList, activeComponents, handleProgress)
       
       if (recommendations && recommendations.length > 0) {
         // Map the recommendations to our localAssessments schema
@@ -376,16 +414,15 @@ export default function LecturerGradebookPage() {
         }))
 
         setLocalAssessments(mapped)
-        toast.dismiss(loadToast)
         toast.success('Rekomendasi pemetaan OBE berhasil dibuat oleh AI! Silakan tinjau dan simpan jika sudah sesuai.')
       } else {
         throw new Error('Hasil rekomendasi AI kosong.')
       }
     } catch (err) {
       console.error(err)
-      toast.dismiss(loadToast)
       toast.error('Gagal membuat rekomendasi AI: ' + err.message)
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setAiLoading(false)
     }
   }
@@ -942,6 +979,7 @@ export default function LecturerGradebookPage() {
           )}
         </div>
       )}
+    <AiProgressModal isOpen={aiLoading} title="Rekomendasi Pemetaan OBE" progressText={progressText} />
     </div>
   )
 }

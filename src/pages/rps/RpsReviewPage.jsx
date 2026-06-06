@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, dbReviewRps, dbNotifications } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { reviewRpsFull } from '@/lib/ai'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 // ── Definisi 19 aspek review sesuai Blanko ────────────────────────
@@ -76,6 +77,7 @@ export default function RpsReviewPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [progressText, setProgressText] = useState('')
   const [history, setHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
   const [expandedSections, setExpandedSections] = useState({ A: true, B: true, C: true })
@@ -131,9 +133,46 @@ export default function RpsReviewPage() {
   async function runAiReview() {
     if (!rps) return
     setAiLoading(true)
-    const loadToast = toast.loading('AI sedang menganalisis dokumen RPS… 🤖')
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Membaca Kelengkapan Dokumen RPS...",
+      "Mengevaluasi Deskripsi & Profil Mata Kuliah...",
+      "Mengaudit Peta Capaian CPL & CPMK...",
+      "Meninjau 16 Rencana Pertemuan Mingguan...",
+      "Menilai Relevansi Asesmen & Referensi...",
+      "Mempersiapkan Laporan Audit Mutu Akademik..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang mengevaluasi standar mutu RPS... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const text = event.text
+        const charCount = text.length
+        const matchCount = (text.match(/"rating"\s*:/g) || []).length
+        setProgressText(`AI sedang mengaudit aspek: ${matchCount} dari 19 aspek terulas... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
-      const result = await reviewRpsFull(rps)
+      const result = await reviewRpsFull(rps, handleProgress)
       if (result) {
         // Pre-fill ratings and catatan from AI result
         const newReview = { ...review }
@@ -147,16 +186,15 @@ export default function RpsReviewPage() {
           newReview.rekomendasi = result.rekomendasi
         }
         setReview(newReview)
-        toast.dismiss(loadToast)
         toast.success('Ulasan otomatis AI berhasil dihasilkan! Silakan tinjau kembali sebelum menyimpan. 📑')
       } else {
         throw new Error('Hasil review AI kosong.')
       }
     } catch (err) {
       console.error(err)
-      toast.dismiss(loadToast)
       toast.error('Gagal menjalankan AI review: ' + err.message)
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setAiLoading(false)
     }
   }
@@ -779,6 +817,7 @@ export default function RpsReviewPage() {
           </button>
         </div>
       )}
+      <AiProgressModal isOpen={aiLoading} title="Audit Kelayakan RPS (SPMI)" progressText={progressText} />
     </div>
   )
 }

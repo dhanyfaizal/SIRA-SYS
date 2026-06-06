@@ -4,6 +4,7 @@ import { Upload, Sparkles, RefreshCw, Plus, Trash2, ArrowLeft, Save, AlertCircle
 import { useAuth } from '@/contexts/AuthContext'
 import { extractCurriculum } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
+import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 export default function KurikulumUploadPage() {
@@ -14,6 +15,7 @@ export default function KurikulumUploadPage() {
   const [inputText, setInputText] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [progressText, setProgressText] = useState('')
 
   // Extracted data state
   const [extractedData, setExtractedData] = useState({
@@ -133,8 +135,46 @@ export default function KurikulumUploadPage() {
     }
 
     setLoading(true)
+    setProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Membaca Teks Dokumen Kurikulum...",
+      "Mencari Profil Lulusan (PL) Program Studi...",
+      "Mengekstrak Capaian Pembelajaran Lulusan (CPL)...",
+      "Menyusun Struktur Relasi PL & CPL...",
+      "Memvalidasi Standardisasi OBE...",
+      "Mempersiapkan Output Draft Kurikulum..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setProgressText(steps[currentStep])
+            } else {
+              setProgressText("AI sedang memproses dokumen kurikulum... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const text = event.text
+        const charCount = text.length
+        const matchCount = (text.match(/"kode"\s*:/g) || []).length
+        setProgressText(`AI sedang mengekstrak: Item ${matchCount}... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
     try {
-      const result = await extractCurriculum(inputText)
+      const result = await extractCurriculum(inputText, handleProgress)
       if (result && (Array.isArray(result.cpl) || Array.isArray(result.profil_lulusan))) {
         setExtractedData({
           profil_lulusan: result.profil_lulusan ?? [],
@@ -149,6 +189,7 @@ export default function KurikulumUploadPage() {
       console.error(err)
       toast.error('Gagal mengekstrak: ' + err.message)
     } finally {
+      if (subTimer) clearInterval(subTimer)
       setLoading(false)
     }
   }
@@ -527,6 +568,7 @@ export default function KurikulumUploadPage() {
           </div>
         )}
       </div>
+      <AiProgressModal isOpen={loading} title="Ekstraksi AI Kurikulum" progressText={progressText} />
     </div>
   )
 }
