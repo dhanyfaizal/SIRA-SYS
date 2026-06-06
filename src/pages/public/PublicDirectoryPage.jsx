@@ -68,7 +68,7 @@ export default function PublicDirectoryPage() {
   })
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: 48, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ height: '100vh', overflowY: 'auto', backgroundColor: '#f8fafc', paddingBottom: 48, fontFamily: "'Inter', system-ui, sans-serif" }}>
       
       {/* Top Navbar */}
       <header style={{

@@ -73,7 +73,7 @@ export default function RpsPublicViewPage() {
     .filter((v, i, self) => self.indexOf(v) === i)
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingBottom: 60, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ height: '100vh', overflowY: 'auto', backgroundColor: '#f8fafc', paddingBottom: 60, fontFamily: "'Inter', system-ui, sans-serif" }}>
       
       {/* ===== Print-only styles ===== */}
       <style>{`
