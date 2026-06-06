@@ -14,6 +14,7 @@ export default function RpsPublicViewPage() {
   
   const [rps, setRps] = useState(null)
   const [teamMembers, setTeamMembers] = useState([])
+  const [kaprodi, setKaprodi] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -27,6 +28,20 @@ export default function RpsPublicViewPage() {
           return
         }
         setRps(data)
+
+        // Ambil data Kaprodi untuk tanda tangan
+        const prodiId = data.mk?.prodi?.id || data.mk?.prodi_id
+        if (prodiId) {
+          const { data: kaprodiData, error: kaprodiError } = await supabase
+            .from('profiles')
+            .select('nama_lengkap, nidn')
+            .eq('prodi_id', prodiId)
+            .eq('role', 'kaprodi')
+            .limit(1)
+          if (!kaprodiError && kaprodiData && kaprodiData.length > 0) {
+            setKaprodi(kaprodiData[0])
+          }
+        }
 
         // Ambil data tim pengajar
         if (data.team_dosen && data.team_dosen.length > 0) {
@@ -86,14 +101,33 @@ export default function RpsPublicViewPage() {
     .map(p => p.bahan_kajian.trim())
     .filter((v, i, self) => self.indexOf(v) === i)
 
+  // Ekstrak Sub-CPMK unik (Kemampuan Akhir) secara terbalik (dari akhir ke awal) untuk diagram alur
+  const uniqueSubCpmks = []
+  const seen = new Set()
+  renc.forEach(p => {
+    if (p.is_uts || p.is_uas || !p.kemampuan_akhir?.trim()) return
+    const text = p.kemampuan_akhir.trim()
+    if (!seen.has(text)) {
+      seen.add(text)
+      uniqueSubCpmks.push(text)
+    }
+  })
+  const flowchartSubCpmks = [...uniqueSubCpmks].reverse().slice(0, 6)
+
+  const cpmkList = cp.cpmk ?? []
+
   return (
-    <div style={{ height: '100vh', overflowY: 'auto', backgroundColor: '#f8fafc', paddingBottom: 60, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      
-      {/* ===== Print-only styles ===== */}
+    <>
+      {/* Styles khusus cetak PDF dan Layout */}
       <style>{`
+        /* By default, hide print layout on screen */
+        .print-layout-only {
+          display: none !important;
+        }
+
         @media print {
-          /* Reset global overflow & layout constraints */
-          html, body, #root, #app, .app-shell, .app-main, .app-content {
+          /* Reset root limits to allow printing all pages */
+          html, body, #root, #app, .app-shell, .app-main, .app-content, .public-scroll-container {
             height: auto !important;
             min-height: 0 !important;
             overflow: visible !important;
@@ -102,110 +136,75 @@ export default function RpsPublicViewPage() {
             background: #ffffff !important;
           }
           body {
+            background: #ffffff !important;
+            color: #000000 !important;
             margin: 0 !important;
             padding: 0 !important;
+            font-family: 'Times New Roman', serif !important;
+          }
+          .no-print, .public-scroll-container {
+            display: none !important;
+          }
+          .print-layout-only {
+            display: block !important;
+            background: #ffffff !important;
             color: #000000 !important;
             font-family: 'Times New Roman', serif !important;
-            font-size: 11pt !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            line-height: 1.5 !important;
           }
-
+          .page-break {
+            page-break-before: always !important;
+            break-before: page !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+          }
           @page {
             size: A4;
             margin: 15mm;
           }
-
-          /* Hide all non-print elements */
-          .no-print {
-            display: none !important;
-          }
-
-          /* ── Main container resets ── */
-          .public-rps-root {
-            min-height: auto !important;
-            background: #ffffff !important;
-            padding: 0 !important;
-            font-family: 'Times New Roman', serif !important;
-          }
-          .public-rps-body {
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-
-          /* ── Hide the gradient hero card, replace with formal header ── */
-          .public-hero-card {
-            display: none !important;
-          }
-          .print-formal-header {
-            display: block !important;
-          }
-
-          /* ── Cards → clean bordered sections ── */
-          .card {
-            border: none !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            margin-bottom: 16px !important;
-            page-break-inside: avoid;
-          }
-          .card-header {
-            border-bottom: 2px solid #000000 !important;
-            background: none !important;
-            padding: 6px 0 4px !important;
-          }
-          .card-header span {
-            font-size: 12pt !important;
-            font-weight: bold !important;
-            text-transform: uppercase !important;
-            color: #000000 !important;
-          }
-          .card-body {
-            padding: 12px 0 !important;
-          }
-
-          /* ── CPL/CPMK items ── */
-          .cp-item {
-            background: none !important;
-            border: 1px solid #cccccc !important;
-            border-radius: 2px !important;
-            padding: 6px 10px !important;
-            margin-bottom: 4px !important;
-            font-size: 10pt !important;
-            color: #000000 !important;
+          /* Cover & Flowchart Page A4 Page Scaling */
+          .cover-page {
+            background-color: #4f46e5 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-          }
-
-          /* ── Badges in print ── */
-          .badge-pill {
-            background: #eeeeee !important;
-            color: #000000 !important;
-            border: 1px solid #999999 !important;
-            font-size: 9pt !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          /* ── Table ── */
-          .public-rps-table {
-            border: 1.5px solid #000 !important;
-            border-collapse: collapse !important;
-            width: 100% !important;
-            font-size: 9.5pt !important;
-          }
-          .public-rps-table th,
-          .public-rps-table td {
-            border: 1px solid #000000 !important;
-            padding: 6px 8px !important;
-            color: #000000 !important;
-            vertical-align: top !important;
-          }
-          .public-rps-table th {
-            background-color: #f1f5f9 !important;
-            font-weight: bold !important;
+            color: #ffffff !important;
+            height: calc(297mm - 30mm) !important;
+            min-height: calc(297mm - 30mm) !important;
+            box-sizing: border-box !important;
+            padding: 40px 30px !important;
+            border: 3px double #ffffff !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            align-items: center !important;
             text-align: center !important;
+          }
+          .flowchart-page {
+            height: calc(297mm - 30mm) !important;
+            min-height: calc(297mm - 30mm) !important;
+            box-sizing: border-box !important;
+            padding: 15px 30px !important;
+            border: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+          }
+          .kop-table, .kop-table td {
+            border: none !important;
+          }
+          .kop-border-line {
+            border-bottom: 3px double #000000 !important;
+          }
+          .flowchart-node {
+            background-color: #f1f5f9 !important;
+            border: 1px solid #94a3b8 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          table.rps-table th {
+            background-color: #f1f5f9 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -216,88 +215,135 @@ export default function RpsPublicViewPage() {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
-
-          /* ── UTS/UAS row highlights in print ── */
-          .public-rps-table tr.row-uts {
-            background-color: #fffbeb !important;
+          .yellow-header {
+            background-color: #fef08a !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          .public-rps-table tr.row-uas {
-            background-color: #f0fdf4 !important;
+          .gray-header {
+            background-color: #f1f5f9 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-
-          /* ── Penilaian grid ── */
-          .penilaian-grid {
-            display: grid !important;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+          .green-box {
+            background-color: #d1fae5 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          .penilaian-card {
-            background: none !important;
-            border: 1px solid #cccccc !important;
-            text-align: center !important;
-            padding: 8px !important;
+          .blue-node {
+            background-color: #eff6ff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          .penilaian-value {
-            color: #000000 !important;
-            font-size: 16pt !important;
+          .signature-section {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-around !important;
+            align-items: stretch !important;
+            margin-top: 50px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
-
-          /* ── Identitas grid ── */
-          .identitas-grid {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr 1fr !important;
+          .signature-box {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            height: 140px !important;
+            width: 45% !important;
           }
-          .identitas-label {
-            color: #666666 !important;
+          
+          .cover-title {
+            font-size: 22pt !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            line-height: 1.4 !important;
+            margin-top: 20px !important;
           }
-          .identitas-value {
-            color: #000000 !important;
+          .cover-logo {
+            width: 160px !important;
+            height: 160px !important;
+            margin: 30px 0 !important;
+            object-fit: contain !important;
+            background: white !important;
+            padding: 10px !important;
+            border-radius: 50% !important;
           }
-
-          /* ── Deskripsi box ── */
-          .deskripsi-box {
-            background: none !important;
-            border: 1px solid #cccccc !important;
+          .cover-info-table {
+            width: 85% !important;
+            margin: 40px auto !important;
+            font-size: 13pt !important;
           }
-
-          /* ── Referensi ── */
-          .ref-item {
-            background: none !important;
-            border: 1px solid #cccccc !important;
-            color: #000000 !important;
-          }
-          .ref-item span {
-            color: #000000 !important;
-          }
-
-          /* ── Page breaks ── */
-          .print-page-break {
-            page-break-before: always !important;
-            break-before: page !important;
-          }
-
-          /* ── Kop Surat (print-only formal header) ── */
-          .print-kop-table {
-            width: 100% !important;
+          .cover-info-table td {
+            padding: 6px 12px !important;
             border: none !important;
-            border-collapse: collapse !important;
-            margin-bottom: 5px !important;
+            color: inherit !important;
+            text-align: left !important;
           }
-          .print-kop-table td {
-            border: none !important;
-            padding: 8px !important;
+          .cover-footer {
+            font-size: 13pt !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            line-height: 1.6 !important;
+          }
+          .flowchart-title {
+            background-color: #d1fae5 !important;
+            color: #b91c1c !important;
+            border: 2px solid #16a34a !important;
+            padding: 6px 16px !important;
+            font-size: 11pt !important;
+            font-weight: bold !important;
+            border-radius: 4px !important;
+            margin-bottom: 15px !important;
             text-align: center !important;
-            vertical-align: middle !important;
+            width: 70% !important;
+            text-transform: uppercase !important;
           }
-          .print-kop-border {
-            border-bottom: 3px double #000000 !important;
-            margin-bottom: 20px !important;
-            width: 100% !important;
+          .cpmk-box {
+            background-color: #eff6ff !important;
+            border: 2px solid #2563eb !important;
+            padding: 8px 12px !important;
+            width: 85% !important;
+            text-align: center !important;
+            border-radius: 6px !important;
+            font-size: 9.5pt !important;
+            font-weight: bold !important;
+            color: #1e3a8a !important;
+            margin-bottom: 6px !important;
           }
-          .print-section-title {
+          .flowchart-node {
+            background-color: #f8fafc !important;
+            border: 1.5px solid #64748b !important;
+            padding: 6px 12px !important;
+            width: 80% !important;
+            text-align: center !important;
+            border-radius: 6px !important;
+            font-size: 8.5pt !important;
+            color: #334155 !important;
+          }
+          .flowchart-arrow {
+            font-size: 10pt !important;
+            color: #4f46e5 !important;
+            font-weight: bold !important;
+            margin: 1px 0 !important;
+          }
+          .kop-logo {
+            width: 70px !important;
+            height: 70px !important;
+            object-fit: contain !important;
+          }
+          .kop-institution {
+            font-size: 14pt !important;
+            font-weight: bold !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+          }
+          .kop-address {
+            font-size: 9pt !important;
+            margin-top: 4px !important;
+            font-weight: normal !important;
+          }
+          .section-header-title {
             font-size: 12pt !important;
             font-weight: bold !important;
             text-transform: uppercase !important;
@@ -306,105 +352,379 @@ export default function RpsPublicViewPage() {
             border: 1.5px solid #000 !important;
             text-align: center !important;
             margin-bottom: 15px !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
           }
-
-          /* ── Identitas table (formal print format) ── */
-          .print-identitas-table {
+          table.rps-table {
             width: 100% !important;
             border-collapse: collapse !important;
+            margin-bottom: 20px !important;
             border: 1.5px solid #000 !important;
-            margin-bottom: 16px !important;
           }
-          .print-identitas-table th,
-          .print-identitas-table td {
-            border: 1px solid #000 !important;
+          table.rps-table th, table.rps-table td {
+            border: 1px solid #000000 !important;
             padding: 8px 10px !important;
-            font-size: 10pt !important;
-            color: #000000 !important;
+            font-size: 9.5pt !important;
+            text-align: left !important;
             vertical-align: top !important;
+            line-height: 1.4 !important;
+            color: #000000 !important;
           }
-          .print-identitas-table th {
-            background-color: #f1f5f9 !important;
+          table.rps-table th {
             font-weight: bold !important;
             text-align: center !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .print-identitas-table .label-cell {
-            width: 20% !important;
-            font-weight: bold !important;
-            background-color: #f8fafc !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            background-color: #f1f5f9 !important;
           }
         }
       `}</style>
 
-      {/* Top action header (sticky) — hidden on print */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        padding: '12px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-      }} className="no-print">
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/public')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <ArrowLeft size={14} /> Kembali ke Direktori
-        </button>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="badge-pill badge-green" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: '11px', fontWeight: 700 }}>
-            <CheckCircle size={12} /> RPS Resmi Terpublikasi
-          </span>
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => window.print()}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Download size={13} /> Cetak / PDF
+      {/* ===== Screen View ===== */}
+      <div className="public-scroll-container no-print" style={{ height: '100vh', overflowY: 'auto', backgroundColor: '#f8fafc', paddingBottom: 60, fontFamily: "'Inter', system-ui, sans-serif" }}>
+        {/* Top action header (sticky) — hidden on print */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '12px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+        }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/public')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <ArrowLeft size={14} /> Kembali ke Direktori
           </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="badge-pill badge-green" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: '11px', fontWeight: 700 }}>
+              <CheckCircle size={12} /> RPS Resmi Terpublikasi
+            </span>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={() => window.print()}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Download size={13} /> Cetak / PDF
+            </button>
+          </div>
+        </div>
+
+        {/* Main Document Content */}
+        <div style={{ maxWidth: 860, margin: '24px auto 0', padding: '0 16px' }} className="public-rps-body">
+          
+          {/* Course Main Title Header (screen only) */}
+          <div className="card public-hero-card" style={{ marginBottom: 20, background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', color: '#ffffff', border: 'none' }}>
+            <div className="card-body" style={{ padding: '28px 32px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', opacity: 0.8, marginBottom: 6 }}>
+                {mk.prodi?.nama || 'Program Studi STIKOM'}
+              </div>
+              <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.5px', lineHeight: 1.3 }}>
+                {mk.nama_mk}
+              </h1>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, opacity: 0.9, fontWeight: 500 }}>
+                <span>Kode: <strong>{mk.kode_mk}</strong></span>
+                <span>•</span>
+                <span>Beban: <strong>{mk.sks} SKS</strong></span>
+                <span>•</span>
+                <span>Semester: <strong>{mk.semester}</strong></span>
+                <span>•</span>
+                <span>T.A: <strong>{rps.tahun_akademik} ({rps.semester_aktif})</strong></span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 1: Identitas & Deskripsi */}
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-header">
+              <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Identitas & Deskripsi Mata Kuliah</span>
+            </div>
+            <div className="card-body">
+              <div className="identitas-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
+                <div>
+                  <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Dosen Pengampu Utama</div>
+                  <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{rps.dosen?.nama_lengkap || '—'}</div>
+                </div>
+                {teamMembers.length > 0 && (
+                  <div>
+                    <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Tim Pengajar</div>
+                    <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{teamMembers.map(m => m.nama_lengkap).join(', ')}</div>
+                  </div>
+                )}
+                <div>
+                  <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>NIDN</div>
+                  <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{rps.dosen?.nidn || '—'}</div>
+                </div>
+                <div>
+                  <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Status Dokumen</div>
+                  <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>Disetujui Ka. Prodi</div>
+                </div>
+              </div>
+
+              {rps.deskripsi_mk && (
+                <div className="deskripsi-box" style={{ marginTop: 18, padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>Deskripsi Perkuliahan</div>
+                  <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, margin: 0 }}>{rps.deskripsi_mk}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SECTION 2: Capaian Pembelajaran (OBE) */}
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-header">
+              <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Capaian Pembelajaran (OBE)</span>
+            </div>
+            <div className="card-body">
+              {/* CPL */}
+              {cplList.length > 0 && (
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>
+                    CPL — Capaian Pembelajaran Lulusan (Prodi)
+                  </div>
+                  {cplList.map((c, i) => (
+                    <div key={i} className="cp-item" style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, marginBottom: 6 }}>
+                      <span className="badge-pill badge-indigo" style={{ flexShrink: 0 }}>CPL-{i + 1}</span>
+                      <span style={{ color: '#334155' }}>{c}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* CPMK */}
+              {(cp.cpmk ?? []).length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>
+                    CPMK — Capaian Pembelajaran Mata Kuliah
+                  </div>
+                  {(cp.cpmk ?? []).map((c, i) => (
+                    <div key={i} className="cp-item" style={{ display: 'flex', gap: 10, padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, marginBottom: 6 }}>
+                      <span className="badge-pill badge-green" style={{ flexShrink: 0 }}>{c.kode || `CPMK-${i + 1}`}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: '#334155', fontWeight: 600 }}>{c.deskripsi}</div>
+                        {c.cpl_ref?.length > 0 && (
+                          <div style={{ marginTop: 6, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            {c.cpl_ref.map(r => (
+                              <span key={r} style={{ background: '#eef2ff', color: '#6366f1', borderRadius: 99, padding: '1px 8px', fontSize: 10, fontWeight: 700 }}>
+                                Terhubung {r}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SECTION 3: Rencana Pembelajaran 16 Pertemuan */}
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-header">
+              <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Matriks Rencana Pertemuan Mingguan</span>
+            </div>
+            <div className="card-body" style={{ padding: 0 }}>
+              <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+                <table className="public-rps-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      <th style={{ width: 50, textAlign: 'center', padding: '12px' }}>Minggu</th>
+                      <th style={{ padding: '12px', textAlign: 'left' }}>Kemampuan Akhir / Bahan Kajian</th>
+                      <th style={{ width: 140, padding: '12px', textAlign: 'left' }}>Metode Ajar</th>
+                      <th style={{ width: 80, padding: '12px', textAlign: 'center' }}>Waktu</th>
+                      <th style={{ padding: '12px', textAlign: 'left' }}>Kriteria Penilaian</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {renc.map((p, i) => (
+                      <tr key={i} className={p.is_uts ? 'row-uts' : p.is_uas ? 'row-uas' : ''} style={{ 
+                        background: p.is_uts ? '#fffbeb' : p.is_uas ? '#f0fdf4' : undefined,
+                        borderBottom: '1px solid #e2e8f0'
+                      }}>
+                        <td style={{ textAlign: 'center', padding: '12px' }}>
+                          <div style={{
+                            width: 24, height: 24, borderRadius: '50%', margin: 'auto',
+                            background: p.is_uts ? '#f59e0b' : p.is_uas ? '#10b981' : '#f1f5f9',
+                            color: (p.is_uts || p.is_uas) ? '#fff' : '#64748b',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, fontWeight: 700
+                          }}>
+                            {p.no}
+                          </div>
+                          {p.is_uts && <div style={{ fontSize: 9, color: '#b45309', fontWeight: 700, marginTop: 2 }}>UTS</div>}
+                          {p.is_uas && <div style={{ fontSize: 9, color: '#065f46', fontWeight: 700, marginTop: 2 }}>UAS</div>}
+                        </td>
+                        <td style={{ padding: '12px', fontSize: 12.5 }}>
+                          <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{p.kemampuan_akhir}</div>
+                          <div style={{ color: '#64748b' }}>{p.bahan_kajian}</div>
+                        </td>
+                        <td style={{ padding: '12px', fontSize: 12 }}>{p.metode}</td>
+                        <td style={{ padding: '12px', fontSize: 12, textAlign: 'center' }}>{p.waktu} mnt</td>
+                        <td style={{ padding: '12px', fontSize: 12 }}>{p.kriteria_penilaian || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: Komponen Penilaian */}
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="card-header">
+              <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Komponen Penilaian Mata Kuliah</span>
+            </div>
+            <div className="card-body">
+              <div className="penilaian-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+                {Object.entries(pen).filter(([, v]) => Number(v) > 0).map(([k, v]) => (
+                  <div key={k} className="penilaian-card" style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>
+                      {k === 'uts' ? 'UTS' : k === 'uas' ? 'UAS' : k}
+                    </div>
+                    <div className="penilaian-value" style={{ fontSize: 22, fontWeight: 800, color: '#4f46e5' }}>{v}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 5: Referensi Pustaka */}
+          {ref.length > 0 && (
+            <div className="card">
+              <div className="card-header">
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Referensi Pustaka</span>
+              </div>
+              <div className="card-body">
+                {ref.map((r, i) => (
+                  <div key={i} className="ref-item" style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, marginBottom: 6 }}>
+                    <span style={{ color: '#6366f1', fontWeight: 700 }}>[{i + 1}]</span>
+                    <span style={{ color: '#334155' }}>{r}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* Main Document Content */}
-      <div style={{ maxWidth: 860, margin: '24px auto 0', padding: '0 16px' }} className="public-rps-body">
-        
-        {/* ── Print-only: Kop Surat Formal ── */}
-        <div className="print-formal-header" style={{ display: 'none' }}>
-          <table className="print-kop-table">
+      {/* ===== Print View ===== */}
+      <div className="print-layout-only">
+        {/* ── HALAMAN 1: COVER PAGE (PURPLE) ────────────────────────── */}
+        <div className="cover-page">
+          <div className="cover-title">
+            Rencana Pembelajaran Semester<br />(RPS)
+          </div>
+          
+          <img src="/logo-sys.png" alt="STIKOM Logo" className="cover-logo" onError={e => e.target.src = 'https://xezzmppsklkpmiesblvw.supabase.co/storage/v1/object/public/public-assets/logo-stikom.png'} />
+
+          <table className="cover-info-table">
+            <tbody>
+              <tr>
+                <td style={{ width: '40%', fontWeight: 'bold' }}>Nama Mata Kuliah</td>
+                <td style={{ width: '5%' }}>:</td>
+                <td style={{ width: '55%', fontWeight: 'bold' }}>{mk.nama_mk}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Kode / SKS</td>
+                <td>:</td>
+                <td>{mk.kode_mk} / {mk.sks} SKS</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Semester / Tahun</td>
+                <td>:</td>
+                <td>{mk.semester} / {rps.tahun_akademik}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Program Studi</td>
+                <td>:</td>
+                <td>{mk.prodi?.nama}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Status Mata Kuliah</td>
+                <td>:</td>
+                <td>Wajib</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Prasyarat</td>
+                <td>:</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Dosen Pengampu</td>
+                <td>:</td>
+                <td style={{ fontWeight: 'bold' }}>{rps.dosen?.nama_lengkap}</td>
+              </tr>
+              {teamMembers.length > 0 && (
+                <tr>
+                  <td style={{ fontWeight: 'bold' }}>Tim Pengajar</td>
+                  <td>:</td>
+                  <td style={{ fontWeight: 'bold' }}>{teamMembers.map(m => m.nama_lengkap).join(', ')}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <div className="cover-footer">
+            Sekolah Tinggi Ilmu Komputer Yos Sudarso<br />
+            Purwokerto<br />
+            {tglPenyusunan}
+          </div>
+        </div>
+
+        <div className="page-break" />
+
+        {/* ── HALAMAN 2: PETA CAPAIAN PEMBELAJARAN ──────────────────── */}
+        <div className="flowchart-page">
+          <div className="flowchart-title green-box">
+            Peta Capaian Pembelajaran
+          </div>
+
+          {cpmkList.length > 0 && (
+            <div className="cpmk-box blue-node">
+              CPMK:<br />
+              {cpmkList[0]?.deskripsi}
+            </div>
+          )}
+
+          {flowchartSubCpmks.map((sub, idx) => (
+            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <div className="flowchart-arrow">▲</div>
+              <div className="flowchart-node">
+                <strong>Sub-CPMK {flowchartSubCpmks.length - idx}</strong><br />
+                {sub}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="page-break" />
+
+        {/* ── HALAMAN 3: IDENTITAS & CAPAIAN PEMBELAJARAN (CP) ────────── */}
+        <div>
+          {/* Kop Surat STIKOM */}
+          <table className="kop-table">
             <tbody>
               <tr>
                 <td style={{ width: '20%' }}>
-                  <img src="/logo-sys.png" alt="STIKOM Logo" style={{ width: 70, height: 70, objectFit: 'contain' }} 
-                    onError={e => e.target.src = 'https://xezzmppsklkpmiesblvw.supabase.co/storage/v1/object/public/public-assets/logo-stikom.png'} />
+                  <img src="/logo-sys.png" alt="STIKOM Logo" className="kop-logo" onError={e => e.target.src = 'https://xezzmppsklkpmiesblvw.supabase.co/storage/v1/object/public/public-assets/logo-stikom.png'} />
                 </td>
                 <td style={{ width: '80%' }}>
-                  <div style={{ fontSize: '14pt', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Sekolah Tinggi Ilmu Komputer (STIKOM)<br />Yos Sudarso
-                  </div>
-                  <div style={{ fontSize: '9pt', marginTop: 4 }}>
-                    Jln. SMP 5 Karangklesem, Telp. (0281) 6845088, Fax 6845089 Purwokerto 53144
-                  </div>
+                  <div className="kop-institution">Sekolah Tinggi Ilmu Komputer (STIKOM)<br />Yos Sudarso</div>
+                  <div className="kop-address">Jln. SMP 5 Karangklesem, Telp. (0281) 6845088, Fax 6845089 Purwokerto 53144</div>
                 </td>
               </tr>
             </tbody>
           </table>
-          <div className="print-kop-border" />
-          <div className="print-section-title">
+          <div className="kop-border-line" />
+
+          <div className="section-header-title yellow-header">
             Rencana Pembelajaran Semester (RPS)
           </div>
 
-          {/* Print-only formal identity table */}
-          <table className="print-identitas-table">
+          <table className="rps-table">
             <thead>
-              <tr>
+              <tr className="gray-header">
                 <th>Kode MK</th>
                 <th>Nama Mata Kuliah</th>
                 <th>SKS</th>
@@ -420,208 +740,173 @@ export default function RpsPublicViewPage() {
                 <td style={{ textAlign: 'center' }}>{mk.semester}</td>
                 <td>{mk.prodi?.nama}</td>
               </tr>
-              <tr>
+              <tr className="gray-header">
                 <th colSpan={2}>Dosen Pengampu MK</th>
-                <th colSpan={2}>Tahun Akademik</th>
-                <th>Tgl. Publikasi</th>
+                <th colSpan={2}>Ketua Program Studi</th>
+                <th>Tgl. Penyusunan</th>
               </tr>
               <tr>
                 <td colSpan={2}>
-                  <div>{rps.dosen?.nama_lengkap || '—'}</div>
+                  <div>{rps.dosen?.nama_lengkap}</div>
                   {teamMembers.length > 0 && (
                     <div style={{ fontSize: '8.5pt', color: '#475569', marginTop: 4 }}>
                       Tim: {teamMembers.map(m => m.nama_lengkap).join(', ')}
                     </div>
                   )}
                 </td>
-                <td colSpan={2} style={{ textAlign: 'center' }}>{rps.tahun_akademik} ({rps.semester_aktif})</td>
+                <td colSpan={2}>{kaprodi?.nama_lengkap || '(Nama Ka. Prodi Belum Ditetapkan)'}</td>
                 <td>{tglPenyusunan}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table className="rps-table">
+            <tbody>
+              <tr>
+                <td style={{ width: '20%', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>
+                  Capaian Pembelajaran (CP)
+                </td>
+                <td>
+                  <div style={{ fontWeight: 'bold', marginBottom: 6, textDecoration: 'underline' }}>CPL-PRODI Yang Dibebankan Pada Mata Kuliah:</div>
+                  <ol style={{ margin: '0 0 16px 0', paddingLeft: 20 }}>
+                    {cplList.map((c, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{c}</li>
+                    ))}
+                  </ol>
+
+                  <div style={{ fontWeight: 'bold', marginBottom: 6, textDecoration: 'underline' }}>CP-MATA KULIAH (CPMK):</div>
+                  <ol style={{ margin: 0, paddingLeft: 20 }}>
+                    {cpmkList.map((c, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>
+                        <strong>{c.kode || `CPMK-${i+1}`}:</strong> {c.deskripsi}
+                      </li>
+                    ))}
+                  </ol>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Course Main Title Header (screen only, hidden in print) */}
-        <div className="card public-hero-card" style={{ marginBottom: 20, background: 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)', color: '#ffffff', border: 'none' }}>
-          <div className="card-body" style={{ padding: '28px 32px' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', opacity: 0.8, marginBottom: 6 }}>
-              {mk.prodi?.nama || 'Program Studi STIKOM'}
-            </div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.5px', lineHeight: 1.3 }}>
-              {mk.nama_mk}
-            </h1>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, opacity: 0.9, fontWeight: 500 }}>
-              <span>Kode: <strong>{mk.kode_mk}</strong></span>
-              <span>•</span>
-              <span>Beban: <strong>{mk.sks} SKS</strong></span>
-              <span>•</span>
-              <span>Semester: <strong>{mk.semester}</strong></span>
-              <span>•</span>
-              <span>T.A: <strong>{rps.tahun_akademik} ({rps.semester_aktif})</strong></span>
-            </div>
-          </div>
-        </div>
+        <div className="page-break" />
 
-        {/* SECTION 1: Identitas & Deskripsi */}
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-header">
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Identitas & Deskripsi Mata Kuliah</span>
-          </div>
-          <div className="card-body">
-            <div className="identitas-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-              <div>
-                <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Dosen Pengampu Utama</div>
-                <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{rps.dosen?.nama_lengkap || '—'}</div>
-              </div>
-              {teamMembers.length > 0 && (
-                <div>
-                  <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Tim Pengajar</div>
-                  <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{teamMembers.map(m => m.nama_lengkap).join(', ')}</div>
-                </div>
-              )}
-              <div>
-                <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>NIDN</div>
-                <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{rps.dosen?.nidn || '—'}</div>
-              </div>
-              <div>
-                <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Status Dokumen</div>
-                <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>Disetujui Ka. Prodi</div>
-              </div>
-            </div>
-
-            {rps.deskripsi_mk && (
-              <div className="deskripsi-box" style={{ marginTop: 18, padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6 }}>Deskripsi Perkuliahan</div>
-                <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, margin: 0 }}>{rps.deskripsi_mk}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* SECTION 2: Capaian Pembelajaran (OBE) */}
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-header">
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Capaian Pembelajaran (OBE)</span>
-          </div>
-          <div className="card-body">
-            {/* CPL */}
-            {cplList.length > 0 && (
-              <div style={{ marginBottom: 18 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>
-                  CPL — Capaian Pembelajaran Lulusan (Prodi)
-                </div>
-                {cplList.map((c, i) => (
-                  <div key={i} className="cp-item" style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, marginBottom: 6 }}>
-                    <span className="badge-pill badge-indigo" style={{ flexShrink: 0 }}>CPL-{i + 1}</span>
-                    <span style={{ color: '#334155' }}>{c}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* CPMK */}
-            {(cp.cpmk ?? []).length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 8 }}>
-                  CPMK — Capaian Pembelajaran Mata Kuliah
-                </div>
-                {(cp.cpmk ?? []).map((c, i) => (
-                  <div key={i} className="cp-item" style={{ display: 'flex', gap: 10, padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, marginBottom: 6 }}>
-                    <span className="badge-pill badge-green" style={{ flexShrink: 0 }}>{c.kode || `CPMK-${i + 1}`}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: '#334155', fontWeight: 600 }}>{c.deskripsi}</div>
-                      {c.cpl_ref?.length > 0 && (
-                        <div style={{ marginTop: 6, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                          {c.cpl_ref.map(r => (
-                            <span key={r} style={{ background: '#eef2ff', color: '#6366f1', borderRadius: 99, padding: '1px 8px', fontSize: 10, fontWeight: 700 }}>
-                              Terhubung {r}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+        {/* ── HALAMAN 4: DETAIL INFORMASI MATA KULIAH ─────────────────── */}
+        <div>
+          <table className="rps-table">
+            <tbody>
+              <tr>
+                <td style={{ width: '25%', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Deskripsi Singkat Mata Kuliah</td>
+                <td>{rps.deskripsi_mk || 'Tidak ada deskripsi.'}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Bahan Kajian / Materi Pembelajaran</td>
+                <td>
+                  <ol style={{ margin: 0, paddingLeft: 20 }}>
+                    {listBahanKajian.slice(0, 12).map((bk, i) => (
+                      <li key={i} style={{ marginBottom: 3 }}>{bk}</li>
+                    ))}
+                    {listBahanKajian.length === 0 && (
+                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Tidak ada data bahan kajian khusus.</span>
+                    )}
+                  </ol>
+                </td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Daftar Referensi</td>
+                <td>
+                  <ol style={{ margin: 0, paddingLeft: 20 }}>
+                    {ref.map((r, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{r}</li>
+                    ))}
+                    {ref.length === 0 && (
+                      <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Belum ada daftar pustaka.</span>
+                    )}
+                  </ol>
+                </td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold', backgroundColor: '#f8fafc' }}>Media Pembelajaran</td>
+                <td>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+                    <div>
+                      <strong style={{ display: 'block', marginBottom: 4, textDecoration: 'underline' }}>Perangkat Lunak:</strong>
+                      1. Google Classroom<br />
+                      2. Google Meet<br />
+                      3. PowerPoint / PDF Reader
+                    </div>
+                    <div>
+                      <strong style={{ display: 'block', marginBottom: 4, textDecoration: 'underline' }}>Perangkat Keras:</strong>
+                      1. Laptop<br />
+                      2. Koneksi Internet<br />
+                      3. Proyektor
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 'bold', backgroundColor: '#f8fafc' }}>MK Prasyarat</td>
+                <td>Jaringan Komputer (atau sesuai ketentuan kurikulum)</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        {/* SECTION 3: Rencana Pembelajaran 16 Pertemuan */}
-        <div className="card print-page-break" style={{ marginBottom: 20 }}>
-          <div className="card-header">
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Matriks Rencana Pertemuan Mingguan</span>
-          </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            <div className="table-wrap" style={{ border: 'none', borderRadius: 0 }}>
-              <table className="public-rps-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ width: 50, textAlign: 'center', padding: '12px' }}>Minggu</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Kemampuan Akhir / Bahan Kajian</th>
-                    <th style={{ width: 140, padding: '12px', textAlign: 'left' }}>Metode Ajar</th>
-                    <th style={{ width: 80, padding: '12px', textAlign: 'center' }}>Waktu</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Kriteria Penilaian</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {renc.map((p, i) => (
-                    <tr key={i} className={p.is_uts ? 'row-uts' : p.is_uas ? 'row-uas' : ''} style={{ 
-                      background: p.is_uts ? '#fffbeb' : p.is_uas ? '#f0fdf4' : undefined,
-                      borderBottom: '1px solid #e2e8f0'
-                    }}>
-                      <td style={{ textAlign: 'center', padding: '12px' }}>
-                        <div style={{
-                          width: 24, height: 24, borderRadius: '50%', margin: 'auto',
-                          background: p.is_uts ? '#f59e0b' : p.is_uas ? '#10b981' : '#f1f5f9',
-                          color: (p.is_uts || p.is_uas) ? '#fff' : '#64748b',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 10, fontWeight: 700
-                        }}>
-                          {p.no}
-                        </div>
-                        {p.is_uts && <div style={{ fontSize: 9, color: '#b45309', fontWeight: 700, marginTop: 2 }}>UTS</div>}
-                        {p.is_uas && <div style={{ fontSize: 9, color: '#065f46', fontWeight: 700, marginTop: 2 }}>UAS</div>}
-                      </td>
-                      <td style={{ padding: '12px', fontSize: 12.5 }}>
-                        <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{p.kemampuan_akhir}</div>
-                        <div style={{ color: '#64748b' }}>{p.bahan_kajian}</div>
-                      </td>
-                      <td style={{ padding: '12px', fontSize: 12 }}>{p.metode}</td>
-                      <td style={{ padding: '12px', fontSize: 12, textAlign: 'center' }}>{p.waktu} mnt</td>
-                      <td style={{ padding: '12px', fontSize: 12 }}>{p.kriteria_penilaian || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <div className="page-break" />
 
-        {/* SECTION 4: Komponen Penilaian */}
-        <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-header">
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Komponen Penilaian Mata Kuliah</span>
+        {/* ── HALAMAN 5: RENCANA MATRIKS PEMBELAJARAN (16 PERTEMUAN) ── */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8, textAlign: 'center' }}>
+            Rencana Pembelajaran Mingguan (16 Pertemuan)
           </div>
-          <div className="card-body">
-            <div className="penilaian-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
-              {Object.entries(pen).filter(([, v]) => Number(v) > 0).map(([k, v]) => (
-                <div key={k} className="penilaian-card" style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                  <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>
-                    {k === 'uts' ? 'UTS' : k === 'uas' ? 'UAS' : k}
-                  </div>
-                  <div className="penilaian-value" style={{ fontSize: 22, fontWeight: 800, color: '#4f46e5' }}>{v}%</div>
-                </div>
+
+          <table className="rps-table" style={{ fontSize: '8.5pt' }}>
+            <thead>
+              <tr className="gray-header">
+                <th style={{ width: '5%', textAlign: 'center' }}>Mg. Ke</th>
+                <th style={{ width: '22%' }}>Sub-CPMK (Kemampuan Akhir)</th>
+                <th style={{ width: '23%' }}>Bahan Kajian (Materi)</th>
+                <th style={{ width: '15%' }}>Metode & Bentuk Pembelajaran</th>
+                <th style={{ width: '8%', textAlign: 'center' }}>Waktu</th>
+                <th style={{ width: '17%' }}>Pengalaman Belajar</th>
+                <th style={{ width: '10%', textAlign: 'center' }}>Bobot (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {renc.map((p, idx) => (
+                <tr key={idx} style={{
+                  backgroundColor: p.is_uts ? '#fffbeb' : p.is_uas ? '#f0fdf4' : undefined,
+                  fontWeight: (p.is_uts || p.is_uas) ? 'bold' : 'normal'
+                }}>
+                  <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{p.no}</td>
+                  <td>{p.kemampuan_akhir || (p.is_uts ? 'Ujian Tengah Semester (UTS)' : p.is_uas ? 'Ujian Akhir Semester (UAS)' : '—')}</td>
+                  <td>{p.bahan_kajian || '—'}</td>
+                  <td>{p.metode || 'Ceramah, Diskusi'}</td>
+                  <td style={{ textAlign: 'center' }}>{p.waktu} mnt</td>
+                  <td>{p.pengalaman_belajar || '—'}</td>
+                  <td style={{ textAlign: 'center' }}>{p.bobot}%</td>
+                </tr>
               ))}
-            </div>
+            </tbody>
+          </table>
+        </div>
 
-            {/* Print-only: formal penilaian table */}
-            <div className="print-formal-header" style={{ display: 'none', marginTop: 16 }}>
-              <table className="print-identitas-table" style={{ width: '100%' }}>
+        <div className="page-break" />
+
+        {/* ── HALAMAN 12: MONEV PEMBELAJARAN & ATURAN ────────────────── */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 12 }}>
+            A. Monev Pembelajaran & Kriteria Asesmen
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 20, marginBottom: 20 }}>
+            {/* Komponen Penilaian */}
+            <div>
+              <div style={{ fontSize: 9.5, fontWeight: 'bold', marginBottom: 6, textDecoration: 'underline' }}>Persentase Pembagian Komponen Evaluasi:</div>
+              <table className="rps-table">
                 <thead>
-                  <tr>
+                  <tr className="gray-header">
                     <th>Komponen Penilaian</th>
-                    <th style={{ width: '30%' }}>Persentase (%)</th>
+                    <th style={{ width: '40%', textAlign: 'center' }}>Persentase (%)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -631,50 +916,105 @@ export default function RpsPublicViewPage() {
                       <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{v}%</td>
                     </tr>
                   ))}
-                  <tr>
-                    <td style={{ fontWeight: 'bold' }}>JUMLAH</td>
-                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{totalPenilaian}%</td>
+                  <tr className="gray-header" style={{ fontWeight: 'bold' }}>
+                    <td>JUMLAH</td>
+                    <td style={{ textAlign: 'center' }}>{totalPenilaian}%</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+
+            {/* PAP criteria */}
+            <div>
+              <div style={{ fontSize: 9.5, fontWeight: 'bold', marginBottom: 6, textDecoration: 'underline' }}>Kriteria Penilaian Acuan Pedoman (PAP):</div>
+              <table className="rps-table" style={{ fontSize: '8pt' }}>
+                <thead>
+                  <tr className="gray-header">
+                    <th>Nilai</th>
+                    <th>Kriteria</th>
+                    <th>Mutu</th>
+                    <th>Skala</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ['A', 'Sangat Baik', '4', '80 - 100'],
+                    ['B', 'Baik', '3', '66 - 79.99'],
+                    ['C', 'Sedang', '2', '56 - 65.99'],
+                    ['D', 'Kurang', '1', '46 - 55.99'],
+                    ['E', 'Tidak Lulus', '0', '< 46'],
+                  ].map(([n, k, m, s]) => (
+                    <tr key={n}>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{n}</td>
+                      <td>{k}</td>
+                      <td style={{ textAlign: 'center' }}>{m}</td>
+                      <td style={{ textAlign: 'center' }}>{s}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          <div style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 6, marginTop: 20 }}>
+            B. Aturan Perkuliahan
+          </div>
+          <ol style={{ margin: 0, paddingLeft: 20, fontSize: '9.5pt', lineHeight: 1.6 }}>
+            <li style={{ marginBottom: 4 }}>Mahasiswa wajib mengikuti perkuliahan minimum 75% dari total jumlah pertemuan yang terjadwal dalam semester yang bersangkutan.</li>
+            <li style={{ marginBottom: 4 }}>Mahasiswa yang tidak memenuhi aturan (1) tidak diijinkan mengikuti Ujian Akhir Semester (UAS), penilaian selanjutnya dinyatakan Tidak Lengkap.</li>
+            <li style={{ marginBottom: 4 }}>Mahasiswa wajib melaksanakan semua penilaian yang termasuk dalam komponen penilaian, baik mandiri maupun kelompok secara jujur dan berintegritas.</li>
+            <li style={{ marginBottom: 4 }}>Segala bentuk plagiarisme dan kecurangan dalam ujian akan dikenakan sanksi pembatalan nilai mata kuliah secara otomatis.</li>
+          </ol>
         </div>
 
-        {/* SECTION 5: Bahan Kajian (print-only dedicated section) */}
-        {listBahanKajian.length > 0 && (
-          <div className="card print-formal-header" style={{ display: 'none', marginBottom: 20 }}>
-            <div className="card-header">
-              <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Bahan Kajian / Materi Pembelajaran</span>
+        <div className="page-break" />
+
+        {/* ── HALAMAN 13: REFERENSI, BANK SOAL & TANDA TANGAN ─────────── */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8 }}>
+            C. Pustaka Pilihan Utama
+          </div>
+          <ol style={{ margin: '0 0 20px 0', paddingLeft: 20, fontSize: '9.5pt' }}>
+            {ref.slice(0, 4).map((r, i) => (
+              <li key={i} style={{ marginBottom: 4 }}>{r}</li>
+            ))}
+            {ref.length === 0 && (
+              <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Tidak ada referensi tambahan.</span>
+            )}
+          </ol>
+
+          <div style={{ fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8 }}>
+            D. Contoh Soal Evaluasi (Bank Soal)
+          </div>
+          <ol style={{ margin: '0 0 40px 0', paddingLeft: 20, fontSize: '9.5pt', lineHeight: 1.6 }}>
+            <li style={{ marginBottom: 4 }}>Jelaskan apa yang dimaksud dengan Capaian Pembelajaran Lulusan (CPL) pada mata kuliah ini!</li>
+            <li style={{ marginBottom: 4 }}>Sebutkan dan jelaskan kompetensi kognitif yang ingin dicapai pada CPMK-1!</li>
+            <li style={{ marginBottom: 4 }}>Bagaimana keselarasan (*constructive alignment*) antara materi pembelajaran mingguan dengan bentuk evaluasi asesmen Anda?</li>
+          </ol>
+
+          {/* Tanda Tangan */}
+          <div className="signature-section">
+            <div className="signature-box">
+              <div>Ketua Program Studi {mk.prodi?.nama || '—'},</div>
+              <div style={{ fontWeight: 'bold', textDecoration: 'underline' }}>
+                {kaprodi?.nama_lengkap || '(Belum Ditetapkan)'}
+              </div>
+              <div style={{ fontSize: 9.5, color: '#475569' }}>
+                NIDN. {kaprodi?.nidn || '—'}
+              </div>
             </div>
-            <div className="card-body">
-              <ol style={{ margin: 0, paddingLeft: 20, fontSize: '10pt', lineHeight: 1.6 }}>
-                {listBahanKajian.map((bk, i) => (
-                  <li key={i} style={{ marginBottom: 3 }}>{bk}</li>
-                ))}
-              </ol>
+            <div className="signature-box">
+              <div>Dosen Pengampu / Tim Pengajar,</div>
+              <div style={{ fontWeight: 'bold', textDecoration: 'underline' }}>
+                {rps.dosen?.nama_lengkap}
+              </div>
+              <div style={{ fontSize: 9.5, color: '#475569' }}>
+                {teamMembers.length > 0 ? `Tim: ${teamMembers.map(m => m.nama_lengkap).join(', ')}` : `NIDN. ${rps.dosen?.nidn || '—'}`}
+              </div>
             </div>
           </div>
-        )}
-
-        {/* SECTION 6: Referensi Pustaka */}
-        {ref.length > 0 && (
-          <div className="card">
-            <div className="card-header">
-              <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>Referensi Pustaka</span>
-            </div>
-            <div className="card-body">
-              {ref.map((r, i) => (
-                <div key={i} className="ref-item" style={{ display: 'flex', gap: 10, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, marginBottom: 6 }}>
-                  <span style={{ color: '#6366f1', fontWeight: 700 }}>[{i + 1}]</span>
-                  <span style={{ color: '#334155' }}>{r}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        </div>
       </div>
-    </div>
+    </>
   )
 }

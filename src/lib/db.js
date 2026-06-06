@@ -135,8 +135,8 @@ export const dbRPS = {
       .select(`
         *,
         dosen:profiles!dosen_id(nama_lengkap, nidn),
-        mk:mata_kuliah!mk_id(kode_mk, nama_mk, sks, semester, cpl,
-          prodi:program_studi!prodi_id(kode, nama))
+        mk:mata_kuliah!mk_id(kode_mk, nama_mk, sks, semester, cpl, prodi_id,
+          prodi:program_studi!prodi_id(id, kode, nama))
       `)
       .eq('public_token', token)
       .single(),
