@@ -13,6 +13,7 @@ export default function RpsPrintPage() {
 
   const [rps, setRps] = useState(null)
   const [kaprodi, setKaprodi] = useState(null)
+  const [teamMembers, setTeamMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -48,6 +49,19 @@ export default function RpsPrintPage() {
           if (kaprodiData && kaprodiData.length > 0) {
             setKaprodi(kaprodiData[0])
           }
+        }
+
+        // Ambil data tim pengajar
+        if (data.team_dosen && data.team_dosen.length > 0) {
+          const { data: profiles, error: profilesErr } = await supabase
+            .from('profiles')
+            .select('id, nama_lengkap')
+            .in('id', data.team_dosen)
+          if (!profilesErr && profiles) {
+            setTeamMembers(profiles)
+          }
+        } else {
+          setTeamMembers([])
         }
       } catch (err) {
         console.error(err)
@@ -516,6 +530,13 @@ export default function RpsPrintPage() {
               <td>:</td>
               <td style={{ fontWeight: 'bold' }}>{rps.dosen?.nama_lengkap}</td>
             </tr>
+            {teamMembers.length > 0 && (
+              <tr>
+                <td style={{ fontWeight: 'bold' }}>Tim Pengajar</td>
+                <td>:</td>
+                <td style={{ fontWeight: 'bold' }}>{teamMembers.map(m => m.nama_lengkap).join(', ')}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 
@@ -600,7 +621,14 @@ export default function RpsPrintPage() {
               <th>Tgl. Penyusunan</th>
             </tr>
             <tr>
-              <td colSpan={2}>{rps.dosen?.nama_lengkap}</td>
+              <td colSpan={2}>
+                <div>{rps.dosen?.nama_lengkap}</div>
+                {teamMembers.length > 0 && (
+                  <div style={{ fontSize: '8.5pt', color: '#475569', marginTop: 4 }}>
+                    Tim: {teamMembers.map(m => m.nama_lengkap).join(', ')}
+                  </div>
+                )}
+              </td>
               <td colSpan={2}>{kaprodi?.nama_lengkap || '(Nama Ka. Prodi Belum Ditetapkan)'}</td>
               <td>{tglPenyusunan}</td>
             </tr>
@@ -851,12 +879,12 @@ export default function RpsPrintPage() {
             </div>
           </div>
           <div className="signature-box">
-            <div>Dosen Pengampu,</div>
+            <div>Dosen Pengampu / Tim Pengajar,</div>
             <div style={{ fontWeight: 'bold', textDecoration: 'underline' }}>
               {rps.dosen?.nama_lengkap}
             </div>
             <div style={{ fontSize: 9.5, color: '#475569' }}>
-              NIDN. {rps.dosen?.nidn || '—'}
+              {teamMembers.length > 0 ? `Tim: ${teamMembers.map(m => m.nama_lengkap).join(', ')}` : `NIDN. ${rps.dosen?.nidn || '—'}`}
             </div>
           </div>
         </div>

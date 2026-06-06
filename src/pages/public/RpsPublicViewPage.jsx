@@ -13,6 +13,7 @@ export default function RpsPublicViewPage() {
   const navigate = useNavigate()
   
   const [rps, setRps] = useState(null)
+  const [teamMembers, setTeamMembers] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,6 +27,19 @@ export default function RpsPublicViewPage() {
           return
         }
         setRps(data)
+
+        // Ambil data tim pengajar
+        if (data.team_dosen && data.team_dosen.length > 0) {
+          const { data: profiles, error: profilesErr } = await supabase
+            .from('profiles')
+            .select('id, nama_lengkap')
+            .in('id', data.team_dosen)
+          if (!profilesErr && profiles) {
+            setTeamMembers(profiles)
+          }
+        } else {
+          setTeamMembers([])
+        }
       } catch (err) {
         console.error('Error fetching public rps:', err)
         toast.error('Gagal memuat dokumen: ' + err.message)
@@ -412,7 +426,14 @@ export default function RpsPublicViewPage() {
                 <th>Tgl. Publikasi</th>
               </tr>
               <tr>
-                <td colSpan={2}>{rps.dosen?.nama_lengkap || '—'}</td>
+                <td colSpan={2}>
+                  <div>{rps.dosen?.nama_lengkap || '—'}</div>
+                  {teamMembers.length > 0 && (
+                    <div style={{ fontSize: '8.5pt', color: '#475569', marginTop: 4 }}>
+                      Tim: {teamMembers.map(m => m.nama_lengkap).join(', ')}
+                    </div>
+                  )}
+                </td>
                 <td colSpan={2} style={{ textAlign: 'center' }}>{rps.tahun_akademik} ({rps.semester_aktif})</td>
                 <td>{tglPenyusunan}</td>
               </tr>
@@ -452,6 +473,12 @@ export default function RpsPublicViewPage() {
                 <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Dosen Pengampu Utama</div>
                 <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{rps.dosen?.nama_lengkap || '—'}</div>
               </div>
+              {teamMembers.length > 0 && (
+                <div>
+                  <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>Tim Pengajar</div>
+                  <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{teamMembers.map(m => m.nama_lengkap).join(', ')}</div>
+                </div>
+              )}
               <div>
                 <div className="identitas-label" style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 2 }}>NIDN</div>
                 <div className="identitas-value" style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{rps.dosen?.nidn || '—'}</div>
