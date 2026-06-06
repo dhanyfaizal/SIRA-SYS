@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Trash2, Link2, Sparkles, RefreshCw } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Trash2, Link2, Sparkles, RefreshCw, X } from 'lucide-react'
 import { generateCpmk, generateCplForCourse } from '@/lib/ai'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -11,6 +11,92 @@ export default function Step3Cpmk({ form, setF }) {
   const cpmk = form.cpmk
   const [generating, setGenerating] = useState(false)
   const [generatingCpl, setGeneratingCpl] = useState(false)
+
+  const [curriculumCpls, setCurriculumCpls] = useState([])
+  const [loadingCpls, setLoadingCpls] = useState(false)
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [tempSelectedCpls, setTempSelectedCpls] = useState([])
+
+  useEffect(() => {
+    const prodiId = form.mk?.prodi_id || form.manualProdiId
+    if (!prodiId) return
+
+    async function loadCurriculumCpls() {
+      setLoadingCpls(true)
+      try {
+        let { data, error } = await supabase
+          .from('kurikulum_docs')
+          .select('extracted_data')
+          .eq('prodi_id', prodiId)
+          .eq('jenis', 'kurikulum')
+          .eq('is_active', true)
+          .limit(1)
+
+        if (error || !data || data.length === 0) {
+          const { data: latestData, error: latestError } = await supabase
+            .from('kurikulum_docs')
+            .select('extracted_data')
+            .eq('prodi_id', prodiId)
+            .eq('jenis', 'kurikulum')
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (!latestError && latestData) {
+            data = latestData
+          }
+        }
+
+        if (data && data.length > 0) {
+          const list = data[0].extracted_data?.cpl ?? []
+          setCurriculumCpls(list)
+        }
+      } catch (err) {
+        console.error('Gagal memuat CPL Kurikulum:', err)
+      } finally {
+        setLoadingCpls(false)
+      }
+    }
+
+    loadCurriculumCpls()
+  }, [form.mk?.prodi_id, form.manualProdiId])
+
+  function openManualModal() {
+    setTempSelectedCpls(cpl)
+    setShowManualModal(true)
+  }
+
+  function toggleTempCpl(fullCplString) {
+    if (tempSelectedCpls.includes(fullCplString)) {
+      setTempSelectedCpls(tempSelectedCpls.filter(x => x !== fullCplString))
+    } else {
+      setTempSelectedCpls([...tempSelectedCpls, fullCplString])
+    }
+  }
+
+  async function handleSaveManualCpls() {
+    setF('mk', { ...form.mk, cpl: tempSelectedCpls })
+
+    if (form.mk?.id) {
+      const loadToast = toast.loading('Menyimpan pilihan CPL ke database...')
+      try {
+        const { error } = await supabase
+          .from('mata_kuliah')
+          .update({ cpl: tempSelectedCpls })
+          .eq('id', form.mk.id)
+
+        if (error) throw error
+        toast.success('Pilihan CPL berhasil diperbarui! 🎉')
+      } catch (err) {
+        console.error(err)
+        toast.warn('CPL diperbarui di form, tetapi gagal disimpan ke database.')
+      } finally {
+        toast.dismiss(loadToast)
+      }
+    } else {
+      toast.success('Pilihan CPL berhasil diperbarui! 🎉')
+    }
+
+    setShowManualModal(false)
+  }
 
   async function handleAiGenerateCpl() {
     const courseName = form.mk?.nama_mk
@@ -167,33 +253,44 @@ export default function Step3Cpmk({ form, setF }) {
 
       {/* CPL dari MK */}
       <div style={{ marginBottom:24 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8, gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8, gap:8, flexWrap:'wrap' }}>
           <div style={{ fontSize:12, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.4px' }}>
             CPL Mata Kuliah (dari kurikulum)
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleAiGenerateCpl}
-            disabled={generatingCpl}
-            style={{
-              background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
-              borderColor: 'var(--indigo-200)',
-              color: 'var(--indigo-700)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 8px',
-              fontSize: '11px',
-            }}
-          >
-            {generatingCpl ? (
-              <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <Sparkles size={12} color="var(--indigo-600)" />
-            )}
-            {generatingCpl ? 'Mencari...' : 'Rekomendasi CPL AI'}
-          </button>
+          <div style={{ display:'flex', gap:8 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={openManualModal}
+              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <Plus size={13} /> Pilih CPL Manual
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleAiGenerateCpl}
+              disabled={generatingCpl}
+              style={{
+                background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
+                borderColor: 'var(--indigo-200)',
+                color: 'var(--indigo-700)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '4px 8px',
+                fontSize: '11px',
+              }}
+            >
+              {generatingCpl ? (
+                <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Sparkles size={12} color="var(--indigo-600)" />
+              )}
+              {generatingCpl ? 'Mencari...' : 'Rekomendasi CPL AI'}
+            </button>
+          </div>
         </div>
 
         {cpl.length === 0 ? (
@@ -316,6 +413,64 @@ export default function Step3Cpmk({ form, setF }) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Manual CPL Selection Modal */}
+      {showManualModal && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 540 }}>
+            <div className="modal-header">
+              <span className="modal-title">Pilih CPL Kurikulum</span>
+              <button type="button" className="btn btn-ghost btn-icon" onClick={() => setShowManualModal(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: 380, overflowY: 'auto' }}>
+              {loadingCpls ? (
+                <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>
+                  <div className="spinner" style={{ margin: '0 auto 8px' }} />
+                  Memuat data CPL kurikulum...
+                </div>
+              ) : curriculumCpls.length === 0 ? (
+                <p style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', padding: 20 }}>
+                  Dokumen kurikulum aktif untuk Program Studi ini tidak ditemukan atau belum diunggah.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {curriculumCpls.map((cplItem) => {
+                    const fullString = `${cplItem.kode}: ${cplItem.deskripsi}`
+                    const isChecked = tempSelectedCpls.includes(fullString)
+                    return (
+                      <label key={cplItem.kode} style={{
+                        display: 'flex', gap: 12, alignItems: 'flex-start',
+                        padding: '10px 12px', background: '#f8fafc',
+                        border: isChecked ? '1px solid #6366f1' : '1px solid #e2e8f0',
+                        borderRadius: 6, cursor: 'pointer', transition: 'all 0.2s',
+                      }}>
+                        <input
+                          type="checkbox"
+                          style={{ marginTop: 3 }}
+                          checked={isChecked}
+                          onChange={() => toggleTempCpl(fullString)}
+                        />
+                        <div style={{ fontSize: 12.5 }}>
+                          <span style={{ fontWeight: 700, color: '#4f46e5', marginRight: 6 }}>[{cplItem.kode}]</span>
+                          <span style={{ color: '#334155' }}>{cplItem.deskripsi}</span>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setShowManualModal(false)}>Batal</button>
+              <button type="button" className="btn btn-primary" onClick={handleSaveManualCpls} disabled={loadingCpls}>
+                Simpan Pilihan
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
