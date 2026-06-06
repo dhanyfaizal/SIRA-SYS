@@ -28,7 +28,7 @@ function defaultPertemuan() {
     kemampuan_akhir:     '',
     bahan_kajian:        '',
     metode:              'Ceramah, Diskusi',
-    waktu:               150,
+    waktu:               100,
     pengalaman_belajar:  '',
     kriteria_penilaian:  '',
     bobot:               i === 7 ? 0 : i === 15 ? 0 : Math.floor(80 / 14),  // UTS/UAS bobot dari penilaian
@@ -286,7 +286,16 @@ export default function RpsFormPage() {
           mkData = newMk
         }
 
-        setForm(p => ({ ...p, mk: mkData }))
+        const sks = mkData?.sks || Number(form.manualSks) || 3
+        const calculatedWaktu = sks * 50
+        setForm(p => ({
+          ...p,
+          mk: mkData,
+          pertemuan: p.pertemuan.map(pt => ({
+            ...pt,
+            waktu: calculatedWaktu
+          }))
+        }))
         toast.dismiss(loadToast)
       } catch (err) {
         console.error(err)

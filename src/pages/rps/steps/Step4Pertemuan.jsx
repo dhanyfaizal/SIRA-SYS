@@ -122,12 +122,16 @@ export default function Step4Pertemuan({ form, setF }) {
       return
     }
 
+    const sks = form.mk?.sks || Number(form.manualSks) || 3
+    const targetWaktu = sks * 50
+
     setGenerating(true)
     try {
       const result = await generateWeeklyPlan(
         form.mk.nama_mk,
         form.deskripsi_mk,
-        form.cpmk
+        form.cpmk,
+        sks
       )
 
       if (Array.isArray(result) && result.length === 16) {
@@ -145,11 +149,13 @@ export default function Step4Pertemuan({ form, setF }) {
   }
 
   function fillAll() {
+    const sks = form.mk?.sks || Number(form.manualSks) || 3
+    const targetWaktu = sks * 50
     // Isi metode & waktu default untuk yang masih kosong
     setF('pertemuan', pertemuan.map(p => ({
       ...p,
       metode: p.metode || 'Ceramah, Diskusi',
-      waktu:  p.waktu  || 150,
+      waktu:  targetWaktu,
     })))
   }
 

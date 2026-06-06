@@ -165,7 +165,8 @@ export async function generateCpmk(courseName, courseDesc, cplList) {
 }
 
 // 2. Generate 16 Pertemuan mingguan berdasarkan CPMK dan deskripsi mata kuliah
-export async function generateWeeklyPlan(courseName, courseDesc, cpmkList) {
+export async function generateWeeklyPlan(courseName, courseDesc, cpmkList, sks = 3) {
+  const targetWaktu = (Number(sks) || 3) * 50;
   const prompt = `
     Anda adalah perancang instruksional akademik untuk STIKOM Yos Sudarso. Berdasarkan data mata kuliah:
     Nama Mata Kuliah: "${courseName}"
@@ -175,8 +176,8 @@ export async function generateWeeklyPlan(courseName, courseDesc, cpmkList) {
     Hasilkan draf rencana pembelajaran semester (RPS) lengkap untuk tepat 16 pertemuan.
     
     ATURAN KONTEN PERTEMUAN:
-    - Pertemuan 8 WAJIB berupa UTS (is_uts: true, kemampuan_akhir: "Ujian Tengah Semester (UTS)", bahan_kajian: "Evaluasi materi pertemuan 1-7", metode: "Ujian Tertulis / Project", waktu: 150, pengalaman_belajar: "Mengerjakan soal ujian", kriteria_penilaian: "Ketepatan jawaban", bobot: 0, is_uas: false)
-    - Pertemuan 16 WAJIB berupa UAS (is_uas: true, kemampuan_akhir: "Ujian Akhir Semester (UAS)", bahan_kajian: "Evaluasi materi pertemuan 9-15", metode: "Ujian Tertulis / Project", waktu: 150, pengalaman_belajar: "Mengerjakan soal ujian akhir atau presentasi project", kriteria_penilaian: "Ketepatan dan kualitas project", bobot: 0, is_uts: false)
+    - Pertemuan 8 WAJIB berupa UTS (is_uts: true, kemampuan_akhir: "Ujian Tengah Semester (UTS)", bahan_kajian: "Evaluasi materi pertemuan 1-7", metode: "Ujian Tertulis / Project", waktu: ${targetWaktu}, pengalaman_belajar: "Mengerjakan soal ujian", kriteria_penilaian: "Ketepatan jawaban", bobot: 0, is_uas: false)
+    - Pertemuan 16 WAJIB berupa UAS (is_uas: true, kemampuan_akhir: "Ujian Akhir Semester (UAS)", bahan_kajian: "Evaluasi materi pertemuan 9-15", metode: "Ujian Tertulis / Project", waktu: ${targetWaktu}, pengalaman_belajar: "Mengerjakan soal ujian akhir atau presentasi project", kriteria_penilaian: "Ketepatan dan kualitas project", bobot: 0, is_uts: false)
     - Pertemuan lainnya (1-7, dan 9-15) harus dirancang secara runut dan logis guna mencapai CPMK yang ada secara bertahap.
     
     Format output harus berupa JSON ARRAY murni berisi tepat 16 objek dengan struktur:
@@ -186,7 +187,7 @@ export async function generateWeeklyPlan(courseName, courseDesc, cpmkList) {
         "kemampuan_akhir": "Deskripsi kemampuan akhir mahasiswa minggu ini...",
         "bahan_kajian": "Materi atau topik bahasan...",
         "metode": "Ceramah, Diskusi kelompok",
-        "waktu": 150,
+        "waktu": ${targetWaktu},
         "pengalaman_belajar": "Mahasiswa mendiskusikan studi kasus...",
         "kriteria_penilaian": "Ketepatan penjelasan dan kedalaman argumen...",
         "bobot": 5,
