@@ -449,4 +449,34 @@ export async function generateCompilationReport(prodiName, coursesData, stats) {
   return callAi(prompt, false); // return raw text/markdown
 }
 
+// 9. Generate Referensi Pustaka berdasarkan Nama Mata Kuliah dan CPMK
+export async function generateReferences(courseName, cpmkList) {
+  const currentYear = new Date().getFullYear()
+  const startYear = currentYear - 3
+  const prompt = `
+    Anda adalah pakar akademis dan pustakawan universitas. Berdasarkan data mata kuliah berikut:
+    Nama Mata Kuliah: "${courseName}"
+    CPMK (Capaian Pembelajaran Mata Kuliah): ${JSON.stringify(cpmkList || [])}
 
+    Hasilkan rekomendasi referensi pustaka yang sangat relevan dan mutakhir dalam rentang waktu 3 tahun terakhir (${startYear}-${currentYear}).
+    Rekomendasi harus terdiri dari 2 kategori utama:
+    1. Buku Teks (Textbook) 3 Tahun Terakhir (${startYear}-${currentYear})
+    2. Artikel Ilmiah / Jurnal Ilmiah 3 Tahun Terakhir (${startYear}-${currentYear})
+
+    Pastikan referensi yang diberikan:
+    - Sangat relevan dengan materi pembelajaran untuk mencapai CPMK di atas.
+    - Ditulis dalam format sitasi akademik standar (APA Style).
+    - Memiliki tahun terbit antara ${startYear} dan ${currentYear} (inklusif).
+
+    Format output harus berupa JSON ARRAY murni yang berisi string daftar referensi langsung:
+    [
+      "Nama Penulis. (Tahun). Judul Buku. Penerbit.",
+      "Nama Penulis. (Tahun). Judul Artikel. Nama Jurnal, Volume(Isi), Halaman."
+    ]
+    
+    Hasilkan minimal 4 dan maksimal 6 referensi gabungan yang paling representatif dan berkualitas.
+    Hanya kembalikan JSON array murni tanpa ada penjelasan tambahan di luar JSON.
+  `
+
+  return callAi(prompt, true)
+}

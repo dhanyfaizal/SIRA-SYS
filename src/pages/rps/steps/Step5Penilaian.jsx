@@ -1,10 +1,50 @@
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Sparkles, RefreshCw } from 'lucide-react'
+import { generateReferences } from '@/lib/ai'
+import toast from 'react-hot-toast'
 
 export default function Step5Penilaian({ form, setF }) {
   const penilaian = form.penilaian
   const referensi = form.referensi
   const [newRef, setNewRef] = useState('')
+  const [generating, setGenerating] = useState(false)
+
+  async function handleAiGenerateRefs() {
+    const courseName = form.mk?.nama_mk
+    if (!courseName) {
+      toast.error('Nama Mata Kuliah tidak ditemukan. Pastikan Anda sudah melengkapi Langkah 1.')
+      return
+    }
+
+    setGenerating(true)
+    const loadToast = toast.loading('Mencari referensi pustaka mutakhir via AI...')
+    try {
+      const result = await generateReferences(courseName, form.cpmk)
+      if (Array.isArray(result) && result.length > 0) {
+        const existing = new Set(referensi)
+        const newAdded = []
+        result.forEach(ref => {
+          if (!existing.has(ref)) {
+            newAdded.push(ref)
+          }
+        })
+        if (newAdded.length > 0) {
+          setF('referensi', [...referensi, ...newAdded])
+          toast.success(`Berhasil menambahkan ${newAdded.length} referensi pustaka mutakhir! 🎉`)
+        } else {
+          toast.info('Referensi yang disarankan AI sudah ada di daftar Anda.')
+        }
+      } else {
+        throw new Error("Format rekomendasi referensi tidak valid.")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error(err.message || 'Gagal merekomendasikan referensi.')
+    } finally {
+      toast.dismiss(loadToast)
+      setGenerating(false)
+    }
+  }
 
   // Local state for dynamic evaluation components
   const [items, setItems] = useState(() => {
@@ -186,8 +226,33 @@ export default function Step5Penilaian({ form, setF }) {
 
       {/* Referensi */}
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 12 }}>
-          Referensi Pustaka
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+            Referensi Pustaka (3 Tahun Terakhir)
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleAiGenerateRefs}
+            disabled={generating}
+            style={{
+              background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
+              borderColor: 'var(--indigo-200)',
+              color: 'var(--indigo-700)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 8px',
+              fontSize: '11px',
+            }}
+          >
+            {generating ? (
+              <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Sparkles size={12} color="var(--indigo-600)" />
+            )}
+            {generating ? 'Mencari...' : 'Rekomendasi Referensi AI'}
+          </button>
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
