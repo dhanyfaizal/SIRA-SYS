@@ -143,7 +143,7 @@ export async function generateCpmk(courseName, courseDesc, cplList) {
     Anda adalah pakar kurikulum Outcome-Based Education (OBE). Berdasarkan data mata kuliah berikut:
     Nama Mata Kuliah: "${courseName}"
     Deskripsi Mata Kuliah: "${courseDesc || 'Mata kuliah umum/keahlian prodi.'}"
-    Daftar CPL (Capaian Pembelajaran Lulusan) yang didukung: ${JSON.stringify(cplList)}
+    Daftar CPL (Capaian Pembelajaran Lulusan) yang didukung: ${JSON.stringify(cplList || [])}
 
     Hasilkan daftar CPMK (Capaian Pembelajaran Mata Kuliah) yang terperinci, terukur, dan OBE-compliant.
     Format output wajib berupa JSON ARRAY murni dari objek CPMK:
@@ -151,13 +151,14 @@ export async function generateCpmk(courseName, courseDesc, cplList) {
       {
         "kode": "CPMK-1",
         "deskripsi": "Mahasiswa mampu menganalisis...",
-        "cpl_ref": ["CPL-1", "CPL-2"]
+        "cpl_ref": ["CPL-4", "CPL-5"]
       }
     ]
     
     ATURAN PENTING:
     - Gunakan Bahasa Indonesia formal akademik dengan kata kerja operasional Taksonomi Bloom (C3-C6 seperti menganalisis, mendesain, membuat).
-    - Pastikan properti "cpl_ref" berisi array string referensi CPL dari daftar CPL di atas yang relevan (misalnya "CPL-1", "CPL-2"). Gunakan label persis sesuai item CPL dalam array input.
+    - Properti "cpl_ref" wajib berisi array string kode CPL (misalnya ["CPL-4", "CPL-5"]) yang relevan dengan CPMK tersebut.
+    - HANYA gunakan kode CPL yang ada di dalam daftar CPL yang didukung di atas (contoh: jika input hanya memiliki CPL-4, CPL-5, CPL-6, CPL-12, maka "cpl_ref" hanya boleh berisi kode-kode tersebut. Jangan pernah menuliskan "CPL-1", "CPL-2", dll jika tidak ada di daftar input di atas).
     - Hasilkan minimal 3 dan maksimal 6 CPMK yang komprehensif.
   `;
 

@@ -391,8 +391,8 @@ export default function Step3Cpmk({ form, setF }) {
                     <Link2 size={11} /> Terhubung ke CPL:
                   </div>
                   <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                    {cpl.map((_, ci) => {
-                      const label = `CPL-${ci+1}`
+                    {cpl.map((cplItem, ci) => {
+                      const label = cplItem.split(':')[0]?.trim() || `CPL-${ci+1}`
                       const sel   = (c.cpl_ref ?? []).includes(label)
                       return (
                         <button key={ci} type="button"
