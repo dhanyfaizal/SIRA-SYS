@@ -43,6 +43,7 @@ import KurikulumPrintPage  from '@/pages/kurikulum/KurikulumPrintPage'
 // Admin
 import AdminUsersPage from '@/pages/admin/AdminUsersPage'
 import AdminProdiPage from '@/pages/admin/AdminProdiPage'
+import AdminProdiDetailPage from '@/pages/admin/AdminProdiDetailPage'
 import AiSettingsPage from '@/pages/settings/AiSettingsPage'
 
 function UnverifiedScreen() {
@@ -193,7 +194,7 @@ export default function AppRouter() {
           {/* Admin only */}
           <Route path="/admin/users"    element={<ProtectedRoute allowedRoles={['admin']}><AdminUsersPage /></ProtectedRoute>} />
           <Route path="/admin/prodi"    element={<ProtectedRoute allowedRoles={['admin']}><AdminProdiPage /></ProtectedRoute>} />
-          <Route path="/admin/prodi/:kode" element={<ProtectedRoute allowedRoles={['admin']}><ComingSoon title="Detail Program Studi" /></ProtectedRoute>} />
+          <Route path="/admin/prodi/:kode" element={<ProtectedRoute allowedRoles={['admin']}><AdminProdiDetailPage /></ProtectedRoute>} />
           <Route path="/admin/roles"    element={<ProtectedRoute allowedRoles={['admin']}><ComingSoon title="Kelola Role" /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><ComingSoon title="Pengaturan Sistem" /></ProtectedRoute>} />
           <Route path="/rps/:id/review" element={<ProtectedRoute allowedRoles={['kaprodi','dosen']}><RpsReviewPage /></ProtectedRoute>} />
