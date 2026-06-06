@@ -19,7 +19,7 @@ export default function RpsListPage() {
   const [rpsList, setRpsList] = useState([])
   const [loading, setLoading] = useState(true)
   const [tahun,   setTahun]   = useState(cur.tahun)
-  const [semester,setSemester]= useState(cur.semester)
+  const [semester,setSemester]= useState('Semua')
   const [filter,  setFilter]  = useState('all')
 
   const load = useCallback(async () => {
@@ -28,7 +28,7 @@ export default function RpsListPage() {
     const { data, error } = await dbRPS.getByDosen(user.id)
     if (!error) {
       const filtered = (data ?? []).filter(r =>
-        r.tahun_akademik === tahun && r.semester_aktif === semester
+        r.tahun_akademik === tahun && (semester === 'Semua' || r.semester_aktif === semester)
       )
       setRpsList(filtered)
     }
@@ -65,6 +65,7 @@ export default function RpsListPage() {
           <div className="input-group" style={{ margin:0 }}>
             <label className="input-label">Semester</label>
             <select className="input" value={semester} onChange={e => setSemester(e.target.value)}>
+              <option value="Semua">Semua</option>
               {SEMESTER_LIST.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
