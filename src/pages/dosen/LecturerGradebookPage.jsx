@@ -8,6 +8,17 @@ import {
 import toast from 'react-hot-toast'
 import { generateObeMapping } from '@/lib/ai'
 
+// Client-side UUID generator helper (RFC4122 v4 compliant)
+function generateUUID() {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // Standard keywords for components in RPS
 const COMPONENT_TYPES = [
   { value: 'uts', label: 'UTS (Ujian Tengah Semester)' },
@@ -228,7 +239,7 @@ export default function LecturerGradebookPage() {
   const handleAddLocalAssessment = (compType) => {
     const defaultCpmk = selectedRps?.capaian_pembelajaran?.cpmk?.[0]?.kode || 'CPMK-1'
     const newItem = {
-      id: '', // Empty ID represents a new unsaved record
+      id: generateUUID(), // Generate a UUID immediately
       rps_id: selectedRpsId,
       nama_asesmen: compType,
       nama_soal: `Soal ${localAssessments.filter(a => a.nama_asesmen === compType).length + 1}`,
@@ -294,7 +305,7 @@ export default function LecturerGradebookPage() {
 
       // 2. Upsert remaining/new assessments
       const upsertPayload = localAssessments.map(a => ({
-        id: a.id || undefined, // Send undefined to auto-generate UUID
+        id: a.id, // ID is always a valid UUID (either database-loaded or client-generated)
         rps_id: selectedRpsId,
         nama_asesmen: a.nama_asesmen,
         nama_soal: a.nama_soal.trim(),
@@ -356,7 +367,7 @@ export default function LecturerGradebookPage() {
       if (recommendations && recommendations.length > 0) {
         // Map the recommendations to our localAssessments schema
         const mapped = recommendations.map(rec => ({
-          id: '', // New record
+          id: generateUUID(), // Generate a UUID immediately
           rps_id: selectedRpsId,
           nama_asesmen: rec.nama_asesmen,
           nama_soal: rec.nama_soal || 'Soal',
