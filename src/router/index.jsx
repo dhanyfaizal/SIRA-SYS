@@ -198,6 +198,7 @@ export default function AppRouter() {
           <Route path="/kurikulum"       element={<ProtectedRoute allowedRoles={['kaprodi', 'admin']}><KurikulumPage /></ProtectedRoute>} />
           <Route path="/kurikulum/upload" element={<ProtectedRoute allowedRoles={['kaprodi', 'admin']}><KurikulumUploadPage /></ProtectedRoute>} />
           <Route path="/master/mk"       element={<ProtectedRoute allowedRoles={['kaprodi','admin']}><MataKuliahPage /></ProtectedRoute>} />
+          <Route path="/mata-kuliah"     element={<ProtectedRoute allowedRoles={['dosen','kaprodi','admin']}><MataKuliahPage /></ProtectedRoute>} />
           <Route path="/master/penugasan" element={<ProtectedRoute allowedRoles={['kaprodi','admin']}><PenugasanPage /></ProtectedRoute>} />
           <Route path="/master/import"   element={<ProtectedRoute allowedRoles={['kaprodi']}><ComingSoon title="Import CSV" /></ProtectedRoute>} />
 

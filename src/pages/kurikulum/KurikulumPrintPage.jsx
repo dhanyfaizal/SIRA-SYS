@@ -628,11 +628,18 @@ export default function KurikulumPrintPage() {
                   <td>{course.nama_mk}</td>
                   <td style={{ textAlign: 'center' }}>{course.sks}</td>
                   <td style={{ textAlign: 'center' }}>{course.semester}</td>
-                  {cplList.map((c, i) => (
-                    <td key={i} style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '10pt' }}>
-                      {courseCpl.includes(c.kode) ? '✔' : ''}
-                    </td>
-                  ))}
+                  {cplList.map((c, i) => {
+                     const isChecked = courseCpl.some(item => {
+                       if (!item) return false
+                       const trimmed = item.trim()
+                       return trimmed === c.kode || trimmed.startsWith(c.kode + ':') || trimmed.startsWith(c.kode + ' ')
+                     })
+                     return (
+                       <td key={i} style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '10pt' }}>
+                         {isChecked ? '✔' : ''}
+                       </td>
+                     )
+                   })}
                 </tr>
               )
             })}

@@ -108,10 +108,20 @@ export default function KurikulumPage() {
 
   async function handleToggleMatrix(courseId, cplCode, currentCplArray) {
     let newCplArray = Array.isArray(currentCplArray) ? [...currentCplArray] : []
-    if (newCplArray.includes(cplCode)) {
-      newCplArray = newCplArray.filter(c => c !== cplCode)
+    
+    const isMatched = (item) => {
+      if (!item) return false
+      const trimmed = item.trim()
+      return trimmed === cplCode || trimmed.startsWith(cplCode + ':') || trimmed.startsWith(cplCode + ' ')
+    }
+
+    if (newCplArray.some(isMatched)) {
+      newCplArray = newCplArray.filter(item => !isMatched(item))
     } else {
-      newCplArray.push(cplCode)
+      // Find the full CPL description from cplList to construct the standard "Kode: Deskripsi" format
+      const matchCpl = cplList.find(c => c.kode === cplCode)
+      const fullCplString = matchCpl ? `${matchCpl.kode}: ${matchCpl.deskripsi}` : cplCode
+      newCplArray.push(fullCplString)
     }
     
     // Optimistic UI update
@@ -516,7 +526,11 @@ export default function KurikulumPage() {
                                   {course.semester}
                                 </td>
                                 {cplList.map((c, i) => {
-                                  const isChecked = courseCplArray.includes(c.kode)
+                                  const isChecked = courseCplArray.some(item => {
+                                    if (!item) return false
+                                    const trimmed = item.trim()
+                                    return trimmed === c.kode || trimmed.startsWith(c.kode + ':') || trimmed.startsWith(c.kode + ' ')
+                                  })
                                   return (
                                     <td key={i} style={{ textAlign: 'center', padding: '8px' }}>
                                       <input
