@@ -481,3 +481,41 @@ export async function generateReferences(courseName, cpmkList) {
 
   return callAi(prompt, true)
 }
+
+// 10. Generate Rekomendasi Pemetaan Asesmen OBE
+export async function generateObeMapping(courseName, cpmkList, assessmentComponents) {
+  const prompt = `
+    Anda adalah pakar kurikulum Outcome-Based Education (OBE) tingkat tinggi.
+    Tugas Anda adalah merancang konfigurasi pemetaan sub-komponen asesmen/soal ke Capaian Pembelajaran Mata Kuliah (CPMK) untuk mata kuliah berikut:
+    
+    Nama Mata Kuliah: "${courseName}"
+    Daftar CPMK: ${JSON.stringify(cpmkList)}
+    Komponen Asesmen & Bobot Utama: ${JSON.stringify(assessmentComponents)}
+
+    Untuk setiap komponen asesmen utama (seperti 'uts', 'uas', 'tugas', dll.) yang memiliki bobot > 0, rancanglah daftar sub-komponen soal yang logis, lengkap, dan mencakup semua CPMK secara merata.
+    
+    ATURAN PEMETAAN:
+    1. Total bobot_persen sub-komponen di bawah komponen utama tertentu WAJIB berjumlah tepat 100%. Contoh, jika komponen utama adalah 'uts' (dengan bobot MK 30%), Anda dapat merekomendasikan:
+       - Soal 1 (CPMK-1, bobot 50% dari UTS)
+       - Soal 2 (CPMK-2, bobot 50% dari UTS)
+       (total bobot_persen Soal 1 dan Soal 2 = 100).
+    2. Pemetaan CPMK ke sub-komponen soal harus logis dan sesuai dengan deskripsi CPMK.
+    3. Nama asesmen (nama_asesmen) dalam sub-komponen hasil rekomendasi harus disesuaikan dengan jenis komponen utama: 'uts', 'uas', 'tugas', 'praktikum', 'kehadiran', atau 'lainnya'.
+    4. Cukup rekomendasikan 1 s.d. 4 sub-komponen per kategori asesmen utama, pastikan distribusinya menutupi semua CPMK yang didefinisikan.
+
+    Format respons WAJIB berupa JSON ARRAY murni dari objek sub-komponen dengan struktur:
+    [
+      {
+        "nama_asesmen": "uts" | "uas" | "tugas" | "praktikum" | "kehadiran" | "lainnya",
+        "nama_soal": "Soal 1: ...",
+        "cpmk_kode": "CPMK-1",
+        "bobot_persen": 50
+      }
+    ]
+
+    Jangan berikan penjelasan tambahan apapun, hanya kembalikan JSON array murni.
+  `
+
+  return callAi(prompt, true)
+}
+

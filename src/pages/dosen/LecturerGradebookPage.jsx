@@ -3,9 +3,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { 
   Plus, Trash2, Save, Calculator, AlertTriangle, CheckCircle, 
-  RefreshCw, UserPlus, Info, BookOpen, Settings, BarChart2 
+  RefreshCw, UserPlus, Info, BookOpen, Settings, BarChart2, Sparkles
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { generateObeMapping } from '@/lib/ai'
 
 // Standard keywords for components in RPS
 const COMPONENT_TYPES = [
@@ -319,6 +320,65 @@ export default function LecturerGradebookPage() {
     }
   }
 
+  const [aiLoading, setAiLoading] = useState(false)
+
+  const handleAiRecommendMapping = async () => {
+    if (!selectedRps) return
+    
+    // Prepare input parameters
+    const courseName = selectedRps.mk?.nama_mk || ''
+    const cpmkList = selectedRps.capaian_pembelajaran?.cpmk || []
+    
+    if (cpmkList.length === 0) {
+      toast.error('RPS untuk mata kuliah ini belum memiliki daftar CPMK. Silakan susun CPMK di RPS terlebih dahulu.')
+      return
+    }
+
+    const rpsPenilaian = selectedRps.penilaian || {}
+    const activeComponents = Object.entries(rpsPenilaian)
+      .filter(([, val]) => Number(val) > 0)
+      .map(([name, weight]) => ({
+        name: getComponentType(name),
+        weight: Number(weight)
+      }))
+
+    if (activeComponents.length === 0) {
+      toast.error('Mata kuliah ini belum memiliki konfigurasi komponen penilaian di RPS.')
+      return
+    }
+
+    setAiLoading(true)
+    const loadToast = toast.loading('AI sedang merancang rekomendasi pemetaan soal ke CPMK... 🤖')
+
+    try {
+      const recommendations = await generateObeMapping(courseName, cpmkList, activeComponents)
+      
+      if (recommendations && recommendations.length > 0) {
+        // Map the recommendations to our localAssessments schema
+        const mapped = recommendations.map(rec => ({
+          id: '', // New record
+          rps_id: selectedRpsId,
+          nama_asesmen: rec.nama_asesmen,
+          nama_soal: rec.nama_soal || 'Soal',
+          bobot_persen: Number(rec.bobot_persen) || 0,
+          cpmk_kode: rec.cpmk_kode || 'CPMK-1'
+        }))
+
+        setLocalAssessments(mapped)
+        toast.dismiss(loadToast)
+        toast.success('Rekomendasi pemetaan OBE berhasil dibuat oleh AI! Silakan tinjau dan simpan jika sudah sesuai.')
+      } else {
+        throw new Error('Hasil rekomendasi AI kosong.')
+      }
+    } catch (err) {
+      console.error(err)
+      toast.dismiss(loadToast)
+      toast.error('Gagal membuat rekomendasi AI: ' + err.message)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   // Save student grades in bulk
   const handleSaveGrades = async () => {
     setLoadingSave(true)
@@ -524,11 +584,34 @@ export default function LecturerGradebookPage() {
           {activeTab === 'konfigurasi' && (
             <div style={{ animation: 'fadeIn 0.2s ease' }}>
               <div className="card" style={{ marginBottom: 16 }}>
-                <div className="card-header" style={{ background: '#f8fafc' }}>
+                <div className="card-header" style={{ background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <Info size={16} color="#4f46e5" />
                     <span style={{ fontWeight: 700, fontSize: 13, color: '#1e293b' }}>Petunjuk Pemetaan OBE</span>
                   </div>
+                  
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleAiRecommendMapping}
+                    disabled={aiLoading}
+                    style={{
+                      background: 'linear-gradient(135deg, #e0e7ff 0%, #f5f3ff 100%)',
+                      borderColor: '#c7d2fe',
+                      color: '#4338ca',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontWeight: 700
+                    }}
+                  >
+                    {aiLoading ? (
+                      <RefreshCw size={13} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <Sparkles size={13} color="#4338ca" />
+                    )}
+                    {aiLoading ? 'Merancang...' : 'Rekomendasi Pemetaan AI'}
+                  </button>
                 </div>
                 <div className="card-body" style={{ fontSize: 12.5, lineHeight: 1.6, color: '#475569' }}>
                   Petakan sub-komponen (seperti soal ujian, tugas spesifik, atau kuis) ke capaian pembelajaran mata kuliah (CPMK) yang diuji. 
