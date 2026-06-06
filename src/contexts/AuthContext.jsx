@@ -40,53 +40,64 @@ export default function AuthProvider({ children }) {
       const nama   = meta.full_name || meta.name || authUser.email?.split('@')[0] || 'Pengguna'
       const foto   = meta.avatar_url || meta.picture || null
 
-      const { data: newProfile } = await supabase
+      const { data: newProfile, error: upsertError } = await supabase
         .from('profiles')
         .upsert({ id: authUser.id, nama_lengkap: nama, email: authUser.email, foto_url: foto, role: 'dosen' },
                  { onConflict: 'id' })
         .select()
         .single()
 
-      setProfile(newProfile ?? { id: authUser.id, nama_lengkap: nama, email: authUser.email, foto_url: foto, role: 'dosen' })
+      if (upsertError || !newProfile) {
+        console.error('Failed to create user profile:', upsertError)
+        await signOut()
+        return
+      }
 
-    } catch {
-      // Fallback — tampilkan dari metadata Google agar tidak blank
-      const meta = authUser.user_metadata ?? {}
-      setProfile({
-        id:           authUser.id,
-        nama_lengkap: meta.full_name || authUser.email?.split('@')[0] || 'Pengguna',
-        email:        authUser.email,
-        foto_url:     meta.avatar_url || null,
-        role:         'dosen',
-      })
+      setProfile(newProfile)
+
+    } catch (err) {
+      console.error('Error in fetchProfile:', err)
+      await signOut()
     }
   }
 
   useEffect(() => {
-    // ── 1. Initial session — JANGAN await fetchProfile ─────────
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (session?.user) {
-          setUser(session.user)
-          fetchProfile(session.user)   // background — tidak await
-        }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false)) // ← SELALU selesai, tidak peduli error
+    let active = true
 
-    // ── 2. Auth state changes ───────────────────────────────────
+    async function initializeAuth() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user && active) {
+          setUser(session.user)
+          await fetchProfile(session.user)
+        }
+      } catch (err) {
+        console.error('Error during auth initialization:', err)
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    initializeAuth()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (session?.user) {
           setUser(session.user)
-          fetchProfile(session.user)   // background
+          await fetchProfile(session.user)
         } else {
           setUser(null)
           setProfile(null)
         }
       }
     )
-    return () => subscription.unsubscribe()
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function signInWithGoogle() {
