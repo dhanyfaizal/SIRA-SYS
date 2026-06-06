@@ -238,7 +238,7 @@ export default function RpsFormPage() {
         // Cek apakah MK sudah ada di database
         const { data: existingMk } = await supabase
           .from('mata_kuliah')
-          .select('*')
+          .select('*, prodi:program_studi!prodi_id(id, kode, nama)')
           .eq('prodi_id', form.manualProdiId)
           .eq('kode_mk', form.manualKodeMk.trim().toUpperCase())
           .maybeSingle()
@@ -260,7 +260,7 @@ export default function RpsFormPage() {
                 semester: Number(form.manualSemester)
               })
               .eq('id', existingMk.id)
-              .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id')
+              .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id, prodi:program_studi!prodi_id(id, kode, nama)')
               .single()
 
             if (updateErr) throw updateErr
@@ -279,7 +279,7 @@ export default function RpsFormPage() {
               sks: Number(form.manualSks),
               semester: Number(form.manualSemester)
             })
-            .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id')
+            .select('id, kode_mk, nama_mk, sks, semester, cpl, prodi_id, prodi:program_studi!prodi_id(id, kode, nama)')
             .single()
 
           if (insertErr) throw insertErr
