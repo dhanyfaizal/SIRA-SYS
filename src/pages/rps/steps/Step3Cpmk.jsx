@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Trash2, Link2, Sparkles, RefreshCw } from 'lucide-react'
-import { generateCpmk } from '@/lib/ai'
+import { generateCpmk, generateCplForCourse } from '@/lib/ai'
+import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
 const EMPTY_CPMK = { kode:'', deskripsi:'', cpl_ref:[] }
@@ -9,6 +10,101 @@ export default function Step3Cpmk({ form, setF }) {
   const cpl  = form.mk?.cpl ?? []
   const cpmk = form.cpmk
   const [generating, setGenerating] = useState(false)
+  const [generatingCpl, setGeneratingCpl] = useState(false)
+
+  async function handleAiGenerateCpl() {
+    const courseName = form.mk?.nama_mk
+    const prodiId = form.mk?.prodi_id || form.manualProdiId
+    
+    if (!courseName) {
+      toast.error('Nama Mata Kuliah tidak ditemukan. Pastikan Anda sudah melengkapi Langkah 1.')
+      return
+    }
+    if (!prodiId) {
+      toast.error('Program Studi tidak ditemukan.')
+      return
+    }
+
+    setGeneratingCpl(true)
+    const loadToast = toast.loading('Mencari CPL yang relevan dari kurikulum prodi via AI...')
+    try {
+      // 1. Fetch active curriculum first
+      let { data, error } = await supabase
+        .from('kurikulum_docs')
+        .select('extracted_data')
+        .eq('prodi_id', prodiId)
+        .eq('jenis', 'kurikulum')
+        .eq('is_active', true)
+        .limit(1)
+
+      // Fallback to latest if no active curriculum
+      if (error || !data || data.length === 0) {
+        const { data: latestData, error: latestError } = await supabase
+          .from('kurikulum_docs')
+          .select('extracted_data')
+          .eq('prodi_id', prodiId)
+          .eq('jenis', 'kurikulum')
+          .order('created_at', { ascending: false })
+          .limit(1)
+        if (!latestError && latestData) {
+          data = latestData
+        }
+      }
+
+      if (!data || data.length === 0) {
+        toast.error('Belum ada dokumen kurikulum yang diunggah untuk Program Studi ini.')
+        return
+      }
+
+      const curriculumCpls = data[0].extracted_data?.cpl ?? []
+      if (curriculumCpls.length === 0) {
+        toast.error('Kurikulum Program Studi tidak memiliki data CPL.')
+        return
+      }
+
+      // 2. Call AI generate function
+      const result = await generateCplForCourse(courseName, curriculumCpls)
+      if (Array.isArray(result) && result.length > 0) {
+        const mappedCpls = result.map(code => {
+          const match = curriculumCpls.find(c => c.kode === code)
+          return match ? `${match.kode}: ${match.deskripsi}` : null
+        }).filter(Boolean)
+
+        if (mappedCpls.length === 0) {
+          toast.error('Rekomendasi CPL AI tidak cocok dengan kode di dokumen kurikulum.')
+          return
+        }
+
+        // 3. Update state
+        const updatedMk = { ...form.mk, cpl: mappedCpls }
+        setF('mk', updatedMk)
+
+        // 4. Save to db
+        if (form.mk?.id) {
+          const { error: dbError } = await supabase
+            .from('mata_kuliah')
+            .update({ cpl: mappedCpls })
+            .eq('id', form.mk.id)
+          if (dbError) {
+            console.error('Gagal menyimpan CPL ke database:', dbError)
+            toast.warn('CPL diperbarui di form, tetapi gagal disimpan ke database.')
+          } else {
+            toast.success(`Berhasil menyelaraskan ${mappedCpls.length} CPL dengan AI! 🎉`)
+          }
+        } else {
+          toast.success(`Berhasil menyelaraskan ${mappedCpls.length} CPL dengan AI! 🎉`)
+        }
+      } else {
+        throw new Error("Format respons AI tidak valid.")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal menyelaraskan CPL: ' + err.message)
+    } finally {
+      toast.dismiss(loadToast)
+      setGeneratingCpl(false)
+    }
+  }
 
   function addCpmk() {
     const next = cpmk.length + 1
@@ -69,25 +165,63 @@ export default function Step3Cpmk({ form, setF }) {
         Tentukan CPMK (Capaian Pembelajaran Mata Kuliah) berdasarkan CPL yang relevan.
       </p>
 
-      {/* CPL dari MK — read only */}
-      {cpl.length > 0 && (
-        <div style={{ marginBottom:24 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.4px', marginBottom:8 }}>
+      {/* CPL dari MK */}
+      <div style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8, gap:8 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'.4px' }}>
             CPL Mata Kuliah (dari kurikulum)
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-            {cpl.map((c, i) => (
-              <div key={i} style={{
-                display:'flex', gap:10, padding:'8px 12px',
-                background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12,
-              }}>
-                <span className="badge-pill badge-indigo" style={{ flexShrink:0 }}>CPL-{i+1}</span>
-                <span style={{ color:'#334155' }}>{c}</span>
-              </div>
-            ))}
-          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleAiGenerateCpl}
+            disabled={generatingCpl}
+            style={{
+              background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
+              borderColor: 'var(--indigo-200)',
+              color: 'var(--indigo-700)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 8px',
+              fontSize: '11px',
+            }}
+          >
+            {generatingCpl ? (
+              <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Sparkles size={12} color="var(--indigo-600)" />
+            )}
+            {generatingCpl ? 'Mencari...' : 'Rekomendasi CPL AI'}
+          </button>
         </div>
-      )}
+
+        {cpl.length === 0 ? (
+          <div style={{
+            padding: 16, borderRadius: 8, border: '1px dashed #e2e8f0',
+            textAlign: 'center', color: '#94a3b8', fontSize: 12, background: '#f8fafc'
+          }}>
+            Belum ada CPL terpilih untuk Mata Kuliah ini. Klik <strong>"Rekomendasi CPL AI"</strong> untuk mencarinya dari kurikulum.
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {cpl.map((c, i) => {
+              const parts = c.split(':')
+              const badgeText = parts[0]?.trim() || `CPL-${i+1}`
+              const descText = parts.slice(1).join(':')?.trim() || c
+              return (
+                <div key={i} style={{
+                  display:'flex', gap:10, padding:'8px 12px',
+                  background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, fontSize:12,
+                }}>
+                  <span className="badge-pill badge-indigo" style={{ flexShrink:0 }}>{badgeText}</span>
+                  <span style={{ color:'#334155' }}>{descText}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {/* CPMK */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, gap:8, flexWrap:'wrap' }}>
