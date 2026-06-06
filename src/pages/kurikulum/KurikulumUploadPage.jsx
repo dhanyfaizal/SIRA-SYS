@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function KurikulumUploadPage() {
-  const { user, profile } = useAuth()
+  const { user, profile, role } = useAuth()
   const navigate = useNavigate()
 
   const [namaDokumen, setNamaDokumen] = useState('')
@@ -35,12 +35,17 @@ export default function KurikulumUploadPage() {
         if (error) throw error
         if (data) {
           setProdiList(data)
-          // Default to user's prodi if set
-          const userProdi = data.find(p => p.id === profile?.prodi_id)
-          if (userProdi) {
-            setSelectedProdiId(userProdi.id)
-          } else if (data.length > 0) {
-            setSelectedProdiId(data[0].id)
+          if (role === 'admin') {
+            const userProdi = data.find(p => p.id === profile?.prodi_id)
+            if (userProdi) {
+              setSelectedProdiId(userProdi.id)
+            } else if (data.length > 0) {
+              setSelectedProdiId(data[0].id)
+            }
+          } else {
+            if (profile?.prodi_id) {
+              setSelectedProdiId(profile.prodi_id)
+            }
           }
         }
       } catch (err) {
@@ -48,7 +53,7 @@ export default function KurikulumUploadPage() {
       }
     }
     loadProdis()
-  }, [profile?.prodi_id])
+  }, [profile?.prodi_id, role])
 
   // Helper to extract text from PDF using PDF.js CDN
   async function extractTextFromPdf(file) {
@@ -259,6 +264,7 @@ export default function KurikulumUploadPage() {
                 className="input"
                 value={selectedProdiId}
                 onChange={e => setSelectedProdiId(e.target.value)}
+                disabled={role !== 'admin'}
                 required
               >
                 <option value="" disabled>-- Pilih Program Studi --</option>

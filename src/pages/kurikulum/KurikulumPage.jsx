@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 
 export default function KurikulumPage() {
-  const { profile } = useAuth()
+  const { profile, role } = useAuth()
   const navigate = useNavigate()
 
   const [docs, setDocs] = useState([])
@@ -30,12 +30,17 @@ export default function KurikulumPage() {
         if (error) throw error
         if (data) {
           setProdiList(data)
-          // Default to user's prodi if set
-          const userProdi = data.find(p => p.id === profile?.prodi_id)
-          if (userProdi) {
-            setSelectedProdiId(userProdi.id)
-          } else if (data.length > 0) {
-            setSelectedProdiId(data[0].id)
+          if (role === 'admin') {
+            const userProdi = data.find(p => p.id === profile?.prodi_id)
+            if (userProdi) {
+              setSelectedProdiId(userProdi.id)
+            } else if (data.length > 0) {
+              setSelectedProdiId(data[0].id)
+            }
+          } else {
+            if (profile?.prodi_id) {
+              setSelectedProdiId(profile.prodi_id)
+            }
           }
         }
       } catch (err) {
@@ -43,7 +48,7 @@ export default function KurikulumPage() {
       }
     }
     loadProdis()
-  }, [profile?.prodi_id])
+  }, [profile?.prodi_id, role])
 
   async function load() {
     if (!selectedProdiId) return
@@ -156,11 +161,20 @@ export default function KurikulumPage() {
     )
   }
 
-  if (prodiList.length === 0) {
+  if (role !== 'admin' && !profile?.prodi_id) {
     return (
       <div className="page-header">
         <h1 className="page-title">Kurikulum & CPL</h1>
         <p style={{ color: '#ef4444', fontSize: 13 }}>⚠️ Akun Anda belum ditetapkan ke Program Studi. Hubungi Admin.</p>
+      </div>
+    )
+  }
+
+  if (prodiList.length === 0) {
+    return (
+      <div className="page-header">
+        <h1 className="page-title">Kurikulum & CPL</h1>
+        <p style={{ color: '#ef4444', fontSize: 13 }}>⚠️ Tidak ada data Program Studi tersedia. Hubungi Admin.</p>
       </div>
     )
   }
@@ -192,34 +206,36 @@ export default function KurikulumPage() {
         </div>
       </div>
 
-      {/* Program Studi Selector */}
-      <div className="card" style={{ padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <GraduationCap size={20} color="#6366f1" />
-          <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Program Studi</label>
-            <select
-              value={selectedProdiId}
-              onChange={e => setSelectedProdiId(e.target.value)}
-              style={{
-                border: '1px solid #cbd5e1',
-                borderRadius: 6,
-                padding: '6px 32px 6px 12px',
-                fontSize: 14,
-                fontWeight: 600,
-                color: '#1e293b',
-                background: '#fff',
-                cursor: 'pointer',
-                minWidth: 260
-              }}
-            >
-              {prodiList.map(p => (
-                <option key={p.id} value={p.id}>{p.kode} — {p.nama}</option>
-              ))}
-            </select>
+      {/* Program Studi Selector (Only for Admin) */}
+      {role === 'admin' && (
+        <div className="card" style={{ padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <GraduationCap size={20} color="#6366f1" />
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Program Studi</label>
+              <select
+                value={selectedProdiId}
+                onChange={e => setSelectedProdiId(e.target.value)}
+                style={{
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  padding: '6px 32px 6px 12px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#1e293b',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  minWidth: 260
+                }}
+              >
+                {prodiList.map(p => (
+                  <option key={p.id} value={p.id}>{p.kode} — {p.nama}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="card card-body" style={{ textAlign: 'center', padding: 48, color: '#94a3b8' }}>
