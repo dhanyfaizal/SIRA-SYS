@@ -90,10 +90,12 @@ export default function RpsDetailPage() {
 
   const [aiContentModal, setAiContentModal] = useState(null)
   const [aiProgressText, setAiProgressText] = useState('')
+  const [activeModel, setActiveModel] = useState('')
 
   useEffect(() => {
     if (!aiContentModal || !aiContentModal.loading) {
       setAiProgressText('')
+      setActiveModel('')
       return
     }
 
@@ -116,20 +118,23 @@ export default function RpsDetailPage() {
     ]
 
     const steps = type === 'slide' ? slideSteps : essaySteps
-    setAiProgressText(steps[0])
+    const getModelPrefix = (model) => model ? `[Model: ${model}] ` : ''
+
+    setAiProgressText(`${getModelPrefix(activeModel)}${steps[0]}`)
 
     let currentStep = 0
     const interval = setInterval(() => {
       currentStep++
+      const prefix = getModelPrefix(activeModel)
       if (currentStep < steps.length) {
-        setAiProgressText(steps[currentStep])
+        setAiProgressText(`${prefix}${steps[currentStep]}`)
       } else {
-        setAiProgressText("Menyelesaikan dokumen... Mohon tunggu sebentar lagi...")
+        setAiProgressText(`${prefix}Menyelesaikan dokumen... Mohon tunggu sebentar lagi...`)
       }
     }, 2500)
 
     return () => clearInterval(interval)
-  }, [aiContentModal?.loading, aiContentModal?.type])
+  }, [aiContentModal?.loading, aiContentModal?.type, activeModel])
 
   const openConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Ya', cancelText = 'Batal') => {
     setConfirmConfig({
@@ -506,7 +511,8 @@ export default function RpsDetailPage() {
           meeting.no,
           meeting.bahan_kajian,
           meeting.kemampuan_akhir,
-          rps.referensi ?? []
+          rps.referensi ?? [],
+          (model) => setActiveModel(model)
         )
       } else {
         const examType = meeting.is_uts ? 'UTS' : 'UAS'
@@ -514,7 +520,8 @@ export default function RpsDetailPage() {
           courseName,
           examType,
           meeting.bahan_kajian,
-          meeting.kemampuan_akhir
+          meeting.kemampuan_akhir,
+          (model) => setActiveModel(model)
         )
       }
       

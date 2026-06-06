@@ -46,13 +46,16 @@ export function resetAiConfig() {
 }
 
 // Inti pemanggilan API dengan fallback otomatis
-export async function callAi(prompt, isJson = true) {
+export async function callAi(prompt, isJson = true, onProgress = null) {
   const { apiKey, apiUrl } = getAiConfig();
   let quotaError = null;
   let lastError = null;
 
   for (const model of MODELS) {
     try {
+      if (onProgress) {
+        onProgress(model);
+      }
       console.log(`[SIRASYS AI] Mencoba model ${model}...`);
       
       const response = await fetch(`${apiUrl}/chat/completions`, {
@@ -520,7 +523,7 @@ export async function generateObeMapping(courseName, cpmkList, assessmentCompone
 }
 
 // 11. Generate Materi Slide untuk Pertemuan
-export async function generateSlideContent(courseName, meetingNo, topic, capability, references = []) {
+export async function generateSlideContent(courseName, meetingNo, topic, capability, references = [], onProgress = null) {
   const prompt = `
     Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline slide presentasi terstruktur untuk perkuliahan berikut:
     Mata Kuliah: "${courseName}"
@@ -556,11 +559,11 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
     - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 // 12. Generate Soal Ujian Essay untuk UTS/UAS
-export async function generateEssayQuestions(courseName, examType, topic, capability) {
+export async function generateEssayQuestions(courseName, examType, topic, capability, onProgress = null) {
   const prompt = `
     Anda adalah dosen senior dan pakar evaluasi akademik. Tugas Anda adalah membuat soal ujian dalam bentuk Essay (soal uraian) untuk evaluasi perkuliahan berikut:
     Mata Kuliah: "${courseName}"
@@ -591,7 +594,7 @@ export async function generateEssayQuestions(courseName, examType, topic, capabi
     - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
   `;
 
-  return callAi(prompt, true);
+  return callAi(prompt, true, onProgress);
 }
 
 
