@@ -245,12 +245,11 @@ export default function RpsFormPage() {
 
         let mkData
         if (existingMk) {
-          const isPowerUser = profile?.role === 'kaprodi' || profile?.role === 'admin'
           const hasChanged = existingMk.nama_mk !== form.manualNamaMk.trim() ||
                              existingMk.sks !== Number(form.manualSks) ||
                              existingMk.semester !== Number(form.manualSemester)
 
-          if (isPowerUser && hasChanged) {
+          if (hasChanged) {
             // Update data jika berubah
             const { data: updatedMk, error: updateErr } = await supabase
               .from('mata_kuliah')
