@@ -857,10 +857,143 @@ export default function ReviewRpsListPage() {
                   </table>
                 </div>
 
-                {/* TINGKAT KEPATUHAN & KESELARASAN PRODI */}
-                <div style={{ marginBottom: 24 }}>
+                {/* II. MATRIKS HASIL EVALUASI PER ASPEK */}
+                <div style={{ marginBottom: 24, pageBreakInside: 'avoid' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px', borderBottom: '1px solid #cbd5e1', paddingBottom: 4 }}>
-                    II. Statistik Keselarasan Mutu RPS Prodi
+                    II. Matriks Hasil Evaluasi Kelengkapan RPS per Aspek
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', textAlign: 'center', tableLayout: 'fixed' }}>
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                          <th style={{ padding: '6px 4px', width: '30px', textAlign: 'left' }}>No</th>
+                          <th style={{ padding: '6px 4px', width: '140px', textAlign: 'left' }}>Mata Kuliah</th>
+                          <th style={{ padding: '6px 2px', width: '22px', fontWeight: 'bold', color: '#4f46e5' }} title="Kesesuaian CPMK/Sub-CPMK dengan CPL">A</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Identitas Mata Kuliah">B1</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Penanggung Jawab & Dosen">B2</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="CPL-PRODI & CP-MK">B3</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Deskripsi Singkat MK">B4</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Bahan Kajian / Materi">B5</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Daftar Referensi">B6</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Media Pembelajaran">B7</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Pra-Syarat MK">B8</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Komposisi Teori & Praktek">B9</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Minggu Ke (16 Minggu)">C1</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Kemampuan Akhir per Pertemuan">C2</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Bahan Kajian per Pertemuan">C3</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Metode Pembelajaran per Pertemuan">C4</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Alokasi Waktu per Pertemuan">C5</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Pengalaman Belajar Mahasiswa">C6</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Kriteria Penilaian & Indikator">C7</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Bobot Nilai Evaluasi">C8</th>
+                          <th style={{ padding: '6px 2px', width: '22px' }} title="Referensi per Pertemuan">C9</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedRps.map((r, i) => {
+                          const rev = reviewMap[r.id] || {};
+                          const keys = [
+                            'a_cpmk_subcpmk',
+                            'b1_identitas_mk', 'b2_penanggung_jawab', 'b3_cpl_cpmk', 'b4_deskripsi_mk',
+                            'b5_bahan_kajian', 'b6_referensi', 'b7_media_pembelajaran', 'b8_prasyarat', 'b9_komposisi',
+                            'c1_minggu_ke', 'c2_kemampuan_akhir', 'c3_bahan_kajian_rps', 'c4_metode_pembelajaran',
+                            'c5_waktu', 'c6_pengalaman_belajar', 'c7_kriteria_penilaian', 'c8_bobot_nilai', 'c9_referensi_rps'
+                          ];
+
+                          return (
+                            <tr key={r.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '6px 4px', textAlign: 'left' }}>{i + 1}</td>
+                              <td style={{ padding: '6px 4px', textAlign: 'left', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.mk?.nama_mk}>
+                                {r.mk?.nama_mk}
+                              </td>
+                              {keys.map((k) => {
+                                const val = rev[k];
+                                let color = '#64748b';
+                                let bg = '#f1f5f9';
+                                let text = '—';
+
+                                if (val === 'sesuai') {
+                                  color = '#065f46';
+                                  bg = '#d1fae5';
+                                  text = 'S';
+                                } else if (val === 'cukup') {
+                                  color = '#92400e';
+                                  bg = '#fef3c7';
+                                  text = 'C';
+                                } else if (val === 'tidak_sesuai') {
+                                  color = '#991b1b';
+                                  bg = '#fee2e2';
+                                  text = 'T';
+                                }
+
+                                return (
+                                  <td key={k} style={{ padding: '4px 2px', verticalAlign: 'middle' }}>
+                                    <div style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '16px',
+                                      height: '16px',
+                                      borderRadius: '4px',
+                                      background: bg,
+                                      color: color,
+                                      fontWeight: 'bold',
+                                      fontSize: '9px'
+                                    }}>
+                                      {text}
+                                    </div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Keterangan Matriks */}
+                  <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, fontSize: '8px', color: '#475569', lineHeight: '1.4', background: '#f8fafc', padding: 8, borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 2 }}>Indikator Nilai:</div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <span><strong style={{ color: '#047857' }}>S</strong>: Sesuai</span>
+                        <span><strong style={{ color: '#b45309' }}>C</strong>: Cukup</span>
+                        <span><strong style={{ color: '#b91c1c' }}>T</strong>: Tidak Sesuai</span>
+                        <span><strong>—</strong>: Belum Dinilai</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: 2 }}>Aspek Penilaian:</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2px 8px' }}>
+                        <span><strong>A</strong>: CPMK & CPL</span>
+                        <span><strong>B1</strong>: Identitas MK</span>
+                        <span><strong>B2</strong>: Dosen & Tim</span>
+                        <span><strong>B3</strong>: CPL & CPMK Mapped</span>
+                        <span><strong>B4</strong>: Deskripsi MK</span>
+                        <span><strong>B5</strong>: Bahan Kajian</span>
+                        <span><strong>B6</strong>: Referensi</span>
+                        <span><strong>B7</strong>: Media Ajar</span>
+                        <span><strong>B8</strong>: Prasyarat</span>
+                        <span><strong>B9</strong>: Teori & Praktek</span>
+                        <span><strong>C1</strong>: Minggu Ke</span>
+                        <span><strong>C2</strong>: Kemampuan Akhir</span>
+                        <span><strong>C3</strong>: Bahan Pertemuan</span>
+                        <span><strong>C4</strong>: Metode Ajar</span>
+                        <span><strong>C5</strong>: Waktu</span>
+                        <span><strong>C6</strong>: Pengalaman Belajar</span>
+                        <span><strong>C7</strong>: Kriteria Penilaian</span>
+                        <span><strong>C8</strong>: Bobot Evaluasi</span>
+                        <span><strong>C9</strong>: Referensi Pertemuan</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TINGKAT KEPATUHAN & KESELARASAN PRODI */}
+                <div style={{ marginBottom: 24, pageBreakInside: 'avoid' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px', borderBottom: '1px solid #cbd5e1', paddingBottom: 4 }}>
+                    III. Statistik Keselarasan Mutu RPS Prodi
                   </div>
                   
                   {/* Overall Stats Cards */}
@@ -904,7 +1037,7 @@ export default function ReviewRpsListPage() {
                 <div style={{ marginBottom: 40 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottom: '1px solid #cbd5e1', paddingBottom: 4 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                      III. Analisa Deskriptif & Rekomendasi Naratif
+                      IV. Analisa Deskriptif & Rekomendasi Naratif
                     </div>
                     <button
                       className="btn btn-secondary btn-xs no-print"
