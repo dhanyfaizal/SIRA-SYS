@@ -51,13 +51,25 @@ export async function callAi(prompt, isJson = true, onProgress = null) {
   let quotaError = null;
   let lastError = null;
 
+  if (onProgress) {
+    onProgress("Menghubungi Gateway API Server...");
+  }
+
   for (const model of MODELS) {
     try {
       if (onProgress) {
-        onProgress(model);
+        if (model !== MODELS[0]) {
+          onProgress("Model utama sibuk, beralih ke model cadangan...");
+        } else {
+          onProgress("Mengirim data materi & rujukan RPS ke server...");
+        }
       }
       console.log(`[SIRASYS AI] Mencoba model ${model}...`);
       
+      if (onProgress) {
+        onProgress("AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...");
+      }
+
       const response = await fetch(`${apiUrl}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -73,6 +85,10 @@ export async function callAi(prompt, isJson = true, onProgress = null) {
         })
       });
 
+      if (onProgress) {
+        onProgress("Membaca stream data & mengunduh respon...");
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -84,11 +100,19 @@ export async function callAi(prompt, isJson = true, onProgress = null) {
         throw new Error(data.error.message || JSON.stringify(data.error));
       }
 
+      if (onProgress) {
+        onProgress("Mendekode & memvalidasi struktur JSON...");
+      }
+
       const resultText = data.choices?.[0]?.message?.content;
       if (!resultText) throw new Error("Respons AI kosong.");
 
       // Bersihkan markdown code block jika AI secara tidak sengaja menyertakannya
       const cleanText = resultText.replace(/```json\n?|```/g, '').trim();
+
+      if (onProgress) {
+        onProgress("Memverifikasi kelayakan format materi...");
+      }
 
       return isJson ? JSON.parse(cleanText) : cleanText;
     } catch (err) {

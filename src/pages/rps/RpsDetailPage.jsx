@@ -90,51 +90,6 @@ export default function RpsDetailPage() {
 
   const [aiContentModal, setAiContentModal] = useState(null)
   const [aiProgressText, setAiProgressText] = useState('')
-  const [activeModel, setActiveModel] = useState('')
-
-  useEffect(() => {
-    if (!aiContentModal || !aiContentModal.loading) {
-      setAiProgressText('')
-      setActiveModel('')
-      return
-    }
-
-    const type = aiContentModal.type
-    const slideSteps = [
-      "Menganalisis Kemampuan Akhir & Bahan Kajian...",
-      "Mengintegrasikan Referensi Pustaka RPS...",
-      "Merancang Outline & Struktur Presentasi (Minimal 15 Slide)...",
-      "Mengembangkan Contoh Kasus & Penerapan Industri...",
-      "Menyusun Perbandingan Konsep & Penjelasan Detail...",
-      "Melakukan Ulasan Akhir & Memformat Data..."
-    ]
-
-    const essaySteps = [
-      "Menganalisis Kemampuan Akhir & Topik Evaluasi...",
-      "Merancang Soal Essay berbasis HOTS (Higher Order Thinking Skills)...",
-      "Menyusun Rubrik Penilaian & Kriteria Koreksi...",
-      "Menyeimbangkan Bobot Nilai Soal (Total 100%)...",
-      "Melakukan Ulasan Akhir & Memformat Data..."
-    ]
-
-    const steps = type === 'slide' ? slideSteps : essaySteps
-    const getModelPrefix = (model) => model ? `[Model: ${model}] ` : ''
-
-    setAiProgressText(`${getModelPrefix(activeModel)}${steps[0]}`)
-
-    let currentStep = 0
-    const interval = setInterval(() => {
-      currentStep++
-      const prefix = getModelPrefix(activeModel)
-      if (currentStep < steps.length) {
-        setAiProgressText(`${prefix}${steps[currentStep]}`)
-      } else {
-        setAiProgressText(`${prefix}Menyelesaikan dokumen... Mohon tunggu sebentar lagi...`)
-      }
-    }, 2500)
-
-    return () => clearInterval(interval)
-  }, [aiContentModal?.loading, aiContentModal?.type, activeModel])
 
   const openConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Ya', cancelText = 'Batal') => {
     setConfirmConfig({
@@ -502,6 +457,54 @@ export default function RpsDetailPage() {
 
   const generateAiContent = async (meeting, index, type) => {
     setAiContentModal(prev => prev ? { ...prev, loading: true, data: null } : null)
+    setAiProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const startSubTimer = () => {
+      if (subTimer) clearInterval(subTimer)
+      const slideSteps = [
+        "Menganalisis Kemampuan Akhir & Bahan Kajian...",
+        "Mengintegrasikan Referensi Pustaka RPS...",
+        "Merancang Outline & Struktur Presentasi (Minimal 15 Slide)...",
+        "Mengembangkan Contoh Kasus & Penerapan Industri...",
+        "Menyusun Perbandingan Konsep & Penjelasan Detail...",
+        "Mempersiapkan Output Draft Slide..."
+      ]
+
+      const essaySteps = [
+        "Menganalisis Kemampuan Akhir & Topik Evaluasi...",
+        "Merancang Soal Essay berbasis HOTS (Higher Order Thinking Skills)...",
+        "Menyusun Rubrik Penilaian & Kriteria Koreksi...",
+        "Menyeimbangkan Bobot Nilai Soal (Total 100%)...",
+        "Mempersiapkan Output Draft Soal..."
+      ]
+
+      const steps = type === 'slide' ? slideSteps : essaySteps
+      let currentStep = 0
+      setAiProgressText(steps[0])
+
+      subTimer = setInterval(() => {
+        currentStep++
+        if (currentStep < steps.length) {
+          setAiProgressText(steps[currentStep])
+        } else {
+          setAiProgressText("AI sedang merampungkan konten... Mohon tunggu sebentar lagi...")
+        }
+      }, 2500)
+    }
+
+    const handleProgress = (statusText) => {
+      if (statusText === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+        startSubTimer()
+      } else {
+        if (subTimer) {
+          clearInterval(subTimer)
+          subTimer = null
+        }
+        setAiProgressText(statusText)
+      }
+    }
+
     try {
       let result = null
       const courseName = rps.mk?.nama_mk || 'Mata Kuliah'
@@ -512,7 +515,7 @@ export default function RpsDetailPage() {
           meeting.bahan_kajian,
           meeting.kemampuan_akhir,
           rps.referensi ?? [],
-          (model) => setActiveModel(model)
+          handleProgress
         )
       } else {
         const examType = meeting.is_uts ? 'UTS' : 'UAS'
@@ -521,7 +524,7 @@ export default function RpsDetailPage() {
           examType,
           meeting.bahan_kajian,
           meeting.kemampuan_akhir,
-          (model) => setActiveModel(model)
+          handleProgress
         )
       }
       
@@ -530,6 +533,8 @@ export default function RpsDetailPage() {
       console.error(err)
       toast.error('Gagal generate konten AI: ' + err.message)
       setAiContentModal(prev => prev ? { ...prev, loading: false, data: null } : null)
+    } finally {
+      if (subTimer) clearInterval(subTimer)
     }
   }
 
