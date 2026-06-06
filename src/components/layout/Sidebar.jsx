@@ -74,28 +74,6 @@ function SubItem({ label, icon: Icon, to }) {
 
 // ── Menu Dosen (dipakai juga oleh Kaprodi) ────────────────────
 function DosenMenu() {
-  const { profile } = useAuth()
-  const [mkList, setMkList] = useState([])
-
-  useEffect(() => {
-    if (!profile?.prodi_id) return
-    supabase.from('mata_kuliah')
-      .select('id, kode_mk, nama_mk, semester')
-      .eq('prodi_id', profile.prodi_id)
-      .order('semester')
-      .order('kode_mk')
-      .then(({ data }) => setMkList(data ?? []))
-  }, [profile?.prodi_id])
-
-  // Group by semester
-  const grouped = mkList.reduce((acc, mk) => {
-    const s = mk.semester
-    if (!acc[s]) acc[s] = []
-    acc[s].push(mk)
-    return acc
-  }, {})
-  const semesters = Object.keys(grouped).map(Number).sort()
-
   return (
     <>
       <div className="sidebar-section-label">Beranda</div>
@@ -107,24 +85,6 @@ function DosenMenu() {
 
       <div className="sidebar-section-label">Perkuliahan</div>
       <NavItem label="Buku Nilai (OBE)" icon={BarChart2} to="/dosen/gradebook" />
-      <CollapseSection label="Mata Kuliah" icon={BookOpen}>
-        {mkList.length === 0 ? (
-          <div style={{ padding:'6px 16px 4px 32px', fontSize:11, color:'var(--gray-300)' }}>
-            Belum ada mata kuliah
-          </div>
-        ) : (
-          semesters.map(sem => (
-            <div key={sem}>
-              <div style={{ padding:'4px 16px 2px 32px', fontSize:10, fontWeight:700, color:'var(--gray-400)', textTransform:'uppercase', letterSpacing:'0.5px' }}>
-                Semester {sem}
-              </div>
-              {grouped[sem].map(mk => (
-                <SubItem key={mk.id} label={mk.nama_mk} icon={BookOpen} to={`/mata-kuliah`} />
-              ))}
-            </div>
-          ))
-        )}
-      </CollapseSection>
     </>
   )
 }
