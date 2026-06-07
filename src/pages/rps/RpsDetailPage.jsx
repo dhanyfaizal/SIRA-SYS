@@ -1661,103 +1661,117 @@ export default function RpsDetailPage() {
                 </div>
               )}
             </div>
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button 
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => generateAiContent(aiContentModal.meeting, aiContentModal.meetingIndex, aiContentModal.type)}
-                  disabled={aiContentModal.loading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                >
-                  <RefreshCw size={12} className={aiContentModal.loading ? 'spinner' : ''} />
-                  {aiContentModal.data ? 'Generate Ulang' : 'Coba Lagi'}
-                </button>
-                {aiContentModal.data && (
-                  <button 
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      if (aiContentModal.type === 'slide') {
-                        handleCopySlideContent(aiContentModal.data)
-                      } else {
-                        handleCopyEssayQuestions(aiContentModal.data)
+            <div className="modal-footer" style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'stretch' }}>
+              {/* Baris 1: Operasi Slide / Konten Utama */}
+              {aiContentModal.data && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, paddingBottom: 12, borderBottom: aiContentModal.type === 'slide' ? '1px dashed #e2e8f0' : 'none' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => generateAiContent(aiContentModal.meeting, aiContentModal.meetingIndex, aiContentModal.type)}
+                      disabled={aiContentModal.loading}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <RefreshCw size={12} className={aiContentModal.loading ? 'spinner' : ''} />
+                      {aiContentModal.data 
+                        ? (aiContentModal.type === 'slide' ? 'Generate Ulang Slide' : 'Generate Ulang Soal') 
+                        : 'Coba Lagi'
                       }
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
-                    <Copy size={12} />
-                    Salin ke Clipboard
-                  </button>
-                )}
-                {aiContentModal.type === 'slide' && aiContentModal.data && (
-                  <>
-                    {!webSlideData ? (
+                    </button>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        if (aiContentModal.type === 'slide') {
+                          handleCopySlideContent(aiContentModal.data)
+                        } else {
+                          handleCopyEssayQuestions(aiContentModal.data)
+                        }
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Copy size={12} />
+                      Salin ke Clipboard
+                    </button>
+                  </div>
+                  <div>
+                    {isOwnerOrTeam && (
                       <button 
                         className="btn btn-primary btn-sm"
-                        onClick={handleGenerateWebSlide}
-                        disabled={generatingWebSlide}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderColor: '#6366f1', color: '#ffffff' }}
+                        onClick={() => {
+                          const field = aiContentModal.type === 'slide' ? 'slide_content' : 'essay_questions'
+                          handleSaveAiContent(aiContentModal.meetingIndex, field, aiContentModal.data)
+                        }}
+                        disabled={saving}
                       >
-                        {generatingWebSlide ? (
-                          <>
-                            <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
-                            Generating WebSlide...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles size={12} />
-                            Generate WebSlide
-                          </>
-                        )}
+                        {saving ? 'Menyimpan...' : 'Simpan ke RPS'}
                       </button>
-                    ) : (
-                      <>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Baris 2: Operasi WebSlide & Tombol Tutup */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {aiContentModal.type === 'slide' && aiContentModal.data && (
+                    <>
+                      {!webSlideData ? (
                         <button 
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handlePreviewWebSlide(webSlideData)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, borderColor: 'var(--indigo-200)', color: 'var(--indigo-700)', background: '#f5f3ff' }}
-                        >
-                          <Tv size={12} />
-                          Lihat WebSlide
-                        </button>
-                        <button 
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleDownloadWebSlide(webSlideData)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <Download size={12} />
-                          Unduh WebSlide
-                        </button>
-                        <button 
-                          className="btn btn-ghost btn-sm"
+                          className="btn btn-primary btn-sm"
                           onClick={handleGenerateWebSlide}
                           disabled={generatingWebSlide}
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#64748b' }}
-                          title="Generate ulang tata letak dinamis WebSlide"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderColor: '#6366f1', color: '#ffffff' }}
                         >
-                          <RefreshCw size={12} className={generatingWebSlide ? 'spinner' : ''} />
-                          Generate Ulang WebSlide
+                          {generatingWebSlide ? (
+                            <>
+                              <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                              Generating WebSlide...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={12} />
+                              Generate WebSlide
+                            </>
+                          )}
                         </button>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setAiContentModal(null)}>
-                  Tutup
-                </button>
-                {isOwnerOrTeam && aiContentModal.data && (
-                  <button 
-                    className="btn btn-primary btn-sm"
-                    onClick={() => {
-                      const field = aiContentModal.type === 'slide' ? 'slide_content' : 'essay_questions'
-                      handleSaveAiContent(aiContentModal.meetingIndex, field, aiContentModal.data)
-                    }}
-                    disabled={saving}
-                  >
-                    {saving ? 'Menyimpan...' : 'Simpan ke RPS'}
+                      ) : (
+                        <>
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handlePreviewWebSlide(webSlideData)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, borderColor: 'var(--indigo-200)', color: 'var(--indigo-700)', background: '#f5f3ff' }}
+                          >
+                            <Tv size={12} />
+                            Lihat WebSlide
+                          </button>
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleDownloadWebSlide(webSlideData)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <Download size={12} />
+                            Unduh WebSlide
+                          </button>
+                          <button 
+                            className="btn btn-ghost btn-sm"
+                            onClick={handleGenerateWebSlide}
+                            disabled={generatingWebSlide}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#64748b' }}
+                            title="Generate ulang tata letak dinamis WebSlide"
+                          >
+                            <RefreshCw size={12} className={generatingWebSlide ? 'spinner' : ''} />
+                            Generate Ulang WebSlide
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setAiContentModal(null)}>
+                    Tutup
                   </button>
-                )}
+                </div>
               </div>
             </div>
           </div>
