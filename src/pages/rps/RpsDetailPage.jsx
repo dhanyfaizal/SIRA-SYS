@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, dbComments, dbNotifications, dbReviewRps } from '@/lib/db'
-import { reviewSpmi, generateSlideContent, generateEssayQuestions } from '@/lib/ai'
+import { reviewSpmi, generateSlideContent, generateWebSlideData, generateEssayQuestions } from '@/lib/ai'
 import { generateWebSlideHtml } from '@/lib/webslideTemplate'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -92,6 +92,8 @@ export default function RpsDetailPage() {
 
   const [aiContentModal, setAiContentModal] = useState(null)
   const [aiProgressText, setAiProgressText] = useState('')
+  const [webSlideData, setWebSlideData] = useState(null)
+  const [generatingWebSlide, setGeneratingWebSlide] = useState(false)
 
   const openConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Ya', cancelText = 'Batal') => {
     setConfirmConfig({
@@ -479,6 +481,9 @@ export default function RpsDetailPage() {
     const type = isExam ? 'essay' : 'slide'
     const existingData = isExam ? meeting.essay_questions : meeting.slide_content
     
+    setWebSlideData(null)
+    setGeneratingWebSlide(false)
+
     setAiContentModal({
       isOpen: true,
       meetingIndex: index,
@@ -656,6 +661,36 @@ export default function RpsDetailPage() {
     })
     navigator.clipboard.writeText(text)
     toast.success('Materi slide berhasil disalin ke clipboard!')
+  }
+
+  const handleGenerateWebSlide = async () => {
+    if (!aiContentModal.data) return
+    setGeneratingWebSlide(true)
+    try {
+      const courseName = rps.mk?.nama_mk || 'Mata Kuliah'
+      const prodiName = rps.mk?.prodi?.nama || 'Program Studi'
+      const meetingNo = aiContentModal.meeting.no
+      
+      const result = await generateWebSlideData(
+        courseName,
+        prodiName,
+        meetingNo,
+        aiContentModal.data
+      )
+      setWebSlideData(result)
+      toast.success('WebSlide berhasil digenerate! Membuka pratinjau...')
+      
+      // Otomatis buka preview setelah selesai
+      const htmlContent = generateWebSlideHtml(courseName, prodiName, meetingNo, result)
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank')
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal generate WebSlide: ' + err.message)
+    } finally {
+      setGeneratingWebSlide(false)
+    }
   }
 
   const handlePreviewWebSlide = (data) => {
@@ -1626,22 +1661,55 @@ export default function RpsDetailPage() {
                 )}
                 {aiContentModal.type === 'slide' && aiContentModal.data && (
                   <>
-                    <button 
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handlePreviewWebSlide(aiContentModal.data)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, borderColor: 'var(--indigo-200)', color: 'var(--indigo-700)', background: '#f5f3ff' }}
-                    >
-                      <Tv size={12} />
-                      Lihat WebSlide
-                    </button>
-                    <button 
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleDownloadWebSlide(aiContentModal.data)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                    >
-                      <Download size={12} />
-                      Unduh WebSlide
-                    </button>
+                    {!webSlideData ? (
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={handleGenerateWebSlide}
+                        disabled={generatingWebSlide}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderColor: '#6366f1', color: '#ffffff' }}
+                      >
+                        {generatingWebSlide ? (
+                          <>
+                            <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                            Generating WebSlide...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={12} />
+                            Generate WebSlide
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <>
+                        <button 
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handlePreviewWebSlide(webSlideData)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, borderColor: 'var(--indigo-200)', color: 'var(--indigo-700)', background: '#f5f3ff' }}
+                        >
+                          <Tv size={12} />
+                          Lihat WebSlide
+                        </button>
+                        <button 
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleDownloadWebSlide(webSlideData)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Download size={12} />
+                          Unduh WebSlide
+                        </button>
+                        <button 
+                          className="btn btn-ghost btn-sm"
+                          onClick={handleGenerateWebSlide}
+                          disabled={generatingWebSlide}
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#64748b' }}
+                          title="Generate ulang tata letak dinamis WebSlide"
+                        >
+                          <RefreshCw size={12} className={generatingWebSlide ? 'spinner' : ''} />
+                          Generate Ulang WebSlide
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>

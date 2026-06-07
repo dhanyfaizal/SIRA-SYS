@@ -589,23 +589,61 @@ export async function generateObeMapping(courseName, cpmkList, assessmentCompone
   return callAi(prompt, true, onProgress)
 }
 
-// 11. Generate Materi Slide untuk Pertemuan
+// 11. Generate Materi Slide untuk Pertemuan (Format Outline Sederhana)
 export async function generateSlideContent(courseName, meetingNo, topic, capability, references = [], onProgress = null) {
   const prompt = `
-    Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline presentasi WebSlide terstruktur dan interaktif untuk perkuliahan:
+    Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline slide presentasi terstruktur untuk perkuliahan berikut:
     Mata Kuliah: "${courseName}"
     Pertemuan Ke: ${meetingNo}
     Topik / Bahan Kajian: "${topic || '—'}"
     Kemampuan Akhir Mahasiswa: "${capability || '—'}"
     Referensi Pustaka Utama RPS: ${JSON.stringify(references)}
 
-    Hasilkan materi presentasi yang sangat komprehensif, mendalam, dan bervariasi secara instruksional dengan jumlah slide antara 12 sampai 15 slide.
+    Hasilkan outline slide presentasi yang sangat komprehensif, mendalam, dan kaya materi dengan ketentuan berikut:
+    1. Jumlah Slide: MINIMAL 15 SLIDE (slide 1 s.d. slide 15+).
+    2. Integrasi Referensi: Hubungkan penjelasan materi dengan referensi pustaka utama RPS di atas yang relevan (cantumkan kutipan/rujukan buku atau artikel ilmiah tersebut pada slide yang relevan).
+    3. Kedalaman Konten: Berikan penjelasan yang mendalam dan bermakna pada setiap slide. Di dalam poin-poin materi, berikan CONTOH konkret, PENERAPAN praktis di industri/studi kasus nyata, PERBANDINGAN teori/konsep/metode, dan penjelasan pelengkap lainnya yang dapat mengembangkan wawasan materi ini secara maksimal. Poin penjelasan harus berupa kalimat informatif yang kaya konten (bukan frasa pendek atau ringkasan seadanya).
 
-    ATURAN LAYOUT DINAMIS & STRUKTUR:
-    Setiap slide harus memiliki properti "layout" yang menentukan pembungkus (wrapper) tampilan kontennya. Anda harus menganalisis materi pada slide tersebut dan memilih tata letak yang paling relevan:
+    Format output harus berupa JSON OBJECT murni dengan struktur:
+    {
+      "title": "Judul Utama Presentasi",
+      "slides": [
+        {
+          "slide_no": 1,
+          "title": "Judul Slide 1 (contoh: Pendahuluan & Rujukan)",
+          "content": [
+            "Poin penjelasan mendalam tentang konsep dasar...",
+            "Rujukan pustaka dan perannya dalam bab ini...",
+            "Contoh kasus nyata..."
+          ]
+        },
+        ...
+      ]
+    }
 
+    ATURAN:
+    - Gunakan Bahasa Indonesia formal akademik.
+    - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
+  `;
+
+  return callAi(prompt, true, onProgress);
+}
+
+// 11b. Generate WebSlide Data (Membaca outline sederhana dan memetakannya ke tata letak dinamis AI)
+export async function generateWebSlideData(courseName, prodiName, meetingNo, outlineData, onProgress = null) {
+  const prompt = `
+    Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menerjemahkan outline materi perkuliahan berikut menjadi presentasi WebSlide terstruktur dan interaktif dengan tata letak (layout) dinamis:
+    Mata Kuliah: "${courseName}"
+    Program Studi: "${prodiName}"
+    Pertemuan Ke: ${meetingNo}
+    
+    Data Outline Materi (JSON):
+    ${JSON.stringify(outlineData)}
+
+    Berdasarkan data outline sederhana di atas, buatlah presentasi WebSlide lengkap (12 sampai 15 slide). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
+
+    ATURAN LAYOUT YANG HARUS DIPILIH:
     1. "cover": Hanya untuk Slide 1 (Cover utama perkuliahan).
-       Struktur JSON slide:
        {
          "slide_no": 1,
          "layout": "cover",
@@ -613,9 +651,7 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
          "subtitle": "Subjudul cover",
          "description": "Deskripsi singkat isi perkuliahan hari ini"
        }
-
-    2. "split": Layout 2 kolom (kiri & kanan). Cocok untuk menyajikan konsep utama di kiri dan daftar detail pendukung di kanan.
-       Struktur JSON slide:
+    2. "split": Layout 2 kolom (kiri & kanan). Cth: konsep/masalah di kiri, poin detail di kanan.
        {
          "slide_no": X,
          "layout": "split",
@@ -630,37 +666,29 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
            "Poin detail 3..."
          ]
        }
-
-    3. "grid": Layout grid kartu (2, 3, atau 4 kartu). Cocok untuk menguraikan beberapa kategori, pilar, atau komponen utama yang setara secara visual.
-       Struktur JSON slide:
+    3. "grid": Layout grid kartu (2, 3, atau 4 kartu). Cocok untuk menguraikan beberapa kategori, pilar, atau komponen utama.
        {
          "slide_no": X,
          "layout": "grid",
          "title": "Judul Slide",
          "grid_items": [
-           { "title": "Nama Kategori 1", "desc": "Deskripsi/Penjelasan mendalam kategori 1...", "icon": "fa-solid fa-lightbulb" },
-           { "title": "Nama Kategori 2", "desc": "Deskripsi/Penjelasan mendalam kategori 2...", "icon": "fa-solid fa-code" }
+           { "title": "Nama Kategori 1", "desc": "Deskripsi...", "icon": "fa-solid fa-lightbulb" },
+           { "title": "Nama Kategori 2", "desc": "Deskripsi...", "icon": "fa-solid fa-code" }
          ]
        }
-       Catatan ikon: Gunakan FontAwesome class yang relevan seperti fa-solid fa-gears, fa-solid fa-shield-halved, fa-solid fa-database, fa-solid fa-chart-line, fa-solid fa-book, fa-solid fa-server, dll.
-
-    4. "list": Layout daftar kartu berurutan atau daftar rekomendasi/langkah/poin. Masing-masing item dibungkus dengan kartu beraksen tepi kiri berwarna.
-       Struktur JSON slide:
+       Gunakan FontAwesome class yang relevan untuk "icon" (cth: fa-solid fa-gears, fa-solid fa-shield-halved, fa-solid fa-database, fa-solid fa-book, dll.).
+    4. "list": Layout daftar kartu berurutan. Masing-masing item dibungkus dengan kartu beraksen tepi kiri berwarna.
        {
          "slide_no": X,
          "layout": "list",
          "title": "Judul Slide",
          "list_items": [
            { "text": "Pernyataan/langkah/poin penting 1...", "color": "red" },
-           { "text": "Pernyataan/langkah/poin penting 2...", "color": "amber" },
-           { "text": "Pernyataan/langkah/poin penting 3...", "color": "green" },
-           { "text": "Pernyataan/langkah/poin penting 4...", "color": "blue" }
+           { "text": "Pernyataan/langkah/poin penting 2...", "color": "amber" }
          ]
        }
-       Catatan warna: Properti "color" wajib bernilai salah satu dari "red", "amber", "green", atau "blue".
-
+       Properti "color" wajib bernilai salah satu dari "red", "amber", "green", atau "blue".
     5. "table": Layout tabel perbandingan. Sangat baik jika membandingkan dua teknologi, konsep, atau kelebihan & kekurangan.
-       Struktur JSON slide:
        {
          "slide_no": X,
          "layout": "table",
@@ -669,15 +697,12 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
            "headers": ["Aspek Perbandingan", "Konsep A", "Konsep B"],
            "rows": [
              ["Definisi", "Penjelasan A...", "Penjelasan B..."],
-             ["Kelebihan", "Kelebihan A...", "Kelebihan B..."],
-             ["Contoh Kasus", "Contoh A...", "Contoh B..."]
+             ["Kelebihan", "Kelebihan A...", "Kelebihan B..."]
            ]
          }
        }
-
     6. "accordion": Layout akordion interaktif (Tanya Jawab / Diskusi Kelas).
        PENTING: Slide kedua dari terakhir (Slide N-1) WAJIB berupa layout "accordion" dengan topik "Diskusi Kelas & Tanya Jawab" yang memicu interaksi aktif mahasiswa sebelum kuliah berakhir.
-       Struktur JSON slide:
        {
          "slide_no": X,
          "layout": "accordion",
@@ -698,7 +723,6 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
 
     Aturan:
     - Gunakan Bahasa Indonesia formal akademik yang kaya konten dan berwawasan ilmiah tinggi.
-    - Cantumkan rujukan/sitasi dari referensi RPS jika menulis poin yang relevan.
     - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
   `;
 
