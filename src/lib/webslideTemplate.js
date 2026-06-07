@@ -1,7 +1,7 @@
 /**
- * SIRA-SYS — WebSlide HTML Generator
+ * SIRA-SYS — WebSlide HTML Generator (AI-Driven Layouts & Interactive Accordions)
  * Helper untuk menyusun berkas HTML WebSlide interaktif secara dinamis
- * berdasarkan data materi pertemuan hasil generate AI.
+ * berdasarkan data materi pertemuan hasil generate AI yang kaya visual.
  */
 
 const PRODI_THEMES = {
@@ -56,24 +56,26 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
     return `<option value="${idx}">Slide ${idx + 1}: ${slide.title || 'Materi'}</option>`;
   }).join('\n            ');
 
-  // Render konten slide secara dinamis berdasarkan jumlah poin data
+  // Parser konten slide dinamis berdasarkan layout yang ditentukan AI atau fallback manual
   function renderSlideBody(slide, slideIndex) {
-    const points = slide.content || [];
-    if (points.length === 0) return '';
+    const layout = slide.layout || (slideIndex === 0 ? 'cover' : 'legacy');
 
-    // Slide 1 adalah Cover, tidak perlu list lagi (sudah digambar khusus)
-    if (slideIndex === 0) {
+    // 1. LAYOUT: COVER (Slide Pembuka / Penutup)
+    if (layout === 'cover') {
+      const coverTitle = slide.title || title;
+      const subtitle = slide.subtitle || courseName;
+      const desc = slide.description || (slide.content && slide.content[0]) || 'Outline presentasi terstruktur pendukung perkuliahan berbasis Outcome-Based Education.';
       return `
         <div class="cover-content">
           <h2 class="animate-item animate-delay-1" style="color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 2.5px; font-weight: 700; margin-bottom: 12px; font-size: calc(18px * var(--fs-mult));">
             Pertemuan ${meetingNo}
           </h2>
-          <h1 class="animate-item animate-delay-1" style="line-height: 1.15; margin-bottom: 24px; font-weight: 800; font-size: calc(48px * var(--fs-mult)); color: #FFFFFF; text-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            ${courseName.toUpperCase()}<br>
-            <span style="color: var(--accent-cyan);">${title.toUpperCase()}</span>
+          <h1 class="animate-item animate-delay-1" style="line-height: 1.15; margin-bottom: 24px; font-weight: 800; font-size: calc(46px * var(--fs-mult)); color: #FFFFFF; text-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            ${subtitle.toUpperCase()}<br>
+            <span style="color: var(--accent-cyan);">${coverTitle.toUpperCase()}</span>
           </h1>
           <p class="animate-item animate-delay-2" style="max-width: 850px; font-weight: 500; font-size: calc(20px * var(--fs-mult)); color: #D8E7FF; line-height: 1.6; margin-bottom: 24px;">
-            ${points[0] || 'Outline presentasi terstruktur pendukung perkuliahan berbasis Outcome-Based Education.'}
+            ${desc}
           </p>
           <div class="animate-item animate-delay-3" style="display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap;">
             <span class="badge-tag">Rencana Pembelajaran Semester</span>
@@ -84,7 +86,119 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
       `;
     }
 
-    // Pilihan tata letak dinamis
+    // 2. LAYOUT: SPLIT (2 Kolom Kiri-Kanan)
+    if (layout === 'split') {
+      const left = slide.split_left || { heading: 'Konteks Utama', description: '' };
+      const rightPoints = slide.split_right || [];
+
+      return `
+        <div class="split animate-item">
+          <div class="col" style="justify-content: center;">
+            <div class="accent-card accent-blue" style="padding: 30px;">
+              <h3 style="font-size: calc(22px * var(--fs-mult)); margin-bottom: 14px; font-weight: 800; color: var(--accent-cyan); font-family: 'Urbanist', sans-serif;">
+                ${left.heading}
+              </h3>
+              <p class="body" style="font-size: calc(15px * var(--fs-mult)); color: var(--text-main); line-height: 1.6;">
+                ${left.description}
+              </p>
+            </div>
+          </div>
+          <div class="col" style="justify-content: center; gap: 14px;">
+            ${rightPoints.map((pt, idx) => `
+              <div style="display: flex; gap: 12px; align-items: flex-start;" class="animate-item animate-delay-${idx + 1}">
+                <div class="chk chk-green"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <p class="body" style="font-size: calc(15px * var(--fs-mult)); color: var(--text-dim); line-height: 1.5;">${pt}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. LAYOUT: GRID (Kartu Tile Berbaris)
+    if (layout === 'grid') {
+      const items = slide.grid_items || [];
+      const gridClass = items.length === 2 ? 'grid-2-col' : items.length === 3 ? 'grid-3-col' : 'grid-2x2';
+
+      return `
+        <div class="${gridClass} animate-item">
+          ${items.map((item, idx) => `
+            <div class="tile animate-item animate-delay-${idx + 1}">
+              <i class="${item.icon || 'fa-solid fa-lightbulb'}"></i>
+              <h3>${item.title}</h3>
+              <p>${item.desc}</p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // 4. LAYOUT: LIST (Daftar Kartu Aksen Vertikal)
+    if (layout === 'list') {
+      const items = slide.list_items || [];
+      return `
+        <div class="content-list animate-item">
+          ${items.map((item, idx) => `
+            <div class="accent-card accent-${item.color || 'blue'} animate-item animate-delay-${idx + 1}">
+              <p class="body" style="font-size: calc(15px * var(--fs-mult)); color: var(--text-dim); line-height: 1.55;">
+                ${item.text}
+              </p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // 5. LAYOUT: TABLE (Tabel Perbandingan Konsep)
+    if (layout === 'table') {
+      const table = slide.table_data || { headers: [], rows: [] };
+      return `
+        <div class="table-wrapper animate-item">
+          <table>
+            <thead>
+              <tr>
+                ${table.headers.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${table.rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td>${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // 6. LAYOUT: ACCORDION (Tanya Jawab & Diskusi Kelas Interaktif)
+    if (layout === 'accordion') {
+      const items = slide.accordion_items || [];
+      return `
+        <div class="accordion-container animate-item">
+          <p style="font-size: calc(15px * var(--fs-mult)); color: var(--text-dim); margin-bottom: 18px; font-weight: 500;" class="animate-item">
+            Klik pada setiap pertanyaan di bawah untuk membuka poin diskusi dan memancing argumen aktif di dalam kelas:
+          </p>
+          ${items.map((item, idx) => `
+            <details class="accordion-item animate-item animate-delay-${idx + 1}">
+              <summary class="accordion-header">
+                <span>${item.header}</span>
+                <i class="fa-solid fa-chevron-down"></i>
+              </summary>
+              <div class="accordion-content">
+                <p>${item.content}</p>
+              </div>
+            </details>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // 7. BACKWARD COMPATIBILITY / FALLBACK (Format Lama / Legacy)
+    const points = slide.content || [];
+    if (points.length === 0) return '';
+
     if (points.length === 2) {
       return `
         <div class="grid-2-col">
@@ -119,7 +233,6 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
         </div>
       `;
     } else {
-      // List vertikal untuk item yang lebih banyak
       const isCompact = points.length > 5;
       return `
         <div class="content-list ${isCompact ? 'compact' : ''}">
@@ -136,7 +249,7 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
 
   // Bangun elemen HTML slide
   const slidesHtml = slides.map((slide, idx) => {
-    const isDark = idx === 0 ? 'dark active' : '';
+    const isDark = (idx === 0 || slide.layout === 'cover' && idx === slides.length - 1) ? 'dark active' : '';
     const slideTitle = idx === 0 
       ? '' 
       : `<h2 class="slide-title"><span>${slide.title || `Slide ${idx + 1}`}</span></h2>`;
@@ -169,6 +282,17 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
             --bg-card-hover: #F9FAFB;
             --accent-cyan: ${theme.accent};
             --accent-dark: ${theme.dark};
+            
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            
+            --accent-red-light: #fef2f2;
+            --accent-amber-light: #fffbeb;
+            --accent-green-light: #ecfdf5;
+            --accent-blue-light: #eff6ff;
+            
             --text-main: #1F2937;
             --text-dim: #4B5563;
             --slide-width: 1280px;
@@ -230,27 +354,44 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
         .slide-title span { color: var(--accent-cyan); }
         .dark .slide-title { color: #FFFFFF; }
         
-        /* Layout - 2 Columns */
+        /* ── Grid Layouts ── */
         .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
-        
-        /* Layout - 3 Columns */
         .grid-3-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        
-        /* Layout - 2x2 Grid */
         .grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 20px; }
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; flex: 1; min-height: 0; align-items: stretch; }
+        .col { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
         
-        /* Cards styling for grids */
-        .content-card {
+        /* ── Card: Tile ── */
+        .tile {
             background: var(--bg-card); border: 1px solid rgba(229,231,235,1);
             padding: 28px 24px; border-radius: 16px; transition: all 0.3s ease;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); display: flex; flex-direction: column;
-            gap: 14px; min-height: 140px; justify-content: flex-start;
+            gap: 12px; min-height: 140px; justify-content: flex-start;
         }
-        .content-card:hover { transform: translateY(-4px); border-color: var(--accent-cyan); box-shadow: 0 12px 20px -8px ${theme.rgbaLight}; }
-        .card-icon { font-size: 28px; color: var(--accent-cyan); }
-        .card-text { font-size: calc(15px * var(--fs-mult)); color: var(--text-dim); line-height: 1.6; font-weight: 500; }
+        .tile:hover { transform: translateY(-4px); border-color: var(--accent-cyan); box-shadow: 0 12px 20px -8px ${theme.rgbaLight}; }
+        .tile i { font-size: 30px; color: var(--accent-cyan); margin-bottom: 4px; }
+        .tile h3 { font-size: calc(18px * var(--fs-mult)); font-weight: 800; color: var(--text-main); font-family: 'Urbanist', sans-serif; }
+        .tile p { font-size: calc(14.2px * var(--fs-mult)); color: var(--text-dim); line-height: 1.5; font-weight: 500; }
         
-        /* Layout - List Vertikal */
+        /* ── Card: Accent Card ── */
+        .accent-card {
+            border-radius: 12px; padding: 22px 26px; position: relative; overflow: hidden;
+            border: 1px solid rgba(229, 231, 235, 0.8); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+            transition: all 0.3s ease;
+        }
+        .accent-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px -4px rgba(0,0,0,0.04); }
+        .accent-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+        
+        .accent-red { background: var(--accent-red-light); }
+        .accent-red::before { background: var(--accent-red); }
+        .accent-amber { background: var(--accent-amber-light); }
+        .accent-amber::before { background: var(--accent-amber); }
+        .accent-green { background: var(--accent-green-light); }
+        .accent-green::before { background: var(--accent-green); }
+        .accent-blue { background: var(--accent-blue-light); }
+        .accent-blue::before { background: var(--accent-blue); }
+        
+        /* ── Lists ── */
         .content-list { display: flex; flex-direction: column; gap: 16px; }
         .content-item {
             background: var(--bg-card); border: 1px solid rgba(229,231,235,1);
@@ -265,6 +406,50 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
         .content-list.compact { gap: 10px; }
         .content-list.compact .content-item { padding: 12px 20px; gap: 12px; }
         .content-list.compact .item-text { font-size: calc(14.5px * var(--fs-mult)); }
+        
+        /* ── Checklist SVG ── */
+        .chk { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: ${theme.rgbaLight}; border: 1px solid rgba(62,207,142,0.15); margin-top: 3px; }
+        
+        /* ── Table Wrapper & Table ── */
+        .table-wrapper { max-height: 420px; overflow-y: auto; background: var(--bg-card); border-radius: 12px; border: 1px solid rgba(209,213,219,1); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04); }
+        .table-wrapper::-webkit-scrollbar { width: 6px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: var(--accent-cyan); border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 14px 18px; background: #111827; color: #FFFFFF; font-weight: 700; position: sticky; top: 0; z-index: 5; font-size: calc(14px * var(--fs-mult)); border-bottom: 2px solid rgba(209,213,219,1); font-family: 'Urbanist', sans-serif; letter-spacing: -.3px; }
+        td { padding: 12px 18px; border-bottom: 1px solid rgba(229,231,235,1); color: var(--text-dim); font-size: calc(13.8px * var(--fs-mult)); transition: font-size 0.2s ease; vertical-align: top; line-height: 1.55; font-weight: 500; }
+        
+        /* ── Accordion Native Details/Summary ── */
+        .accordion-container { display: flex; flex-direction: column; width: 100%; }
+        details.accordion-item {
+            background: var(--bg-card); border: 1px solid rgba(229, 231, 235, 1);
+            border-radius: 12px; margin-bottom: 12px; overflow: hidden;
+            transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+        }
+        details.accordion-item[open] { border-color: var(--accent-cyan); box-shadow: 0 10px 20px -8px ${theme.rgbaLight}; }
+        summary.accordion-header {
+            padding: 18px 24px; font-size: calc(16.5px * var(--fs-mult)); font-weight: 700;
+            color: var(--text-main); cursor: pointer; display: flex; justify-content: space-between;
+            align-items: center; list-style: none; user-select: none;
+        }
+        summary.accordion-header::-webkit-details-marker { display: none; }
+        summary.accordion-header i { transition: transform 0.3s ease; color: var(--accent-cyan); font-size: 15px; }
+        details.accordion-item[open] summary.accordion-header i { transform: rotate(180deg); }
+        .accordion-content {
+            padding: 0 24px 20px 24px; font-size: calc(14.8px * var(--fs-mult));
+            color: var(--text-dim); line-height: 1.6; border-top: 1px dashed rgba(229, 231, 235, 0.6);
+            padding-top: 16px; background: #fafafa;
+        }
+        
+        /* ── Legacy Fallbacks ── */
+        .content-card {
+            background: var(--bg-card); border: 1px solid rgba(229,231,235,1);
+            padding: 28px 24px; border-radius: 16px; transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); display: flex; flex-direction: column;
+            gap: 14px; min-height: 140px; justify-content: flex-start;
+        }
+        .content-card:hover { transform: translateY(-4px); border-color: var(--accent-cyan); box-shadow: 0 12px 20px -8px ${theme.rgbaLight}; }
+        .card-icon { font-size: 28px; color: var(--accent-cyan); }
+        .card-text { font-size: calc(15px * var(--fs-mult)); color: var(--text-dim); line-height: 1.6; font-weight: 500; }
         
         .badge-tag {
             background: rgba(255,255,255,0.08); color: var(--accent-cyan);
