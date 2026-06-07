@@ -629,7 +629,6 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
   return callAi(prompt, true, onProgress);
 }
 
-// 11b. Generate WebSlide Data (Membaca outline sederhana dan memetakannya ke tata letak dinamis AI)
 export async function generateWebSlideData(courseName, prodiName, meetingNo, outlineData, onProgress = null) {
   const prompt = `
     Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menerjemahkan outline materi perkuliahan berikut menjadi presentasi WebSlide terstruktur dan interaktif dengan tata letak (layout) dinamis:
@@ -643,6 +642,8 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
     Berdasarkan data outline sederhana di atas, buatlah presentasi WebSlide lengkap (12 sampai 15 slide). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
 
     ATURAN LAYOUT YANG HARUS DIPILIH:
+    Setiap objek slide dapat memuat properti opsional "reference": "Nama Penulis & Tahun (contoh: Williams & Park, 2023)" apabila slide tersebut memuat kutipan/rujukan teoretis.
+
     1. "cover": Hanya untuk Slide 1 (Cover utama perkuliahan).
        {
          "slide_no": 1,
@@ -656,6 +657,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
          "slide_no": X,
          "layout": "split",
          "title": "Judul Slide",
+         "reference": "...",
          "split_left": {
            "heading": "Judul kolom kiri (cth: Masalah/Definisi)",
            "description": "Penjelasan teoritis mendalam atau kutipan besar di kolom kiri..."
@@ -671,6 +673,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
          "slide_no": X,
          "layout": "grid",
          "title": "Judul Slide",
+         "reference": "...",
          "grid_items": [
            { "title": "Nama Kategori 1", "desc": "Deskripsi...", "icon": "fa-solid fa-lightbulb" },
            { "title": "Nama Kategori 2", "desc": "Deskripsi...", "icon": "fa-solid fa-code" }
@@ -682,6 +685,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
          "slide_no": X,
          "layout": "list",
          "title": "Judul Slide",
+         "reference": "...",
          "list_items": [
            { "text": "Pernyataan/langkah/poin penting 1...", "color": "red" },
            { "text": "Pernyataan/langkah/poin penting 2...", "color": "amber" }
@@ -693,6 +697,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
          "slide_no": X,
          "layout": "table",
          "title": "Judul Slide",
+         "reference": "...",
          "table_data": {
            "headers": ["Aspek Perbandingan", "Konsep A", "Konsep B"],
            "rows": [
@@ -701,15 +706,17 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
            ]
          }
        }
-    6. "accordion": Layout akordion interaktif (Tanya Jawab / Diskusi Kelas).
-       PENTING: Slide kedua dari terakhir (Slide N-1) WAJIB berupa layout "accordion" dengan topik "Diskusi Kelas & Tanya Jawab" yang memicu interaksi aktif mahasiswa sebelum kuliah berakhir.
+    6. "accordion": Layout akordion interaktif (Tanya Jawab / Diskusi Kelas / Sub-Materi).
+       Dapat digunakan secara bebas di slide-slide tengah untuk memaparkan sub-konsep secara interaktif.
+       Catatan khusus: Slide kedua dari terakhir (Slide N-1) WAJIB berupa layout "accordion" dengan topik "Diskusi Kelas & Tanya Jawab" yang memicu interaksi aktif mahasiswa sebelum kuliah berakhir.
        {
          "slide_no": X,
          "layout": "accordion",
          "title": "Diskusi Kelas & Tanya Jawab",
+         "reference": "...",
          "accordion_items": [
-           { "header": "Pertanyaan pemantik diskusi kelas 1?", "content": "Petunjuk jawaban / poin pemandu diskusi untuk Dosen..." },
-           { "header": "Pertanyaan pemantik diskusi kelas 2?", "content": "Petunjuk jawaban / analisis kasus..." }
+           { "header": "Pertanyaan pemantik / Judul sub-konsep 1?", "content": "Pembahasan substantif / jawaban ilmiah yang komprehensif atas pertanyaan tersebut..." },
+           { "header": "Pertanyaan pemantik / Judul sub-konsep 2?", "content": "Analisis kasus / penjelasan mendalam..." }
          ]
        }
 
@@ -723,6 +730,9 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
 
     Aturan:
     - Gunakan Bahasa Indonesia formal akademik yang kaya konten dan berwawasan ilmiah tinggi.
+    - HINDARI memberikan meta-instruksi, arahan presentasi, atau instruksi lisan bagi presenter/dosen (seperti "Ajak mahasiswa...", "Jelaskan...", "Tekankan...", "Tunjukkan contoh...", dll.). Konten harus langsung berupa penjelasan materi, pembahasan teoritis, jawaban konkret, atau data ilmiah yang ditujukan untuk audiens/mahasiswa.
+    - GLOSARIUM: Apabila sebuah slide memuat istilah asing, istilah ilmiah/teknis khusus yang mungkin tidak umum bagi mahasiswa (misalnya visual clutter, whitespace, grid system, hierarchy, dll.), wajib menyisipkan satu slide berikutnya yang secara khusus menjelaskan/mendefinisikan arti istilah tersebut menggunakan layout yang sesuai (seperti split, list, atau accordion).
+    - FORMATTING: Gunakan tag HTML <strong> untuk mencetak tebal kata kunci atau poin-poin inti dari penjelasan agar memudahkan audiens menangkap poin penting dengan cepat. Gunakan tag HTML <em> untuk mencetak miring istilah asing, istilah teknis, atau istilah tidak umum.
     - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
   `;
 
