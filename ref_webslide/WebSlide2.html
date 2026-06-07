@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proposal — STIKOM Yos Sudarso × OurBeasiswa</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400;1,9..144,600&family=Satoshi:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#0c0c0b;--white:#fafaf7;--off-white:#f4f3ee;--cream:#ede9e0;
+  --gray-100:#eceae4;--gray-200:#d8d5cc;--gray-400:#9e9b92;--gray-600:#6b6860;--gray-800:#2e2d28;
+  --green:#1c6b40;--green-mid:#2a8a52;--green-light:#e6f2eb;--green-pale:#f0f7f3;
+  --red:#b83232;--red-light:#fbeeee;--amber:#8a5c00;--amber-light:#fdf4e0;
+  --blue:#1e3a6e;--blue-light:#eaf0fa;
+  --f-display:'Fraunces',Georgia,serif;--f-body:'Satoshi',system-ui,sans-serif;
+  --px:clamp(40px,7vw,88px);--py:clamp(32px,4.5vh,56px);
+  --gap:clamp(10px,1.5vh,18px);--radius:10px;--radius-lg:16px
+}
+.cover-grid{position:absolute;inset:0;z-index:1;pointer-events:none;background-image:linear-gradient(var(--gray-100) 1px,transparent 1px),linear-gradient(90deg,var(--gray-100) 1px,transparent 1px);background-size:clamp(44px,6.5vw,72px) clamp(44px,6.5vw,72px);mask-image:radial-gradient(ellipse 80% 90% at 78% 50%,transparent 20%,black 100%);-webkit-mask-image:radial-gradient(ellipse 80% 90% at 78% 50%,transparent 20%,black 100%)}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--gray-100);font-family:var(--f-body);-webkit-font-smoothing:antialiased;color:var(--black)}
+.deck{width:100vw;height:100vh;position:relative}
+.slide{position:absolute;inset:0;width:100%;height:100vh;height:100dvh;overflow:hidden;opacity:0;pointer-events:none;transition:opacity .4s cubic-bezier(.4,0,.2,1);background:var(--white)}
+.slide.active{opacity:1;pointer-events:all}
+.slide-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;padding:var(--py) var(--px)}
+.progress{position:fixed;top:0;left:0;z-index:200;height:2px;background:var(--green-mid);transition:width .4s ease}
+.nav{position:fixed;bottom:clamp(14px,2.5vh,24px);left:50%;transform:translateX(-50%);z-index:100;display:flex;align-items:center;gap:16px;background:rgba(250,250,247,.88);backdrop-filter:blur(16px);border:0.5px solid var(--gray-200);padding:7px 18px;border-radius:999px;box-shadow:0 4px 24px rgba(0,0,0,.07)}
+.nav-btn{background:none;border:none;cursor:pointer;color:var(--gray-600);font-size:15px;padding:3px 7px;border-radius:4px;font-family:var(--f-body);transition:color .15s,background .15s}
+.nav-btn:hover{color:var(--black);background:var(--gray-100)}
+.nav-btn:disabled{color:var(--gray-200);cursor:default}
+.nav-counter{font-size:11px;color:var(--gray-400);min-width:52px;text-align:center}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--gray-200);transition:background .25s,transform .25s;cursor:pointer}
+.dot.active{background:var(--black);transform:scale(1.4)}
+.overline{font-family:var(--f-body);font-size:clamp(9px,1vw,11px);font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-400);margin-bottom:clamp(8px,1.2vh,14px)}
+.display{font-family:var(--f-display);font-size:clamp(38px,6vw,76px);font-weight:600;line-height:1.0;letter-spacing:-.02em;color:var(--black)}
+.display em{font-style:italic;font-weight:300;color:var(--green-mid)}
+.display-md{font-family:var(--f-display);font-size:clamp(24px,3.5vw,46px);font-weight:600;line-height:1.08;letter-spacing:-.02em}
+.display-sm{font-family:var(--f-display);font-size:clamp(19px,2.6vw,32px);font-weight:500;line-height:1.15;letter-spacing:-.015em}
+.body{font-size:clamp(11px,1.2vw,14px);font-weight:400;line-height:1.7;color:var(--gray-600)}
+.caption{font-size:clamp(9px,.95vw,11px);color:var(--gray-400);line-height:1.5}
+.rule{width:36px;height:2px;background:var(--green);margin:clamp(12px,1.8vh,20px) 0;flex-shrink:0}
+.tag{display:inline-flex;align-items:center;font-size:clamp(9px,.95vw,11px);font-weight:500;letter-spacing:.05em;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.tag-green{background:var(--green-light);color:var(--green)}
+.card-green{background:var(--green-pale);border:1px solid rgba(28,107,64,.25);border-radius:var(--radius);padding:clamp(12px,1.8vh,18px) clamp(14px,1.8vw,20px)}
+.accent-card{border-radius:var(--radius);padding:clamp(10px,1.5vh,16px) clamp(12px,1.6vw,20px) clamp(10px,1.5vh,16px) clamp(14px,1.8vw,22px);position:relative;overflow:hidden}
+.accent-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.accent-green{background:var(--green-pale)}.accent-green::before{background:var(--green)}
+.accent-red{background:var(--red-light)}.accent-red::before{background:var(--red)}
+.accent-amber{background:var(--amber-light)}.accent-amber::before{background:var(--amber)}
+.accent-blue{background:var(--blue-light)}.accent-blue::before{background:var(--blue)}
+.guarantee{border:1.5px solid var(--green);border-radius:var(--radius-lg);padding:clamp(14px,2vh,24px) clamp(16px,2vw,28px);background:var(--green-pale)}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,3.5vw,48px);flex:1;min-height:0}
+.col{display:flex;flex-direction:column;gap:var(--gap);min-height:0}
+.row{display:flex;gap:var(--gap);align-items:center}
+.platform-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:clamp(8px,.85vw,10px);font-weight:600;letter-spacing:.04em;border:1px solid}
+.badge-meta{background:#f0f4ff;border-color:#1877f2;color:#1877f2}
+.badge-google{background:#fef7f0;border-color:#ea4335;color:#ea4335}
+.badge-tiktok{background:#f0fafa;border-color:#010101;color:#010101}
+.badge-hubspot{background:#fff5f0;border-color:#ff7a59;color:#ff7a59}
+.chk{width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.chk-green{background:var(--green-light)}
+.chk-solid{background:var(--green)}
+@media(prefers-reduced-motion:no-preference){
+  .slide.active .up{animation:fadeUp .5s cubic-bezier(.22,1,.36,1) both}
+  .slide.active .up:nth-child(1){animation-delay:.0s}
+  .slide.active .up:nth-child(2){animation-delay:.07s}
+  .slide.active .up:nth-child(3){animation-delay:.13s}
+  .slide.active .up:nth-child(4){animation-delay:.19s}
+  .slide.active .up:nth-child(5){animation-delay:.25s}
+  .slide.active .up:nth-child(6){animation-delay:.31s}
+  .slide.active .up:nth-child(7){animation-delay:.37s}
+  .slide.active .up:nth-child(8){animation-delay:.43s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+}
+@media(max-width:768px){.split{grid-template-columns:1fr}}
+@media(max-height:600px){:root{--py:16px;--gap:6px}}
+@media print{
+  @page{size:landscape;margin:0}
+  html,body{overflow:visible!important;height:auto!important;background:white}
+  .deck{height:auto!important;position:relative!important}
+  .slide{position:relative!important;opacity:1!important;pointer-events:all!important;height:100vh!important;page-break-after:always;page-break-inside:avoid;display:flex!important;flex-direction:column}
+  .nav,.progress{display:none!important}
+  .slide.active .up{animation:none!important;opacity:1!important;transform:none!important}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+<!-- 01 COVER -->
+<div class="slide active">
+  <div class="cover-grid"></div>
+  <div style="position:absolute;left:0;top:0;bottom:0;width:clamp(3px,.4vw,5px);background:var(--green);z-index:3"></div>
+  <div style="position:absolute;right:clamp(-10px,-1vw,10px);bottom:clamp(-60px,-8vh,-20px);font-family:var(--f-display);font-size:clamp(240px,34vw,440px);font-weight:700;color:var(--gray-100);line-height:1;pointer-events:none;z-index:1;letter-spacing:-.04em;user-select:none">O</div>
+  <div class="slide-inner" style="justify-content:center">
+    <div class="up" style="font-size:clamp(9px,1vw,11px);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-400);margin-bottom:clamp(18px,3vh,36px)">STIKOM Yos Sudarso × OurBeasiswa</div>
+    <div class="display up" style="max-width:min(680px,80vw)">Proposal<br>Enrollment Engine.<br><em>Untuk STIKOM Yos Sudarso.</em></div>
+    <div class="rule up"></div>
+    <p class="body up" style="max-width:480px;margin-top:4px">Audit. Diagnosis. Sistem. Komitmen — semua tertulis di sini.</p>
+    <div class="up" style="margin-top:clamp(14px,2.2vh,24px);display:inline-flex;align-items:center;gap:10px">
+      <div style="width:1px;height:28px;background:var(--green)"></div>
+      <span style="font-family:var(--f-display);font-size:clamp(12px,1.4vw,16px);font-weight:600;color:var(--gray-600);letter-spacing:-.01em;font-style:italic">Disiapkan: Juni 2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- 02 AUDIT FINDINGS -->
+<div class="slide">
+  <div class="slide-inner">
+    <div class="overline up">Digital Audit — STIKOM Yos Sudarso</div>
+    <div class="display-sm up" style="margin-bottom:clamp(10px,1.5vh,18px)">Ini yang kami temukan<br>sebelum kita bicara hari ini.</div>
+    <div class="split up" style="flex:1;min-height:0;align-items:stretch;gap:clamp(16px,2.5vw,36px)">
+      <div class="col" style="gap:clamp(7px,1vh,11px);justify-content:center">
+        <div class="accent-card accent-red" style="padding:clamp(10px,1.3vh,14px) clamp(12px,1.6vw,18px) clamp(10px,1.3vh,14px) clamp(16px,2vw,24px)">
+          <p style="font-size:clamp(9px,.95vw,11px);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--red);margin-bottom:4px">Temuan 01 — Website PMB hampir tanpa traffic</p>
+          <p class="body">Situs PMB mencatat 2 kunjungan per bulan — praktis tidak ada. Calon mahasiswa yang sudah kenal STIKOM Yos Sudarso tidak punya tempat untuk melanjutkan minat mereka secara digital.</p>
+        </div>
+        <div class="accent-card accent-red" style="padding:clamp(10px,1.3vh,14px) clamp(12px,1.6vw,18px) clamp(10px,1.3vh,14px) clamp(16px,2vw,24px)">
+          <p style="font-size:clamp(9px,.95vw,11px);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--red);margin-bottom:4px">Temuan 02 — Tidak ada sistem closing untuk reguler</p>
+          <p class="body">99 akun aktif di sistem PMB, 52 dalam pipeline — tapi hanya 13 yang sudah bayar sebagai mahasiswa reguler. Leads ada, tapi tidak ada yang secara aktif mengawal mereka sampai pembayaran pertama.</p>
+        </div>
+        <div class="accent-card accent-amber" style="padding:clamp(10px,1.3vh,14px) clamp(12px,1.6vw,18px) clamp(10px,1.3vh,14px) clamp(16px,2vw,24px)">
+          <p style="font-size:clamp(9px,.95vw,11px);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--amber);margin-bottom:4px">Temuan 03 — Ads ada, tapi targeting belum dikalibrasi untuk reguler</p>
+          <p class="body">Meta Ads sudah berjalan, tapi mayoritas yang masuk adalah calon mahasiswa berorientasi KIP. Tidak ada segmentasi khusus yang menarget reguler — hasilnya, pipeline reguler hampir kosong setiap musim.</p>
+        </div>
+      </div>
+      <div class="col" style="justify-content:center;gap:clamp(8px,1.2vh,14px)">
+        <p class="overline" style="margin-bottom:2px">Peluang yang tersedia sekarang</p>
+        <p class="body" style="max-width:340px">Demand sudah ada — ratusan leads masuk per bulan, 99 akun terdaftar. Yang dibutuhkan bukan lebih banyak awareness, tapi sistem yang mengkualifikasi dan menutup setiap reguler yang masuk.</p>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-top:2px">
+          <div style="display:flex;gap:9px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(11px,1.2vw,13px);color:var(--gray-800);line-height:1.5">UKT Rp 5 juta/semester — terjangkau, tapi belum dikomunikasikan ke segmen yang tepat</p></div>
+          <div style="display:flex;gap:9px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(11px,1.2vw,13px);color:var(--gray-800);line-height:1.5">Basis gereja Katolik di luar Jawa — captive audience yang tidak disentuh kompetitor lokal manapun</p></div>
+          <div style="display:flex;gap:9px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(11px,1.2vw,13px);color:var(--gray-800);line-height:1.5">Program IT — prospek karier tinggi, bisa dikomunikasikan kuat untuk menarik reguler</p></div>
+        </div>
+        <div class="accent-card accent-blue" style="margin-top:2px">
+          <p class="body" style="color:var(--blue);font-size:clamp(11px,1.2vw,13px)">STIKOM Yos Sudarso bukan tanpa demand — hanya <strong>belum ada sistem yang mengonversi demand itu menjadi mahasiswa reguler berbayar.</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 03 ROOT CAUSE -->
+<div class="slide">
+  <div class="slide-inner">
+    <div class="overline up">Akar masalahnya</div>
+    <div class="display-sm up" style="margin-bottom:clamp(10px,1.5vh,18px)">Leads sudah masuk.<br>Tapi tidak ada yang menutupnya.</div>
+    <div class="split up" style="flex:1;min-height:0;align-items:stretch;gap:clamp(24px,4vw,48px)">
+      <div class="col" style="gap:clamp(8px,1.2vh,14px)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px"><div style="width:26px;height:26px;border-radius:50%;background:var(--red-light);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:10px;font-weight:700;color:var(--red)">1</span></div><p style="font-size:clamp(12px,1.4vw,15px);font-weight:500;color:var(--black)">Targeting belum dikalibrasi — leads yang masuk bukan yang bisa bayar</p></div>
+        <div class="accent-card accent-red" style="padding:clamp(10px,1.3vh,14px) clamp(12px,1.6vw,18px) clamp(10px,1.3vh,14px) clamp(16px,2vw,24px)"><p style="font-size:clamp(10px,1vw,12px);font-weight:500;color:var(--red);margin-bottom:3px">Kondisi saat ini</p><p class="body">Ads berjalan, tapi tidak ada segmentasi antara calon mahasiswa reguler dan KIP. Hasilnya: ratusan leads per bulan, tapi mayoritas tidak bisa atau tidak siap membayar UKT reguler.</p></div>
+        <div class="accent-card accent-green"><p style="font-size:clamp(10px,1vw,12px);font-weight:500;color:var(--green);margin-bottom:3px">Yang dibutuhkan</p><p class="body">ICP yang jelas untuk reguler — targeting yang memisahkan segmen dan creative yang berbicara ke calon mahasiswa yang memang punya kemampuan bayar.</p></div>
+        <div style="display:flex;gap:8px;align-items:center;padding:clamp(7px,1vh,11px) clamp(10px,1.3vw,14px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><span style="font-size:11px;color:var(--green);flex-shrink:0">→</span><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800)">Kami bangun campaign khusus untuk reguler — bukan replikasi KIP, tapi funnel yang berbeda sejak awal.</p></div>
+      </div>
+      <div class="col" style="gap:clamp(8px,1.2vh,14px)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px"><div style="width:26px;height:26px;border-radius:50%;background:var(--red-light);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:10px;font-weight:700;color:var(--red)">2</span></div><p style="font-size:clamp(12px,1.4vw,15px);font-weight:500;color:var(--black)">99 akun terdaftar, tapi tidak ada yang aktif mendampingi sampai bayar</p></div>
+        <div class="accent-card accent-red" style="padding:clamp(10px,1.3vh,14px) clamp(12px,1.6vw,18px) clamp(10px,1.3vh,14px) clamp(16px,2vw,24px)"><p style="font-size:clamp(10px,1vw,12px);font-weight:500;color:var(--red);margin-bottom:3px">Kondisi saat ini</p><p class="body">Leads masuk, buat akun, tapi di situ berhenti. Tidak ada tim yang aktif follow-up, mengirim nurturing, atau menemani proses dari daftar sampai pembayaran pertama — mereka memilih kampus lain yang lebih responsif.</p></div>
+        <div class="accent-card accent-green"><p style="font-size:clamp(10px,1vw,12px);font-weight:500;color:var(--green);margin-bottom:3px">Yang dibutuhkan</p><p class="body">Sales team yang merespons cepat dan memiliki sequence nurturing — dari inquiry pertama sampai mahasiswa benar-benar transfer UKT.</p></div>
+        <div style="display:flex;gap:8px;align-items:center;padding:clamp(7px,1vh,11px) clamp(10px,1.3vw,14px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><span style="font-size:11px;color:var(--green);flex-shrink:0">→</span><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800)">Tim sales kami yang handle semua follow-up — tim PMB kampus fokus di administrasi, bukan ratusan chat per hari.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 04 THE SYSTEM -->
+<div class="slide">
+  <div class="slide-inner">
+    <div class="overline up">Sistem kami — The Enrollment Engine</div>
+    <div class="display-sm up" style="margin-bottom:clamp(8px,1.2vh,14px)">Tiga fase.<br>Dari awareness ke mahasiswa berbayar.</div>
+    <div class="col up" style="flex:1;min-height:0;gap:0;justify-content:center;max-width:820px">
+      <div style="display:grid;grid-template-columns:clamp(76px,9.5vw,116px) 1fr;align-items:stretch;border:0.5px solid var(--gray-200);border-radius:var(--radius) var(--radius) 0 0;overflow:hidden">
+        <div style="background:var(--off-white);padding:clamp(9px,1.3vh,15px);display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:0.5px solid var(--gray-200)"><span style="font-family:var(--f-display);font-size:clamp(18px,2.5vw,32px);font-weight:600;color:var(--gray-200);line-height:1">01</span><span class="caption" style="text-align:center;margin-top:3px">Setup &amp;<br>Awareness</span></div>
+        <div style="padding:clamp(9px,1.3vh,15px) clamp(12px,1.6vw,18px);background:var(--white)"><p style="font-size:clamp(11px,1.3vw,14px);font-weight:500;color:var(--black);margin-bottom:3px">Fondasi digital dan kehadiran yang konsisten</p><p class="body">Ad account yang ada dikalibrasi ulang untuk menarget reguler — bukan hanya KIP. Campaign berjalan sepanjang tahun sehingga STIKOM Yos Sudarso tidak lagi bergantung pada momen SNBT.</p></div>
+      </div>
+      <div style="height:2px;background:var(--gray-200);margin:0 clamp(12px,1.8vw,22px)"></div>
+      <div style="display:grid;grid-template-columns:clamp(76px,9.5vw,116px) 1fr;align-items:stretch;border:0.5px solid var(--gray-200);border-top:none;overflow:hidden">
+        <div style="background:var(--off-white);padding:clamp(9px,1.3vh,15px);display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:0.5px solid var(--gray-200)"><span style="font-family:var(--f-display);font-size:clamp(18px,2.5vw,32px);font-weight:600;color:var(--gray-200);line-height:1">02</span><span class="caption" style="text-align:center;margin-top:3px">Qualify &amp;<br>Nurture</span></div>
+        <div style="padding:clamp(9px,1.3vh,15px) clamp(12px,1.6vw,18px);background:var(--white)"><p style="font-size:clamp(11px,1.3vw,14px);font-weight:500;color:var(--black);margin-bottom:3px">Setiap lead diqualifikasi — reguler dipisah dari awal</p><p class="body">Lead langsung direspons dan diqualifikasi berdasarkan kemampuan bayar dan urgensi. Reguler masuk ke sequence closing — tidak dibiarkan diam sampai memilih kampus lain.</p></div>
+      </div>
+      <div style="height:2px;background:var(--gray-200);margin:0 clamp(12px,1.8vw,22px)"></div>
+      <div style="display:grid;grid-template-columns:clamp(76px,9.5vw,116px) 1fr;align-items:stretch;border:1px solid rgba(28,107,64,.3);border-top:none;border-radius:0 0 var(--radius) var(--radius);overflow:hidden">
+        <div style="background:var(--green-pale);padding:clamp(9px,1.3vh,15px);display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid rgba(28,107,64,.2)"><span style="font-family:var(--f-display);font-size:clamp(18px,2.5vw,32px);font-weight:600;color:rgba(28,107,64,.2);line-height:1">03</span><span class="caption" style="text-align:center;margin-top:3px;color:var(--green)">Closing &amp;<br>Reporting</span></div>
+        <div style="padding:clamp(9px,1.3vh,15px) clamp(12px,1.6vw,18px);background:var(--green-pale)"><p style="font-size:clamp(11px,1.3vw,14px);font-weight:500;color:var(--green);margin-bottom:3px">Sales team terlatih + laporan performa penuh</p><p class="body" style="color:var(--gray-600)">Tim sales kami closing dari percakapan pertama hingga pembayaran UKT pertama. Laporan bulanan tersedia — siap dipresentasikan ke pimpinan kapan pun.</p></div>
+      </div>
+      <div style="margin-top:clamp(9px,1.3vh,14px);padding:clamp(7px,1vh,11px) clamp(12px,1.6vw,18px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius);display:flex;align-items:center;gap:clamp(8px,1.2vw,14px);flex-wrap:wrap">
+        <span style="font-size:clamp(9px,.9vw,10px);font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--gray-400);flex-shrink:0">Partnered dengan</span>
+        <div style="width:1px;height:13px;background:var(--gray-200);flex-shrink:0"></div>
+        <span class="platform-badge badge-meta">✦ Meta Business Partner</span>
+        <span class="platform-badge badge-google">✦ Google Partner</span>
+        <span class="platform-badge badge-tiktok">✦ TikTok Certified</span>
+        <span class="platform-badge badge-hubspot">✦ HubSpot Certified</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 06A FUNNEL LEAKAGE -->
+<div class="slide">
+  <div class="slide-inner">
+    <div class="overline up">Kenapa leads tidak jadi mahasiswa</div>
+    <div class="display-sm up" style="margin-bottom:clamp(8px,1.2vh,14px)">Di setiap tahap ada kebocoran.<br>Kami menutup semuanya.</div>
+    <div class="up" style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,2.5vw,36px);align-items:stretch">
+
+      <!-- Left: funnel leakage table -->
+      <div style="display:flex;flex-direction:column;gap:0;border:0.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;font-size:clamp(10px,1.1vw,12px)">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--black);padding:clamp(6px,.9vh,9px) clamp(8px,1vw,12px);gap:4px">
+          <p style="font-size:clamp(8px,.85vw,10px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5)">Tahap</p>
+          <p style="font-size:clamp(8px,.85vw,10px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5)">Metrik</p>
+          <p style="font-size:clamp(8px,.85vw,10px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.5)">Kebocoran umum</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:clamp(7px,1vh,11px) clamp(8px,1vw,12px);gap:4px;border-bottom:0.5px solid var(--gray-200);background:var(--white);align-items:center">
+          <p style="font-weight:600;color:var(--black)">Klik</p>
+          <p class="caption">CTR / CPC</p>
+          <p class="caption" style="color:var(--red)">Creative lemah, targeting salah</p>
+        </div>
+        <div style="text-align:center;padding:2px 0;background:var(--gray-100);font-size:9px;color:var(--gray-400)">↓</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:clamp(7px,1vh,11px) clamp(8px,1vw,12px);gap:4px;border-bottom:0.5px solid var(--gray-200);background:var(--white);align-items:center">
+          <p style="font-weight:600;color:var(--black)">Pengunjung Aktif</p>
+          <p class="caption">Click → Engage %</p>
+          <p class="caption" style="color:var(--red)">Landing page lemah, pesan tidak nyambung</p>
+        </div>
+        <div style="text-align:center;padding:2px 0;background:var(--gray-100);font-size:9px;color:var(--gray-400)">↓</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:clamp(7px,1vh,11px) clamp(8px,1vw,12px);gap:4px;border-bottom:0.5px solid var(--gray-200);background:var(--red-light);align-items:center">
+          <p style="font-weight:600;color:var(--red)">Lead Masuk ⚠</p>
+          <p class="caption" style="color:var(--red)">CPL</p>
+          <p class="caption" style="color:var(--red)">CTA lemah, form friction, no CTWA</p>
+        </div>
+        <div style="text-align:center;padding:2px 0;background:var(--gray-100);font-size:9px;color:var(--gray-400)">↓</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:clamp(7px,1vh,11px) clamp(8px,1vw,12px);gap:4px;border-bottom:0.5px solid var(--gray-200);background:var(--red-light);align-items:center">
+          <p style="font-weight:600;color:var(--red)">Qualified Lead ⚠</p>
+          <p class="caption" style="color:var(--red)">Lead → Qualified %</p>
+          <p class="caption" style="color:var(--red)">ICP mismatch, tidak ada qualification flow</p>
+        </div>
+        <div style="text-align:center;padding:2px 0;background:var(--gray-100);font-size:9px;color:var(--gray-400)">↓</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:clamp(7px,1vh,11px) clamp(8px,1vw,12px);gap:4px;border-bottom:0.5px solid var(--gray-200);background:var(--red-light);align-items:center">
+          <p style="font-weight:600;color:var(--red)">Follow-up ⚠</p>
+          <p class="caption" style="color:var(--red)">Response time</p>
+          <p class="caption" style="color:var(--red)">Balas terlambat, tidak ada nurture sequence</p>
+        </div>
+        <div style="text-align:center;padding:2px 0;background:var(--gray-100);font-size:9px;color:var(--gray-400)">↓</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;padding:clamp(7px,1vh,11px) clamp(8px,1vw,12px);gap:4px;background:var(--green-pale);align-items:center">
+          <p style="font-weight:700;color:var(--green)">Mahasiswa Bayar ✓</p>
+          <p class="caption" style="color:var(--green)">CAC total</p>
+          <p class="caption" style="color:var(--green)">Tim sales kami handle ini</p>
+        </div>
+      </div>
+
+      <!-- Right: STIKOM diagnosis + what we fix -->
+      <div style="display:flex;flex-direction:column;gap:clamp(8px,1.2vh,13px);justify-content:center">
+        <div style="padding:clamp(10px,1.4vh,15px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)">
+          <p style="font-size:clamp(9px,.9vw,10px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px">Kondisi STIKOM Yos Sudarso saat ini</p>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--red);flex-shrink:0;font-size:11px;margin-top:1px">✗</span><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Ads berjalan tapi tidak dikalibrasi untuk reguler — mayoritas leads yang masuk adalah KIP</p></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--red);flex-shrink:0;font-size:11px;margin-top:1px">✗</span><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">99 akun terdaftar di sistem PMB — hanya 13 yang sudah bayar sebagai reguler</p></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--red);flex-shrink:0;font-size:11px;margin-top:1px">✗</span><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Tidak ada tim yang aktif follow-up — leads diam dan memilih kampus lain</p></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--red);flex-shrink:0;font-size:11px;margin-top:1px">✗</span><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Website PMB 2 kunjungan/bulan — tidak ada tempat untuk menangkap minat yang sudah ada</p></div>
+          </div>
+        </div>
+        <div style="padding:clamp(10px,1.4vh,15px) clamp(12px,1.5vw,16px);background:var(--green-pale);border:1px solid rgba(28,107,64,.2);border-radius:var(--radius)">
+          <p style="font-size:clamp(9px,.9vw,10px);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin-bottom:8px">Yang kami tutup</p>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">ICP targeting presisi — campaign reguler terpisah dari KIP sejak awal</p></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Dedicated sales team — respons cepat, qualify, nurture sampai pembayaran pertama</p></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Funnel PMB dibangun dari nol — landing page, CTWA, dan tracking yang benar</p></div>
+          </div>
+        </div>
+        <div class="accent-card accent-blue">
+          <p class="body" style="color:var(--blue);font-size:clamp(10px,1.1vw,12px)">Setiap bulan kami audit kebocoran yang masih ada dan tutup satu per satu. Bulan ke-6 adalah sistem yang sangat berbeda dari bulan ke-1.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 06B OUR APPROACH — Testing → Scaling → Learning -->
+<div class="slide">
+  <div class="slide-inner">
+    <div class="overline up">Cara kerja kami</div>
+    <div class="display-sm up" style="margin-bottom:clamp(8px,1.2vh,14px)">Sistem yang belajar.<br>Setiap bulan lebih baik dari bulan sebelumnya.</div>
+    <div class="up" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(10px,1.5vh,16px)">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:clamp(8px,1.2vw,14px)">
+        <div style="border:0.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden">
+          <div style="background:var(--black);padding:clamp(8px,1.2vh,13px) clamp(10px,1.3vw,14px)">
+            <p style="font-family:var(--f-display);font-size:clamp(13px,1.5vw,17px);font-weight:600;color:var(--white);margin-bottom:2px">Testing</p>
+            <p style="font-size:clamp(8px,.85vw,10px);color:rgba(255,255,255,.4);letter-spacing:.05em;text-transform:uppercase">Menemukan yang bekerja</p>
+          </div>
+          <div style="padding:clamp(8px,1.2vh,13px) clamp(10px,1.3vw,14px);background:var(--white);display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--gray-400);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="line-height:1.5">ICP validation — pastikan kita menjangkau calon reguler yang tepat</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--gray-400);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="line-height:1.5">5–7 hook variations per siklus — temukan angle yang paling convert</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--gray-400);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="line-height:1.5">A/B funnel — mana yang paling banyak hasilkan reguler berbayar</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--gray-400);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="line-height:1.5">Offer testing — program, cicilan, angle mana yang paling menarik reguler</p></div>
+          </div>
+        </div>
+        <div style="border:0.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden">
+          <div style="background:var(--green);padding:clamp(8px,1.2vh,13px) clamp(10px,1.3vw,14px)">
+            <p style="font-family:var(--f-display);font-size:clamp(13px,1.5vw,17px);font-weight:600;color:var(--white);margin-bottom:2px">Scaling</p>
+            <p style="font-size:clamp(8px,.85vw,10px);color:rgba(255,255,255,.5);letter-spacing:.05em;text-transform:uppercase">Mengekstrak nilai dari winner</p>
+          </div>
+          <div style="padding:clamp(8px,1.2vh,13px) clamp(10px,1.3vw,14px);background:var(--green-pale);display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--green);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Winner diidentifikasi dan budget dipindahkan ke yang perform</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--green);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Lookalike audience dari reguler yang sudah convert dibangun</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--green);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Retargeting layer diaktifkan — warm audience dari engagement dikejar kembali</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--green);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Volume naik, CPL turun — efisiensi terus meningkat tiap bulan</p></div>
+          </div>
+        </div>
+        <div style="border:0.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden">
+          <div style="background:var(--blue);padding:clamp(8px,1.2vh,13px) clamp(10px,1.3vw,14px)">
+            <p style="font-family:var(--f-display);font-size:clamp(13px,1.5vw,17px);font-weight:600;color:var(--white);margin-bottom:2px">Learning</p>
+            <p style="font-size:clamp(8px,.85vw,10px);color:rgba(255,255,255,.4);letter-spacing:.05em;text-transform:uppercase">Sistem yang makin pintar</p>
+          </div>
+          <div style="padding:clamp(8px,1.2vh,13px) clamp(10px,1.3vw,14px);background:var(--blue-light);display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--blue);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Setiap data lead tercatat — source, program, conversion path</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--blue);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Playbook enrollment STIKOM dibangun dari hasil nyata, bukan asumsi</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--blue);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Seasonal pattern — PMB, SNBT, tahun ajaran — dipetakan dan diantisipasi</p></div>
+            <div style="display:flex;gap:7px;align-items:flex-start"><span style="color:var(--blue);font-size:10px;flex-shrink:0;margin-top:2px">→</span><p class="caption" style="color:var(--gray-800);line-height:1.5">Monthly report menjadi aset strategis — bukan sekadar angka bulanan</p></div>
+          </div>
+        </div>
+      </div>
+      <div style="border:0.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden">
+        <div style="display:grid;grid-template-columns:clamp(80px,9vw,110px) 1fr 1fr 1fr;background:var(--off-white);border-bottom:0.5px solid var(--gray-200)">
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px)"><p style="font-size:clamp(8px,.85vw,10px);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-400)">Siklus</p></div>
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);border-left:0.5px solid var(--gray-200)"><p style="font-size:clamp(8px,.85vw,10px);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-400)">Bulan 1–2 — Fondasi</p></div>
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);border-left:0.5px solid var(--gray-200)"><p style="font-size:clamp(8px,.85vw,10px);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--green)">Bulan 3–4 — Traction</p></div>
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);border-left:0.5px solid var(--gray-200)"><p style="font-size:clamp(8px,.85vw,10px);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)">Bulan 5–6 — Skala</p></div>
+        </div>
+        <div style="display:grid;grid-template-columns:clamp(80px,9vw,110px) 1fr 1fr 1fr">
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);background:var(--white);border-top:0.5px solid var(--gray-200)"><p style="font-size:clamp(9px,.95vw,11px);font-weight:600;color:var(--black)">Fokus</p></div>
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);background:var(--white);border-top:0.5px solid var(--gray-200);border-left:0.5px solid var(--gray-200)"><p class="caption" style="line-height:1.5">Setup funnel reguler, ICP validation, first leads, hook testing</p></div>
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);background:var(--green-pale);border-top:0.5px solid var(--gray-200);border-left:0.5px solid var(--gray-200)"><p class="caption" style="color:var(--green);line-height:1.5">Scale winners, aktifkan retargeting, turunkan CPL reguler</p></div>
+          <div style="padding:clamp(7px,1vh,10px) clamp(8px,1vw,12px);background:var(--blue-light);border-top:0.5px solid var(--gray-200);border-left:0.5px solid var(--gray-200)"><p class="caption" style="color:var(--blue);line-height:1.5">Full speed, lookalike dari reguler yang convert, seasonal prep</p></div>
+        </div>
+      </div>
+      <div class="accent-card accent-green" style="flex-shrink:0">
+        <p class="body" style="color:var(--green);font-size:clamp(10px,1.1vw,12px)"><strong>Retainer bulanan bukan biaya flat — ini investasi yang nilainya naik setiap bulan.</strong> Sistem yang dibangun di bulan 1 menjadi lebih efisien, lebih terarah, dan lebih murah per mahasiswa di bulan 6.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 07 TRUSTED PARTNER -->
+<div class="slide">
+  <div class="slide-inner">
+    
+    <div class="display-md up" style="max-width:520px">The trusted partner<br>for growing institutions.</div>
+    <div class="rule up"></div>
+    <div class="split up" style="flex:1;min-height:0;align-items:stretch;gap:clamp(18px,2.8vw,36px)">
+      <div class="col" style="gap:clamp(9px,1.3vh,14px)">
+        <p class="body">Kami bekerja dengan institusi pendidikan swasta di Indonesia — dan kami membawa sistem yang sudah terbukti.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:clamp(7px,1vw,12px)">
+          <div style="padding:clamp(9px,1.3vh,13px) clamp(8px,1vw,12px);background:var(--off-white);border-radius:var(--radius);border:0.5px solid var(--gray-200)"><p style="font-family:var(--f-display);font-size:clamp(18px,2.5vw,30px);font-weight:700;color:var(--black);line-height:1">30K+</p><p class="caption" style="margin-top:3px">leads diproses</p></div>
+          <div style="padding:clamp(9px,1.3vh,13px) clamp(8px,1vw,12px);background:var(--off-white);border-radius:var(--radius);border:0.5px solid var(--gray-200)"><p style="font-family:var(--f-display);font-size:clamp(18px,2.5vw,30px);font-weight:700;color:var(--black);line-height:1">$4M+</p><p class="caption" style="margin-top:3px">in ad spend managed</p></div>
+          <div style="padding:clamp(9px,1.3vh,13px) clamp(8px,1vw,12px);background:var(--off-white);border-radius:var(--radius);border:0.5px solid var(--gray-200)"><p style="font-family:var(--f-display);font-size:clamp(18px,2.5vw,30px);font-weight:700;color:var(--black);line-height:1">$20M+</p><p class="caption" style="margin-top:3px">in revenue generated for clients</p></div>
+        </div>
+        <div>
+          <p style="font-size:clamp(8px,.85vw,10px);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-400);margin-bottom:clamp(8px,1.2vh,12px)">Dipercaya oleh</p>
+          <div style="display:flex;flex-direction:column;gap:clamp(6px,.9vh,10px)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(6px,.9vh,9px)">
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">STMA Trisakti</p></div>
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Univ. Prof. Dr. Moestopo Beragama</p></div>
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Caregiver Indonesia</p></div>
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">STIE Indonesia</p></div>
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">STIE MBI</p></div>
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">ABK PMI</p></div>
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Institut Karya Mulia Bangsa</p></div>
+            <div style="padding:clamp(8px,1.1vh,12px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)"><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Agung Putra University</p></div>
+          </div>
+          </div>
+        </div>
+      </div>
+      <div class="col" style="gap:clamp(9px,1.3vh,14px);justify-content:center">
+        <div style="padding:clamp(12px,1.8vh,18px) clamp(14px,1.8vw,20px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius-lg)">
+          <p style="font-size:clamp(9px,.9vw,10px);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-400);margin-bottom:clamp(8px,1.2vh,12px)">Keunggulan operasional</p>
+          <div class="col" style="gap:clamp(7px,1vh,11px)">
+            <div style="display:flex;gap:10px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Pengalaman di kampus IT yang bersaing dengan PTN</p><p class="caption" style="margin-top:2px">Tahu cara memposisikan program teknologi ke segmen yang tepat — bukan hanya volume, tapi reguler yang bisa bayar</p></div></div>
+            <div style="display:flex;gap:10px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Sales team handle follow-up langsung — tim kampus tidak perlu merespons ratusan chat per hari</p><p class="caption" style="margin-top:2px">Seluruh komunikasi lead dikelola tim kami, dari inquiry pertama sampai pembayaran</p></div></div>
+            <div style="display:flex;gap:10px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Tidak perlu menambah headcount untuk manage expanded demand</p><p class="caption" style="margin-top:2px">Sistem kami yang absorb pertumbuhan — tim PMB kampus tidak berubah</p></div></div>
+            <div style="display:flex;gap:10px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><p style="font-size:clamp(11px,1.2vw,13px);font-weight:500;color:var(--black)">Account manager yang bisa dihubungi langsung</p><p class="caption" style="margin-top:2px">Satu orang yang bertanggung jawab penuh atas akun STIKOM Yos Sudarso</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 08 GUARANTEE -->
+<div class="slide">
+  <div class="slide-inner" style="justify-content:center">
+    <div class="overline up">Jaminan kami</div>
+    <div class="display-md up" style="max-width:600px">Kami bekerja<br>dengan jaminan.</div>
+    <div class="rule up"></div>
+    <div class="col up" style="max-width:640px;gap:clamp(6px,.9vh,10px)">
+      <div style="display:grid;grid-template-columns:52px 1fr;gap:14px;align-items:center;background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius);padding:clamp(10px,1.4vh,14px) clamp(14px,1.8vw,18px)">
+        <div style="text-align:center"><span style="font-family:var(--f-display);font-size:clamp(20px,2.5vw,28px);font-weight:600;color:var(--gray-200);line-height:1">14</span><br><span class="caption" style="font-size:10px">hari</span></div>
+        <div><p style="font-size:clamp(12px,1.3vw,14px);font-weight:500;color:var(--black);margin-bottom:2px">Leads pertama masuk dalam 14 hari</p><p class="caption">Setelah kampanye live — atau setup diperpanjang tanpa biaya tambahan.</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:52px 1fr;gap:14px;align-items:center;background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius);padding:clamp(10px,1.4vh,14px) clamp(14px,1.8vw,18px)">
+        <div style="text-align:center"><span style="font-family:var(--f-display);font-size:clamp(20px,2.5vw,28px);font-weight:600;color:var(--gray-200);line-height:1">30</span><br><span class="caption" style="font-size:10px">hari</span></div>
+        <div><p style="font-size:clamp(12px,1.3vw,14px);font-weight:500;color:var(--black);margin-bottom:2px">Qualified leads masuk — atau bulan itu kami refund</p><p class="caption">Volume disesuaikan dengan skala dan target STIKOM Yos Sudarso. Tertulis di PKS sebelum mulai.</p></div>
+      </div>
+      <div class="guarantee" style="padding:clamp(10px,1.4vh,14px) clamp(14px,1.8vw,18px)">
+        <div class="row" style="gap:14px;flex-wrap:wrap;align-items:flex-start">
+          <div style="text-align:center;flex-shrink:0"><span style="font-family:var(--f-display);font-size:clamp(20px,2.5vw,28px);font-weight:600;color:var(--green);line-height:1">6</span><br><span class="caption" style="font-size:10px;color:var(--green)">bulan</span></div>
+          <div style="flex:1">
+            <p style="font-size:clamp(12px,1.3vw,14px);font-weight:500;color:var(--green);margin-bottom:3px">Jika dalam 6 bulan enrollment belum balik modal, kami lanjut tanpa retainer.</p>
+            <p class="body" style="color:var(--gray-600)">Komitmen ini tertulis di PKS sebelum kami mulai bekerja.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 09 PRICING -->
+<div class="slide">
+  <div class="slide-inner">
+    <div class="overline up">Model kerjasama</div>
+    <div class="display-sm up" style="margin-bottom:clamp(6px,.9vh,10px)">Transparan. Terukur.<br>Hasil yang nyata — bukan janji.</div>
+    <div class="up" style="flex:1;min-height:0;display:flex;align-items:center;gap:clamp(16px,2.5vw,32px)">
+      <!-- Main pricing card -->
+      <div style="flex:1;border:1.5px solid var(--green);border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column;position:relative">
+        <div style="position:absolute;top:0;right:0;background:var(--green);padding:3px 14px;border-radius:0 0 0 8px"><span style="font-size:9px;font-weight:600;letter-spacing:.05em;color:var(--white)">PAKET YANG KAMI REKOMENDASIKAN</span></div>
+        <div style="padding:clamp(14px,2vh,20px) clamp(16px,2vw,22px);background:var(--green-pale);border-bottom:1px solid rgba(28,107,64,.2)">
+          <p style="font-size:clamp(9px,.95vw,11px);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin-bottom:6px">Enrollment Engine Core</p>
+          <div style="display:flex;align-items:baseline;gap:6px"><p style="font-family:var(--f-display);font-size:clamp(28px,4vw,48px);font-weight:700;color:var(--black);line-height:1">Rp 9 juta</p><span class="caption">/bulan</span></div>
+          <p style="font-size:clamp(10px,1.1vw,12px);color:var(--green);margin-top:7px;font-style:italic;line-height:1.5">Sistem penuh dari iklan sampai closing — kampus tidak perlu handle satu pun lead secara manual.</p>
+        </div>
+        <div style="flex:1;padding:clamp(12px,1.8vh,18px) clamp(16px,2vw,22px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vh,16px);background:var(--white)">
+          <div>
+            <p style="font-size:clamp(9px,.9vw,10px);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px">01 — Lead Generation</p>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">ICP identification &amp; audience building</p></div>
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Creatives production</p></div>
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Funnel design</p></div>
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Campaign setup &amp; execution — Meta</p></div>
+            </div>
+            <p style="font-size:clamp(9px,.9vw,10px);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px;margin-top:14px">03 — Reporting</p>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Monthly performance report</p></div>
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Conversion tracking lead sampai mahasiswa berbayar</p></div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:clamp(9px,.9vw,10px);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px">02 — Lead Processing</p>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Dedicated sales team untuk qualify dan close setiap lead</p></div>
+              <div style="display:flex;gap:8px;align-items:flex-start"><div class="chk chk-green"><svg width="7" height="7" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="#1c6b40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p style="font-size:clamp(10px,1.1vw,12px);color:var(--gray-800);line-height:1.4">Nurturing sequence sampai pembayaran pertama</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Right: success fee standalone card -->
+      <div style="width:clamp(180px,22vw,240px);display:flex;flex-direction:column;gap:clamp(10px,1.4vh,16px)">
+        <div style="background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius-lg);padding:clamp(14px,2vh,20px) clamp(14px,1.8vw,18px)">
+          <p style="font-size:clamp(9px,.9vw,10px);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--gray-400);margin-bottom:10px">Success Fee</p>
+          <p style="font-family:var(--f-display);font-size:clamp(20px,2.8vw,32px);font-weight:700;color:var(--black);line-height:1">Rp 1,5 juta</p>
+          <p class="caption" style="margin-top:5px">per mahasiswa berbayar</p>
+          <div style="height:0.5px;background:var(--gray-200);margin:10px 0"></div>
+          <p class="caption" style="line-height:1.6">Hanya dibayarkan setelah mahasiswa melakukan pembayaran UKT pertama. Tidak ada biaya sebelum ada hasil.</p>
+        </div>
+        <div style="padding:clamp(10px,1.4vh,14px) clamp(12px,1.5vw,16px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)">
+          <p class="caption" style="font-weight:500;color:var(--black);margin-bottom:4px">Ad spend</p>
+          <p class="caption" style="line-height:1.6">Dibayarkan langsung ke platform. Tanpa markup dari kami.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 10 ROI FRAME -->
+<div class="slide">
+  <div class="slide-inner" style="justify-content:center">
+    <div class="overline up">Hitungan sederhana</div>
+    <div class="display-sm up" style="max-width:560px;margin-bottom:clamp(10px,1.5vh,18px)">Simulasi konservatif.<br>Berapa yang perlu masuk agar balik modal?</div>
+    <div class="rule up"></div>
+    <div class="col up" style="max-width:680px;gap:clamp(8px,1.2vh,14px)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.4vw,16px)">
+        <div style="padding:clamp(12px,1.8vh,18px) clamp(14px,1.8vw,18px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)">
+          <p class="overline" style="margin-bottom:6px">LTV per mahasiswa S1</p>
+          <p style="font-family:var(--f-display);font-size:clamp(20px,2.8vw,34px);font-weight:700;color:var(--black);line-height:1">Rp 40 juta</p>
+          <p class="caption" style="margin-top:4px">8 semester × Rp 5 juta/semester (UKT tetap + variabel, program S1 Teknik Informatika)</p>
+        </div>
+        <div style="padding:clamp(12px,1.8vh,18px) clamp(14px,1.8vw,18px);background:var(--off-white);border:0.5px solid var(--gray-200);border-radius:var(--radius)">
+          <p class="overline" style="margin-bottom:6px">Kapasitas kampus</p>
+          <p style="font-family:var(--f-display);font-size:clamp(20px,2.8vw,34px);font-weight:700;color:var(--black);line-height:1">200 mhs/thn</p>
+          <p class="caption" style="margin-top:4px">Target intake tahunan kampus — simulasi di bawah ini jauh lebih konservatif dari angka ini</p>
+        </div>
+      </div>
+      <div style="padding:clamp(12px,1.8vh,18px) clamp(14px,1.8vw,18px);background:var(--black);border-radius:var(--radius)">
+        <p style="font-size:clamp(9px,.9vw,10px);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px">Simulasi konservatif — 30 mahasiswa reguler dalam 6 bulan</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:clamp(10px,1.5vw,18px)">
+          <div><p style="font-size:clamp(9px,.95vw,11px);color:rgba(255,255,255,.5);margin-bottom:3px">Total retainer (6 bln)</p><p style="font-family:var(--f-display);font-size:clamp(16px,2vw,22px);font-weight:600;color:var(--white);line-height:1">Rp 54 juta</p></div>
+          <div><p style="font-size:clamp(9px,.95vw,11px);color:rgba(255,255,255,.5);margin-bottom:3px">LTV dari 30 mhs (sampai lulus)</p><p style="font-family:var(--f-display);font-size:clamp(16px,2vw,22px);font-weight:600;color:var(--green-mid);line-height:1">Rp 1,2 miliar</p></div>
+          <div><p style="font-size:clamp(9px,.95vw,11px);color:rgba(255,255,255,.5);margin-bottom:3px">Net untuk kampus</p><p style="font-family:var(--f-display);font-size:clamp(16px,2vw,22px);font-weight:600;color:var(--green-mid);line-height:1">Rp 1,1 miliar</p></div>
+        </div>
+      </div>
+      <div class="accent-card accent-green">
+        <p class="body" style="color:var(--green);font-size:clamp(11px,1.2vw,13px)"><strong>Cukup 2 mahasiswa reguler berbayar untuk menutup 1 bulan retainer.</strong> Setiap mahasiswa di atasnya adalah revenue bersih sepanjang 4 tahun.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 11 NEXT STEPS -->
+<div class="slide">
+  <div class="slide-inner" style="justify-content:center">
+    <div class="overline up">Langkah berikutnya</div>
+    <div class="display-sm up" style="margin-bottom:clamp(10px,1.5vh,18px)">Kami mulai bekerja.<br>STIKOM Yos Sudarso cukup<br>buka pintunya.</div>
+    <div class="rule up"></div>
+    <div class="split up" style="flex:0 0 auto;gap:clamp(24px,4vw,56px);align-items:start">
+      <div class="col" style="gap:clamp(8px,1.2vh,13px)">
+        <div style="display:grid;grid-template-columns:26px 1fr;gap:11px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:var(--black);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:9px;font-weight:600;color:var(--white)">1</span></div><div><p style="font-size:clamp(12px,1.3vw,14px);font-weight:500;color:var(--black);margin-bottom:2px">Review proposal ini</p><p class="caption">Baca detail penawaran dan diskusikan secara internal bersama pimpinan yang relevan.</p></div></div>
+        <div style="height:1px;background:var(--gray-200);margin-left:37px"></div>
+        <div style="display:grid;grid-template-columns:26px 1fr;gap:11px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:var(--black);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:9px;font-weight:600;color:var(--white)">2</span></div><div><p style="font-size:clamp(12px,1.3vw,14px);font-weight:500;color:var(--black);margin-bottom:2px">Meeting review bersama</p><p class="caption">Sesi 30–60 menit untuk membahas detail, menjawab pertanyaan, dan mengklarifikasi apapun yang perlu.</p></div></div>
+        <div style="height:1px;background:var(--gray-200);margin-left:37px"></div>
+        <div style="display:grid;grid-template-columns:26px 1fr;gap:11px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:9px;font-weight:600;color:var(--white)">3</span></div><div><p style="font-size:clamp(12px,1.3vw,14px);font-weight:500;color:var(--green);margin-bottom:2px">PKS ditandatangani &amp; sistem aktif</p><p class="caption">Setup dimulai — leads pertama dalam 14 hari setelah kampanye live.</p></div></div>
+      </div>
+      <div class="col" style="gap:clamp(9px,1.3vh,14px)">
+        <div class="guarantee"><p style="font-size:clamp(12px,1.3vw,14px);font-weight:500;color:var(--green);margin-bottom:3px">Kami bekerja dengan jaminan.</p><p class="body" style="color:var(--gray-600);font-size:clamp(10px,1.1vw,12px)">Jika dalam 6 bulan enrollment belum balik modal, kami lanjut tanpa retainer. Tertulis di PKS.</p></div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 12 CLOSING -->
+<div class="slide">
+  <div class="cover-grid"></div>
+  <div style="position:absolute;left:0;top:0;bottom:0;width:clamp(3px,.4vw,5px);background:var(--green);z-index:3"></div>
+  <div style="position:absolute;right:clamp(-10px,-1vw,10px);bottom:clamp(-60px,-8vh,-20px);font-family:var(--f-display);font-size:clamp(240px,34vw,440px);font-weight:700;color:var(--gray-100);line-height:1;pointer-events:none;z-index:1;letter-spacing:-.04em;user-select:none">O</div>
+  <div class="slide-inner" style="justify-content:center">
+    <div class="up" style="font-size:clamp(9px,1vw,11px);font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-400);margin-bottom:clamp(18px,3vh,36px)">OurBeasiswa</div>
+    <div class="display up">Terima kasih<br><em>atas waktunya.</em></div>
+    <div class="rule up"></div>
+    <p class="body up" style="max-width:480px;margin-top:4px;color:var(--gray-600)">Kami siap membangun mesin akuisisi mahasiswa reguler untuk STIKOM Yos Sudarso — dengan sistem yang sudah terbukti.</p>
+    <div class="up" style="margin-top:clamp(14px,2.2vh,24px);display:inline-flex;align-items:center;gap:10px">
+      <div style="width:1px;height:28px;background:var(--green)"></div>
+      <span style="font-family:var(--f-display);font-size:clamp(12px,1.4vw,16px);font-weight:600;color:var(--gray-600);letter-spacing:-.01em;font-style:italic">The Enrollment Engine</span>
+    </div>
+  </div>
+</div>
+
+</div>
+<nav class="nav" id="nav">
+  <button class="nav-btn" id="btn-prev" onclick="go(-1)">←</button>
+  <div class="dots" id="dots"></div>
+  <span class="nav-counter" id="counter">1 / 12</span>
+  <button class="nav-btn" id="btn-next" onclick="go(1)">→</button>
+</nav>
+<script>
+const slides=document.querySelectorAll('.slide');
+const dotsEl=document.getElementById('dots');
+const counter=document.getElementById('counter');
+const progress=document.getElementById('progress');
+const btnPrev=document.getElementById('btn-prev');
+const btnNext=document.getElementById('btn-next');
+let cur=0;
+const total=slides.length;
+slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>goTo(i);dotsEl.appendChild(d)});
+function goTo(n){slides[cur].classList.remove('active');dotsEl.children[cur].classList.remove('active');cur=Math.max(0,Math.min(total-1,n));slides[cur].classList.add('active');dotsEl.children[cur].classList.add('active');counter.textContent=(cur+1)+' / '+total;progress.style.width=((cur+1)/total*100)+'%';btnPrev.disabled=cur===0;btnNext.disabled=cur===total-1}
+function go(d){goTo(cur+d)}
+document.addEventListener('keydown',e=>{if(['ArrowRight','ArrowDown',' '].includes(e.key)){e.preventDefault();go(1)}if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();go(-1)}});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:true});
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(dx<0?1:-1)},{passive:true});
+goTo(0);
+</script>
+</body>
+</html>

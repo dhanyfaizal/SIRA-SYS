@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSlide Cloud Computing - SaaS Modern</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --bg-card-hover: #F9FAFB;
+            --accent-cyan: #3ECF8E;
+            --accent-lime: #111827;
+            --accent-purple: #7C3AED;
+            --accent-orange: #F2994A;
+            --accent-blue: #2F80ED;
+            --accent-red: #EB5757;
+            --text-main: #1F2937;
+            --text-dim: #4B5563;
+            --slide-width: 1280px;
+            --slide-height: 720px;
+            --fs-mult: 1.05;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-dark); color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; overflow: hidden;
+        }
+        #slider-wrapper {
+            width: var(--slide-width); height: var(--slide-height); position: relative;
+            background-color: var(--bg-dark); border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(62,207,142,0.1);
+            overflow: hidden; border: 1px solid rgba(209,213,219,1); transition: all 0.3s ease;
+        }
+        #slider-wrapper:fullscreen { width: 100vw !important; height: 100vh !important; border-radius: 0 !important; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: var(--bg-dark); }
+        #slider-wrapper:fullscreen .slide { padding: 120px 80px 80px 80px; }
+        .top-header {
+            position: absolute; top: 20px; left: 40px; right: 40px; height: 60px;
+            display: flex; justify-content: space-between; align-items: center; z-index: 20;
+            background: rgba(255,255,255,0.85); padding: 10px 20px; border-radius: 12px;
+            border: 1px solid rgba(209,213,219,0.8); backdrop-filter: blur(12px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        #slider-wrapper:fullscreen .top-header { top: 30px; left: 50px; right: 50px; }
+        .brand-logo { display: flex; align-items: center; gap: 12px; font-family: 'Urbanist', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.5px; transition: opacity .25s ease; }
+        .brand-logo i { color: var(--accent-cyan); font-size: 28px; }
+        .header-controls { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+        .font-control-group { display: flex; background: #FFFFFF; border: 1px solid rgba(209,213,219,1); border-radius: 8px; overflow: hidden; }
+        .font-btn, .action-btn { background: transparent; border: none; color: var(--text-main); padding: 8px 12px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s ease; display: flex; align-items: center; gap: 4px; }
+        .font-btn:hover, .action-btn:hover { background: rgba(62,207,142,0.15); color: var(--accent-cyan); }
+        .font-btn:not(:last-child) { border-right: 1px solid rgba(209,213,219,1); }
+        .action-btn { background: #FFFFFF; border: 1px solid rgba(209,213,219,1); border-radius: 8px; padding: 8px 14px; }
+        .slide-select-nav {
+            background: #FFFFFF; color: var(--text-main); border: 1px solid rgba(209,213,219,1);
+            padding: 8px 14px; border-radius: 8px; font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 14px; font-weight: 600; cursor: pointer; outline: none; transition: all 0.3s ease; max-width: 260px;
+        }
+        .slide-select-nav:hover, .slide-select-nav:focus { border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(62,207,142,0.15); }
+        #progress-container { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: rgba(229,231,235,1); z-index: 10; }
+        #progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#9CA3AF,var(--accent-cyan)); transition: width 0.4s cubic-bezier(0.22,1,0.36,1); }
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 100px 60px 60px 60px;
+            opacity: 0; visibility: hidden; transform: translateX(50px); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.22,1,0.36,1), visibility 0.5s;
+            display: flex; flex-direction: column; z-index: 1;
+            background-image: radial-gradient(circle at 100% 0%, rgba(62,207,142,0.1) 0%, transparent 50%), linear-gradient(rgba(243,244,246,0.96), rgba(243,244,246,0.99)), url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgwLDAsMCwwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+');
+            background-size: cover, cover, auto; background-position: center;
+        }
+        .slide.dark { background: radial-gradient(circle at 100% 0%, rgba(62,207,142,0.16) 0%, transparent 45%), linear-gradient(135deg,#0B2545,#111827 70%); }
+        .slide.active { opacity: 1; visibility: visible; transform: translateX(0); z-index: 2; }
+        .slide.prev-slide { transform: translateX(-50px); }
+        .content-area { position: relative; z-index: 2; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; }
+        .cover-logo-wrapper { margin-bottom: 25px; display: flex; align-items: center; gap: 15px; }
+        .cover-logo-wrapper i { font-size: 72px; color: var(--accent-cyan); filter: drop-shadow(0 4px 12px rgba(62,207,142,0.25)); }
+        .cover-logo-wrapper .title-text { font-family: 'Urbanist', sans-serif; font-size: 48px; font-weight: 800; color: var(--text-main); letter-spacing: -1px; }
+        h1,h2,h3,h4 { font-family: 'Urbanist', sans-serif; letter-spacing: -1px; color: var(--text-main); }
+        .slide-title { font-size: calc(38px * var(--fs-mult)); font-weight: 800; margin-bottom: 22px; text-transform: uppercase; border-left: 6px solid var(--accent-cyan); padding-left: 20px; line-height: 1.08; transition: font-size 0.2s ease; }
+        .slide-title span { color: var(--accent-cyan); }
+        .dark .slide-title, .dark h1, .dark h2, .dark h3 { color: #FFFFFF; }
+        h1 { font-size: calc(64px * var(--fs-mult)); transition: font-size 0.2s ease; }
+        p { font-size: calc(16px * var(--fs-mult)); color: var(--text-dim); line-height: 1.55; transition: font-size 0.2s ease; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; align-items: center; }
+        .tile-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+        .tile-grid-2x2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; }
+        .tile-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+        .tile-grid-5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; }
+        .tile { background: var(--bg-card); border: 1px solid rgba(209,213,219,1); padding: 24px; border-radius: 16px; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .tile:hover { transform: translateY(-3px); border-color: var(--accent-cyan); background: var(--bg-card-hover); box-shadow: 0 10px 15px -3px rgba(62,207,142,0.1); }
+        .tile i { font-size: 32px; color: var(--accent-cyan); margin-bottom: 12px; }
+        .tile h3 { font-size: calc(21px * var(--fs-mult)); margin-bottom: 10px; color: var(--text-main); transition: font-size 0.2s ease; }
+        .tile p { font-size: calc(14.2px * var(--fs-mult)); color: var(--text-dim); line-height: 1.48; transition: font-size 0.2s ease; }
+        .reg-card { background: var(--bg-card); border: 1px solid rgba(209,213,219,1); border-radius: 16px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+        .reg-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: var(--accent-cyan); }
+        .reg-card.lime::before { background: var(--accent-lime); }
+        .reg-card.orange::before { background: var(--accent-orange); }
+        .reg-card.red::before { background: var(--accent-red); }
+        .reg-card h3 { font-size: calc(24px * var(--fs-mult)); margin-bottom: 14px; font-weight: 800; }
+        .reg-card ul { list-style: none; padding-left: 0; }
+        .reg-card ul li { margin-bottom: 10px; display: flex; gap: 10px; font-size: calc(14.5px * var(--fs-mult)); color: var(--text-dim); line-height: 1.45; }
+        .reg-card ul li i { color: var(--accent-cyan); margin-top: 4px; }
+        .table-wrapper { max-height: 405px; overflow-y: auto; background: var(--bg-card); border-radius: 12px; border: 1px solid rgba(209,213,219,1); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .table-wrapper::-webkit-scrollbar { width: 6px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: var(--accent-cyan); border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 13px 16px; background: #111827; color: #FFFFFF; font-weight: 700; position: sticky; top: 0; z-index: 5; font-size: calc(13.5px * var(--fs-mult)); border-bottom: 2px solid rgba(209,213,219,1); }
+        td { padding: 11px 16px; border-bottom: 1px solid rgba(229,231,235,1); color: var(--text-main); font-size: calc(13.5px * var(--fs-mult)); transition: font-size 0.2s ease; vertical-align: top; line-height: 1.45; }
+        .badge-sync { background: rgba(17,24,39,0.08); color: var(--accent-lime); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid rgba(17,24,39,0.15); display:inline-block; }
+        .badge-async { background: rgba(62,207,142,0.15); color: var(--accent-cyan); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid rgba(62,207,142,0.3); display:inline-block; }
+        pre { background: #0B1220; padding: 18px; border-radius: 10px; overflow-x: auto; border: 1px solid rgba(17,24,39,1); margin-bottom: 15px; white-space: pre-wrap; }
+        code { font-family: 'Fira Code', 'Cascadia Mono', monospace; font-size: calc(12.6px * var(--fs-mult)); color: #E5E7EB; line-height: 1.43; }
+        .tile code, p code { background: #E5E7EB; color: #111827; padding: 2px 4px; border-radius: 4px; }
+        .code-keyword { color: #7DD3FC; }
+        .code-string { color: #FCA5A5; }
+        .code-comment { color: #86EFAC; }
+        .sop-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 15px; position: relative; }
+        .sop-card { background: var(--bg-card); border: 1px solid rgba(209,213,219,1); padding: 20px; border-radius: 16px; text-align: center; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); min-height: 185px; }
+        .sop-card .step-num { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 34px; height: 34px; background: var(--accent-lime); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #FFFFFF; border: 4px solid #FFFFFF; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .sop-card i { font-size: 28px; color: var(--accent-cyan); margin-top: 10px; margin-bottom: 15px; }
+        .sop-card h4 { font-size: calc(16px * var(--fs-mult)); margin-bottom: 8px; color: var(--text-main); font-weight: 700; }
+        .sop-card p { font-size: calc(12px * var(--fs-mult)); color: var(--text-dim); line-height: 1.48; }
+        .image-box { border-radius: 16px; overflow: hidden; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border: 1px solid rgba(209,213,219,1); height: 350px; }
+        .image-box img { width: 100%; height: 100%; object-fit: cover; filter: brightness(1.0); }
+        .big-quote { font-size: calc(26px * var(--fs-mult)); line-height: 1.35; color: var(--text-main); font-style: italic; border-left: 8px solid var(--accent-cyan); padding: 25px; background: rgba(62,207,142,0.1); border-radius: 0 16px 16px 0; }
+        .controls { position: absolute; bottom: 30px; right: 40px; display: flex; gap: 15px; z-index: 10; }
+        .nav-btn-bottom { background: #FFFFFF; border: 1px solid rgba(209,213,219,1); color: var(--text-main); width: 48px; height: 48px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .nav-btn-bottom:hover { background: var(--accent-cyan); color: #FFFFFF; border-color: var(--accent-cyan); box-shadow: 0 10px 15px -3px rgba(62,207,142,0.3); transform: translateY(-2px); }
+        .active .animate-item { animation: fadeInUp 0.5s forwards; opacity: 0; }
+        .active .animate-delay-1 { animation-delay: 0.15s; }
+        .active .animate-delay-2 { animation-delay: 0.3s; }
+        .active .animate-delay-3 { animation-delay: 0.45s; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+<div id="slider-wrapper">
+    <div id="progress-container"><div id="progress-bar"></div></div>
+    <div class="top-header">
+        <div class="brand-logo" id="header-brand-logo">
+            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 38px; object-fit: contain;">
+            <span style="border-left: 2px solid #333; padding-left: 12px; margin-left: 5px;">SaaS Architecture</span>
+        </div>
+        <div class="header-controls">
+            <button class="action-btn" id="btn-fullscreen" title="Layar Penuh"><i class="fa-solid fa-expand"></i> Fullscreen</button>
+            <div class="font-control-group">
+                <button class="font-btn" id="btn-font-down"><i class="fa-solid fa-minus"></i> A</button>
+                <button class="font-btn" id="btn-font-reset">A</button>
+                <button class="font-btn" id="btn-font-up"><i class="fa-solid fa-plus"></i> A</button>
+            </div>
+            <select class="slide-select-nav" id="slide-jump-menu">
+                <option value="0">Slide 1: Pembuka</option>
+                <option value="1">Slide 2: Peta Besar Modul</option>
+                <option value="2">Slide 3: Capaian Pembelajaran</option>
+                <option value="3">Slide 4: PRD Sebelum Coding</option>
+                <option value="4">Slide 5: Arsitektur Decoupled</option>
+                <option value="5">Slide 6: Ekosistem Teknologi</option>
+                <option value="6">Slide 7: Struktur PRD</option>
+                <option value="7">Slide 8: Context-Constraint-Action</option>
+                <option value="8">Slide 9: Prompt PRD EduSlide</option>
+                <option value="9">Slide 10: Prompt Setelah PRD</option>
+                <option value="10">Slide 11: Vite + React</option>
+                <option value="11">Slide 12: Struktur Direktori</option>
+                <option value="12">Slide 13: Supabase Cloud</option>
+                <option value="13">Slide 14: Koneksi Supabase</option>
+                <option value="14">Slide 15: GitHub Repositories</option>
+                <option value="15">Slide 16: Git Workflow</option>
+                <option value="16">Slide 17: Vercel CI/CD</option>
+                <option value="17">Slide 18: Environment Variables</option>
+                <option value="18">Slide 19: Supabase RLS</option>
+                <option value="19">Slide 20: Troubleshooting</option>
+                <option value="20">Slide 21: Daily Pipeline</option>
+                <option value="21">Slide 22: Rangkuman Alur Kerja</option>
+                <option value="22">Slide 23: Checklist Praktikum</option>
+                <option value="23">Slide 24: Penutup</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Slide 1 -->
+    <div class="slide dark active" id="slide1">
+        <div class="content-area">
+            <div class="cover-logo-wrapper animate-item" style="margin-bottom: 35px;">
+                <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 85px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(62,207,142,0.25));">
+                <div class="title-text" style="border-left: 3px solid var(--accent-cyan); padding-left: 20px; margin-left: 5px; color:#FFFFFF;">Cloud Computing</div>
+            </div>
+            <h2 class="animate-item animate-delay-1" style="color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 12px; font-size: 20px;">Modul terintegrasi praktikum</h2>
+            <h1 class="animate-item animate-delay-1" style="line-height: 1.0; margin-bottom: 20px; font-weight: 800; color: #FFFFFF;">CLOUD COMPUTING<br><span style="color: var(--accent-cyan);">SAAS WEB APP & AI PROMPTING</span></h1>
+            <p class="animate-item animate-delay-2" style="max-width: 850px; font-weight: 500; font-size: 24px; color:#D8E7FF;">Arsitektur, pengembangan SaaS Web App modern, dan AI prompting dari PRD hingga deploy production link.</p>
+            <div class="animate-item animate-delay-3" style="display:flex; gap:12px; margin-top:24px; flex-wrap:wrap;">
+                <span class="badge-async">Vite + React</span><span class="badge-async">Supabase</span><span class="badge-sync" style="background:#334155;color:#fff;">GitHub</span><span class="badge-sync" style="background:#111827;color:#fff;">Vercel</span><span class="badge-sync" style="background:#7C3AED;color:#fff;">AI Prompting</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="slide" id="slide2">
+        <h2 class="slide-title">PETA BESAR <span>MODUL</span></h2>
+        <div class="content-area">
+            <div class="sop-grid animate-item">
+                <div class="sop-card"><div class="step-num">1</div><i class="fa-solid fa-file-lines"></i><h4>PRD & Prompting</h4><p>Menentukan scope dan konteks AI sebelum coding.</p></div>
+                <div class="sop-card"><div class="step-num">2</div><i class="fa-brands fa-react"></i><h4>Frontend</h4><p>Membangun UI dengan Vite + React.</p></div>
+                <div class="sop-card"><div class="step-num">3</div><i class="fa-solid fa-database"></i><h4>Backend Cloud</h4><p>Menghubungkan aplikasi ke Supabase.</p></div>
+                <div class="sop-card"><div class="step-num">4</div><i class="fa-brands fa-github"></i><h4>Version Control</h4><p>Mengamankan kode di GitHub.</p></div>
+                <div class="sop-card"><div class="step-num">5</div><i class="fa-solid fa-rocket"></i><h4>Deployment</h4><p>Rilis otomatis melalui Vercel.</p></div>
+            </div>
+            <p class="animate-item animate-delay-1" style="text-align:center; margin-top:34px; font-size:20px; color:var(--text-main);">Setiap bagian bergerak dari keputusan desain, implementasi teknis, sampai validasi produk.</p>
+        </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="slide" id="slide3">
+        <h2 class="slide-title">CAPAIAN <span>PEMBELAJARAN PRAKTIKUM</span></h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="reg-card animate-item">
+                    <h3>Setelah praktikum, mahasiswa mampu:</h3>
+                    <ul>
+                        <li><i class="fa-solid fa-check"></i><div>Menyusun PRD yang jelas agar keluaran AI tidak berhalusinasi atau tidak koheren.</div></li>
+                        <li><i class="fa-solid fa-check"></i><div>Memahami arsitektur decoupled antara frontend dan backend dalam SaaS modern.</div></li>
+                        <li><i class="fa-solid fa-check"></i><div>Mengembangkan antarmuka berbasis Vite + React dan menghubungkannya dengan Supabase Cloud.</div></li>
+                    </ul>
+                </div>
+                <div class="reg-card lime animate-item animate-delay-1">
+                    <h3>Keterampilan operasional</h3>
+                    <ul>
+                        <li><i class="fa-solid fa-check" style="color:#111827;"></i><div>Mengelola kode menggunakan GitHub dan rutinitas commit yang aman.</div></li>
+                        <li><i class="fa-solid fa-check" style="color:#111827;"></i><div>Mendeploy aplikasi ke Vercel serta mengelola environment variables untuk produksi.</div></li>
+                        <li><i class="fa-solid fa-check" style="color:#111827;"></i><div>Mengantisipasi kebocoran kredensial, kegagalan Git workflow, dan kesalahan RLS.</div></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4 -->
+    <div class="slide" id="slide4">
+        <h2 class="slide-title">MENGAPA PRD HARUS DITULIS <span>SEBELUM CODING?</span></h2>
+        <div class="content-area">
+            <div class="tile-grid animate-item">
+                <div class="tile" style="border-color:#EB5757;"><i class="fa-solid fa-triangle-exclamation" style="color:#EB5757;"></i><h3>Tanpa PRD</h3><p>AI cenderung menebak scope, mengubah arsitektur, menambah fitur di luar MVP, atau menghasilkan kode yang sulit disatukan.</p></div>
+                <div class="tile" style="border-color:#27AE60;"><i class="fa-solid fa-map" style="color:#27AE60;"></i><h3>Dengan PRD</h3><p>AI bekerja dalam batas yang jelas: masalah, MVP, user flow, skema database, dan tech stack yang telah ditentukan.</p></div>
+                <div class="tile" style="border-color:#2F80ED;"><i class="fa-solid fa-bullseye" style="color:#2F80ED;"></i><h3>Dampaknya</h3><p>Output lebih terkendali, proses debugging lebih ringan, dan pekerjaan tim lebih mudah disinkronkan.</p></div>
+            </div>
+            <div class="big-quote animate-item animate-delay-1" style="margin-top:28px;">PRD adalah peta jalan arsitektur sebelum satu baris kode ditulis.</div>
+        </div>
+    </div>
+
+    <!-- Slide 5 -->
+    <div class="slide" id="slide5">
+        <h2 class="slide-title">ARSITEKTUR DECOUPLED PADA <span>SAAS WEB APP</span></h2>
+        <div class="content-area">
+            <div class="tile-grid animate-item" style="align-items:stretch;">
+                <div class="tile"><i class="fa-solid fa-desktop" style="color:#2F80ED;"></i><h3>Frontend</h3><p>Tampilan dan interaksi pengguna dibangun menggunakan Vite + React.</p></div>
+                <div class="tile"><i class="fa-solid fa-server" style="color:#27AE60;"></i><h3>Backend Cloud</h3><p>Database, autentikasi, storage, dan API dikelola oleh Supabase Cloud.</p></div>
+                <div class="tile"><i class="fa-solid fa-cloud-arrow-up" style="color:#F2994A;"></i><h3>Hosting</h3><p>Build dan deployment otomatis dilakukan melalui Vercel.</p></div>
+            </div>
+            <p class="animate-item animate-delay-1" style="text-align:center; margin-top:34px; font-size:20px; color:var(--text-main);">Model ini memisahkan UI dari logika data agar pengembangan lebih fleksibel, skalabel, dan mudah didukung AI assistant.</p>
+        </div>
+    </div>
+
+    <!-- Slide 6 -->
+    <div class="slide" id="slide6">
+        <h2 class="slide-title">EKOSISTEM <span>TEKNOLOGI</span> YANG DIGUNAKAN</h2>
+        <div class="content-area animate-item">
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Komponen Cloud</th><th>Teknologi</th><th>Fungsi utama</th></tr></thead>
+                    <tbody>
+                        <tr><td>Cloud IDE & AI Assistant</td><td><span class="badge-sync">Google Antigravity IDE</span></td><td>Lingkungan pengembangan zero-config dengan asisten AI untuk scaffolding, refactoring, dan boilerplate code.</td></tr>
+                        <tr><td>Frontend Framework</td><td><span class="badge-async"><i class="fa-brands fa-react"></i> Vite + React.js</span></td><td>Build cepat, HMR instan, dan UI berbasis komponen yang mudah dikelola.</td></tr>
+                        <tr><td>Backend as a Service</td><td><span class="badge-async"><i class="fa-solid fa-database"></i> Supabase Cloud</span></td><td>PostgreSQL, authentication, storage, dan Realtime API tanpa backend tradisional.</td></tr>
+                        <tr><td>Version Control</td><td><span class="badge-sync"><i class="fa-brands fa-github"></i> GitHub</span></td><td>Repositori pusat untuk melacak iterasi, mengamankan kode, dan mendukung kolaborasi.</td></tr>
+                        <tr><td>Continuous Deployment</td><td><span class="badge-sync"><i class="fa-solid fa-rocket"></i> Vercel</span></td><td>Hosting Edge Network yang otomatis build dan deploy dari GitHub.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7 -->
+    <div class="slide" id="slide7">
+        <h2 class="slide-title">STRUKTUR WAJIB <span>PRD</span> UNTUK PRAKTIKUM</h2>
+        <div class="content-area">
+            <div class="tile-grid-2x2 animate-item">
+                <div class="tile"><i class="fa-solid fa-circle-1"></i><h3>Latar belakang & problem statement</h3><p>Masalah yang ingin diselesaikan aplikasi secara spesifik.</p></div>
+                <div class="tile"><i class="fa-solid fa-circle-2"></i><h3>MVP features</h3><p>Maksimal 3 fitur inti pada iterasi pertama. Jangan mencoba membangun aplikasi sempurna di awal.</p></div>
+                <div class="tile"><i class="fa-solid fa-circle-3"></i><h3>User flow diagram</h3><p>Alur dari landing page, login, dashboard, fitur utama, hingga logout.</p></div>
+                <div class="tile"><i class="fa-solid fa-circle-4"></i><h3>Database schema</h3><p>Tabel Supabase, kolom, tipe data, dan relasi awal.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8 -->
+    <div class="slide" id="slide8">
+    <h2 class="slide-title">CONTOH PROMPT PRD: <span>SAAS PERSONAL BUDGETING</span></h2>
+
+    <div class="content-area">
+        <div class="two-column animate-item" style="align-items: stretch; gap: 24px;">
+
+            <!-- Kolom kiri: Peran, konteks, dan constraints -->
+            <div class="reg-card" style="display: flex; flex-direction: column; gap: 14px;">
+                <h3 style="color: var(--accent-cyan);">
+                    <i class="fa-solid fa-user-tie"></i> Role & Project Context
+                </h3>
+
+                <p style="font-size: 15px; color: var(--text-main); line-height: 1.6;">
+                    Bertindaklah sebagai <strong>Senior Technical Product Manager</strong> dan 
+                    <strong>Cloud Architect</strong> yang berpengalaman dalam membangun aplikasi 
+                    <strong>Multi-Tenant SaaS</strong>.
+                </p>
+
+                <p style="font-size: 15px; line-height: 1.6;">
+                    Saya ingin membangun sebuah aplikasi web MVP untuk 
+                    <strong>SaaS Personal Budgeting</strong> dengan model 
+                    <strong>Multi-Tenancy</strong>, di mana setiap user atau tenant terisolasi 
+                    secara ketat dan tidak boleh melihat data satu sama lain.
+                </p>
+
+                <div style="background: rgba(62, 207, 142, 0.10); border: 1px solid rgba(62, 207, 142, 0.35); border-radius: 12px; padding: 14px;">
+                    <h4 style="font-size: 17px; margin-bottom: 10px; color: var(--text-main);">
+                        Constraints Teknologi
+                    </h4>
+                    <ul style="list-style: none; padding-left: 0;">
+                        <li style="margin-bottom: 8px; font-size: 14px; color: var(--text-dim);">
+                            <i class="fa-brands fa-react" style="color: var(--accent-cyan); margin-right: 8px;"></i>
+                            Frontend: Vite + React.js dengan component-based UI.
+                        </li>
+                        <li style="margin-bottom: 8px; font-size: 14px; color: var(--text-dim);">
+                            <i class="fa-solid fa-database" style="color: var(--accent-cyan); margin-right: 8px;"></i>
+                            Backend & Database: Supabase Cloud PostgreSQL dengan RLS.
+                        </li>
+                        <li style="font-size: 14px; color: var(--text-dim);">
+                            <i class="fa-solid fa-rocket" style="color: var(--accent-cyan); margin-right: 8px;"></i>
+                            Hosting & Deployment: Vercel dengan pipeline CI/CD otomatis.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Kolom kanan: Output PRD yang diminta -->
+            <div class="reg-card lime" style="display: flex; flex-direction: column; gap: 14px;">
+                <h3 style="color: var(--accent-lime);">
+                    <i class="fa-solid fa-file-lines"></i> Struktur Output PRD
+                </h3>
+
+                <p style="font-size: 15px; line-height: 1.6;">
+                    Tolong buatkan dokumen <strong>Product Requirements Document</strong> 
+                    yang komprehensif, terstruktur, profesional, taktis, dan mudah dipahami 
+                    oleh tim developer frontend.
+                </p>
+
+                <div class="table-wrapper" style="max-height: 315px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Bagian PRD</th>
+                                <th>Isi yang Diminta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Problem Statement & Value Proposition</td>
+                                <td>Jelaskan masalah utama personal budgeting dan bagaimana Multi-Tenant SaaS menjadi solusi aman dan skalabel.</td>
+                            </tr>
+                            <tr>
+                                <td>MVP Features</td>
+                                <td>Batasi pada autentikasi tenant, manajemen transaksi, dan dashboard finansial.</td>
+                            </tr>
+                            <tr>
+                                <td>Multi-Tenant User Flow</td>
+                                <td>Petakan alur dari registrasi, membuat data anggaran, memakai fitur utama, hingga logout.</td>
+                            </tr>
+                            <tr>
+                                <td>Database Schema</td>
+                                <td>Rancang tabel profiles/users, transactions, categories, dan kolom tenant seperti user_id atau tenant_id.</td>
+                            </tr>
+                            <tr>
+                                <td>Security & RLS Blueprint</td>
+                                <td>Berikan rekomendasi policy RLS agar data antar tenant tidak bocor.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bagian bawah: ringkasan prompt -->
+        <div class="animate-item animate-delay-1" style="margin-top: 22px; background: var(--bg-card); border: 1px solid rgba(209, 213, 219, 1); border-left: 6px solid var(--accent-cyan); border-radius: 14px; padding: 18px 22px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <p style="font-size: 18px; color: var(--text-main); line-height: 1.55;">
+                Inti prompt ini adalah meminta AI menghasilkan PRD untuk aplikasi SaaS Personal Budgeting berbasis 
+                <strong>Vite + React</strong>, <strong>Supabase PostgreSQL</strong>, <strong>Row Level Security</strong>, dan 
+                <strong>Vercel CI/CD</strong>, dengan fokus utama pada keamanan data Multi-Tenant.
+            </p>
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 9 -->
+    <div class="slide" id="slide9">
+    <h2 class="slide-title">PROMPT SIAP PAKAI: <span>PRD MULTI-TENANT SAAS</span></h2>
+
+    <div class="content-area animate-item">
+        <p style="font-size: 18px; margin-bottom: 16px; color: var(--text-main); font-weight: 500;">
+            Gunakan prompt berikut untuk meminta AI menyusun dokumen PRD lengkap untuk aplikasi SaaS Personal Budgeting berbasis Multi-Tenancy.
+        </p>
+
+        <pre style="max-height: 470px; overflow-y: auto; white-space: pre-wrap;"><code>Bertindaklah sebagai Senior Technical Product Manager dan Cloud Architect yang berpengalaman dalam membangun aplikasi Multi-Tenant SaaS.
+
+Saya ingin membangun sebuah aplikasi web MVP (Minimum Viable Product) untuk SaaS Personal Budgeting dengan model Multi-Tenancy, di mana setiap user/tenant terisolasi secara ketat dan tidak boleh melihat data satu sama lain.
+
+Tolong buatkan dokumen Product Requirements Document (PRD) yang komprehensif dan terstruktur untuk proyek ini.
+
+Gunakan batasan (Constraints) teknologi berikut:
+
+1. Frontend:
+Vite + React.js dengan pendekatan component-based UI.
+
+2. Backend &amp; Database:
+Supabase Cloud (PostgreSQL) memanfaatkan Row Level Security (RLS) untuk isolasi tenant.
+
+3. Hosting &amp; Deployment:
+Vercel dengan pipeline CI/CD otomatis.
+
+Dokumen PRD harus mencakup bagian-bagian berikut:
+
+1. Problem Statement &amp; Value Proposition
+
+- Jelaskan masalah utama yang dihadapi pengguna dalam personal budgeting.
+- Jelaskan bagaimana model SaaS Multi-Tenant ini menjadi solusi yang aman dan skalabel.
+
+2. Minimum Viable Product (MVP) Features
+
+Batasi fitur hanya pada 3 fungsi inti berikut dan jabarkan fungsionalitas detailnya:
+
+- Autentikasi &amp; Registrasi Tenant
+  Mendukung pemisahan workspace/user secara unik.
+
+- Manajemen Transaksi
+  Pencatatan pemasukan, pengeluaran, dan kategori.
+
+- Ringkasan Dashboard Finansial
+  Grafik ringkasan arus kas dan indikator limit anggaran.
+
+3. Multi-Tenant User Flow Diagram Deskriptif
+
+Petakan alur langkah demi langkah sejak pengguna mendaftar, membuat data anggaran pertama mereka, hingga keluar dari sistem, dengan penekanan pada aspek keamanan data terisolasi.
+
+4. Database Schema PostgreSQL for Supabase
+
+- Buatkan rancangan tabel yang dibutuhkan, misalnya profiles/users, transactions, dan categories.
+- Wajib sertakan kolom penanda tenant, seperti user_id atau tenant_id, di setiap tabel transaksi untuk relasi database.
+- Tentukan tipe data PostgreSQL standar, seperti uuid, text, numeric, timestamp, dan tipe data lain yang relevan untuk setiap kolom.
+
+5. Security &amp; RLS Blueprint Sederhana
+
+Berikan rekomendasi logika kebijakan atau Policy Row Level Security (RLS) di Supabase yang harus diterapkan pada tabel transaksi agar data antar tenant tidak bocor.
+
+Tuliskan PRD ini dengan gaya bahasa profesional, taktis, dan mudah dipahami oleh tim developer frontend.</code></pre>
+    </div>
+</div>
+
+    <!-- Slide 10 -->
+    <div class="slide" id="slide10">
+        <h2 class="slide-title">PROMPT ENGINEERING SETELAH <span>PRD DISETUJUI</span></h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="animate-item">
+<pre><code>Bertindaklah sebagai Senior Cloud Engineer.
+
+Saya memiliki PRD berikut untuk SaaS yang akan dibangun:
+[PASTE KESELURUHAN PRD DI SINI]
+
+Tech stack yang digunakan adalah Vite + React dan Supabase.
+
+Tugas pertama Anda:
+1. Buatkan struktur folder proyek.
+2. Buatkan skrip inisialisasi awal untuk Vite.
+3. Berikan panduan langkah demi langkah untuk menghubungkan React dengan Supabase Client.</code></pre>
+                </div>
+                <div class="reg-card animate-item animate-delay-1">
+                    <h3>Prinsip penggunaan</h3>
+                    <p>Gunakan PRD sebagai konteks utama. Jangan meminta AI langsung membuat semua fitur sekaligus.</p>
+                    <p style="margin-top:12px;">Pecah tugas menjadi unit kecil: struktur folder, auth, dashboard, upload, lalu deployment.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 11 -->
+    <div class="slide" id="slide11">
+        <h2 class="slide-title">FRONTEND MODERN: <span>VITE + REACT</span></h2>
+        <div class="content-area">
+            <div class="two-column animate-item">
+                <div class="table-wrapper" style="max-height:310px;">
+                    <table>
+                        <thead><tr><th>Aspek</th><th>Karakteristik dan keunggulan</th></tr></thead>
+                        <tbody>
+                            <tr><td>Vite</td><td>Server pengembangan lokal menyala sangat cepat. Hot Module Replacement membuat perubahan kode langsung terlihat tanpa refresh penuh.</td></tr>
+                            <tr><td>React</td><td>UI dibangun dari komponen kecil yang reusable seperti <code>&lt;Button /&gt;</code> atau <code>&lt;Navbar /&gt;</code>. State membuat antarmuka dinamis.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="reg-card">
+                    <h3>Mengapa cocok untuk SaaS?</h3>
+                    <p>Kombinasi Vite + React mempercepat eksperimen UI, mempermudah pemisahan komponen, dan mendukung integrasi cepat dengan API cloud seperti Supabase.</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px;"><span class="badge-async">Reusable components</span><span class="badge-async">Fast feedback loop</span><span class="badge-sync">Dynamic state</span><span class="badge-sync">Cloud-ready UI</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 12 -->
+    <div class="slide" id="slide12">
+        <h2 class="slide-title">STRUKTUR DIREKTORI STANDAR <span>VITE + REACT</span></h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="animate-item">
+<pre><code>my-saas-app/
+├── node_modules/       # Dependensi pustaka
+├── public/             # Aset statis
+├── src/                # File inti kode
+│   ├── assets/         # Aset spesifik komponen
+│   ├── components/     # Button, Card, Modal
+│   ├── pages/          # Home, Login, Dashboard
+│   ├── App.jsx         # Komponen root / routing
+│   └── main.jsx        # Entry point React
+├── .env                # Variabel lingkungan
+├── index.html          # Template HTML utama
+├── package.json        # Dependensi dan skrip
+└── vite.config.js      # Konfigurasi Vite</code></pre>
+                </div>
+                <div class="reg-card red animate-item animate-delay-1">
+                    <h3>Catatan penting</h3>
+                    <p>File <code>.env</code> harus ada secara lokal, tetapi wajib masuk ke <code>.gitignore</code> agar tidak bocor ke GitHub.</p>
+                    <p style="margin-top:12px;">Komponen dan halaman sebaiknya dipisah agar proyek tetap rapi saat fitur bertambah.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13 -->
+    <div class="slide" id="slide13">
+        <h2 class="slide-title">BACKEND DAN DATABASE: <span>SUPABASE CLOUD</span></h2>
+        <div class="content-area">
+            <div class="tile-grid animate-item">
+                <div class="tile"><i class="fa-solid fa-database" style="color:#27AE60;"></i><h3>PostgreSQL Database</h3><p>Menyimpan data terstruktur dan relasional.</p></div>
+                <div class="tile"><i class="fa-solid fa-user-lock" style="color:#2F80ED;"></i><h3>Authentication</h3><p>Login/register, OAuth, dan token aman.</p></div>
+                <div class="tile"><i class="fa-solid fa-folder-open" style="color:#F2994A;"></i><h3>Storage</h3><p>Penyimpanan file seperti dokumen atau gambar.</p></div>
+                <div class="tile"><i class="fa-solid fa-bolt" style="color:#7C3AED;"></i><h3>Realtime API</h3><p>Perubahan data langsung tanpa refresh manual.</p></div>
+                <div class="tile" style="grid-column: span 2;"><i class="fa-solid fa-shield-halved" style="color:#EB5757;"></i><h3>Row Level Security</h3><p>Keamanan level baris berdasarkan logika autentikasi seperti <code>auth.uid()</code>.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 14 -->
+    <div class="slide" id="slide14">
+        <h2 class="slide-title">KONEKSI VITE KE <span>SUPABASE</span></h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="animate-item">
+<pre><code>// supabaseClient.js
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+export const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey
+)</code></pre>
+                </div>
+                <div class="reg-card animate-item animate-delay-1">
+                    <h3>Kunci integrasi</h3>
+                    <p>Gunakan <code>@supabase/supabase-js</code>. Simpan URL dan anon key di <code>.env</code>, bukan langsung di kode sumber.</p>
+                    <p style="margin-top:12px;">Pada Vercel, masukkan nilai yang sama melalui Environment Variables.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 15 -->
+    <div class="slide" id="slide15">
+        <h2 class="slide-title">VERSION CONTROL: <span>GITHUB REPOSITORIES</span></h2>
+        <div class="content-area">
+            <div class="tile-grid animate-item">
+                <div class="tile"><i class="fa-brands fa-github" style="color:#2F80ED;"></i><h3>Repository</h3><p>Folder proyek di cloud berisi seluruh file kode dan riwayat perubahan.</p></div>
+                <div class="tile"><i class="fa-solid fa-code-commit" style="color:#7C3AED;"></i><h3>Commit</h3><p>Snapshot kondisi kode pada titik waktu tertentu dengan pesan deskriptif.</p></div>
+                <div class="tile"><i class="fa-solid fa-ban" style="color:#EB5757;"></i><h3>.gitignore</h3><p>Daftar file yang tidak boleh diunggah, terutama <code>node_modules/</code> dan <code>.env</code>.</p></div>
+            </div>
+            <div class="big-quote animate-item animate-delay-1" style="margin-top:30px; font-size:24px; font-style:normal;">Contoh commit message: <code>feat: menambahkan fitur autentikasi login</code></div>
+        </div>
+    </div>
+
+    <!-- Slide 16 -->
+    <div class="slide" id="slide16">
+        <h2 class="slide-title">PROSEDUR KESELAMATAN <span>GIT</span></h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="animate-item">
+<pre><code>git status
+# Mengecek file apa saja yang berubah
+
+git add .
+# Memasukkan perubahan ke staging area
+
+git commit -m "feat: menyelesaikan fitur autentikasi dengan Google"
+# Membungkus perubahan dengan catatan deskriptif
+
+git push origin main
+# Mengamankan kode ke server GitHub</code></pre>
+                </div>
+                <div class="reg-card orange animate-item animate-delay-1">
+                    <h3>Kapan dilakukan?</h3>
+                    <p>Setiap kali fitur baru sudah stabil dan tidak ada error fatal di console.</p>
+                    <p style="margin-top:12px;">Rutinitas ini mencegah kehilangan progres ketika cloud IDE crash, browser tertutup, atau sesi habis.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 17 -->
+    <div class="slide" id="slide17">
+        <h2 class="slide-title">DEPLOYMENT DAN HOSTING CI/CD: <span>VERCEL</span></h2>
+        <div class="content-area">
+            <div class="tile-grid-4 animate-item">
+                <div class="tile"><i class="fa-solid fa-code" style="color:#2F80ED;"></i><h3>Code</h3><p>Tulis kode di IDE.</p></div>
+                <div class="tile"><i class="fa-brands fa-github" style="color:#7C3AED;"></i><h3>Push</h3><p>Kirim perubahan ke GitHub.</p></div>
+                <div class="tile"><i class="fa-solid fa-hammer" style="color:#F2994A;"></i><h3>Build</h3><p>Vercel menjalankan <code>npm run build</code>.</p></div>
+                <div class="tile"><i class="fa-solid fa-globe" style="color:#27AE60;"></i><h3>Release</h3><p>Domain publik diperbarui otomatis.</p></div>
+            </div>
+            <p class="animate-item animate-delay-1" style="text-align:center; margin-top:34px; font-size:20px; color:var(--text-main);">Vercel menghapus kebutuhan menyewa VPS atau mengonfigurasi server Linux secara manual untuk aplikasi frontend React.</p>
+        </div>
+    </div>
+
+    <!-- Slide 18 -->
+    <div class="slide" id="slide18">
+        <h2 class="slide-title">ENVIRONMENT VARIABLES: <span>TITIK RAWAN KEAMANAN</span></h2>
+        <div class="content-area">
+            <div class="animate-item">
+<pre><code>VITE_SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
+            </div>
+            <div class="tile-grid animate-item animate-delay-1">
+                <div class="tile" style="border-color:#EB5757;"><i class="fa-solid fa-key" style="color:#EB5757;"></i><h3>Aturan fatal</h3><p>File <code>.env</code> tidak boleh pernah di-push ke GitHub. Kredensial yang bocor dapat membuka akses ke database.</p></div>
+                <div class="tile" style="border-color:#F2994A;"><i class="fa-solid fa-list-check" style="color:#F2994A;"></i><h3>Validasi .gitignore</h3><p>Pastikan teks <code>.env</code> sudah ditambahkan sebelum melakukan commit pertama.</p></div>
+                <div class="tile" style="border-color:#27AE60;"><i class="fa-solid fa-cloud" style="color:#27AE60;"></i><h3>Produksi di Vercel</h3><p>Salin <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> ke Project Settings &gt; Environment Variables.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 19 -->
+    <div class="slide" id="slide19">
+        <h2 class="slide-title">SUPABASE ROW LEVEL SECURITY <span>(RLS)</span></h2>
+        <div class="content-area">
+            <div class="tile-grid animate-item">
+                <div class="tile" style="border-color:#EB5757;"><i class="fa-solid fa-circle-exclamation" style="color:#EB5757;"></i><h3>Masalah umum</h3><p>Tabel baru dapat menolak operasi read/write dari React dan memunculkan error 401/403 karena kebijakan keamanan belum disiapkan.</p></div>
+                <div class="tile" style="border-color:#F2994A;"><i class="fa-solid fa-screwdriver-wrench" style="color:#F2994A;"></i><h3>Fase pengembangan</h3><p>Gunakan policy sementara seperti enable read and write access for all users untuk memastikan API berjalan.</p></div>
+                <div class="tile" style="border-color:#27AE60;"><i class="fa-solid fa-shield-halved" style="color:#27AE60;"></i><h3>Fase produksi</h3><p>Perketat policy: users can only read and update their own document data dengan <code>auth.uid()</code>.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 20 -->
+    <div class="slide" id="slide20">
+        <h2 class="slide-title">PENANGANAN AREA KRITIS <span>TROUBLESHOOTING</span></h2>
+        <div class="content-area animate-item">
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Area</th><th>Gejala</th><th>Mitigasi utama</th></tr></thead>
+                    <tbody>
+                        <tr><td>Environment Variables</td><td>Build berhasil tetapi app gagal konek Supabase.</td><td>Periksa <code>.env</code> lokal dan Environment Variables di Vercel.</td></tr>
+                        <tr><td>Git Workflow</td><td>Kode hilang setelah IDE/browser crash.</td><td>Commit dan push setiap fitur stabil.</td></tr>
+                        <tr><td>RLS Supabase</td><td>Error 401/403 saat read/write data.</td><td>Buat policy sesuai fase pengembangan atau produksi.</td></tr>
+                        <tr><td>Vercel Build</td><td>Deploy gagal pada production link.</td><td>Buka log build, cek dependency, script, dan variabel lingkungan.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 21 -->
+    <div class="slide" id="slide21">
+        <h2 class="slide-title">SIKLUS INTEGRASI HARIAN <span>DAILY DEVELOPMENT PIPELINE</span></h2>
+        <div class="content-area">
+            <div class="sop-grid animate-item">
+                <div class="sop-card"><div class="step-num">1</div><i class="fa-solid fa-map"></i><h4>Plan</h4><p>Baca PRD dan pilih satu modul kecil.</p></div>
+                <div class="sop-card"><div class="step-num">2</div><i class="fa-solid fa-code"></i><h4>Code</h4><p>Gunakan IDE dan AI untuk menulis komponen React.</p></div>
+                <div class="sop-card"><div class="step-num">3</div><i class="fa-solid fa-plug"></i><h4>Connect</h4><p>Hubungkan dengan Supabase dan uji CRUD.</p></div>
+                <div class="sop-card"><div class="step-num">4</div><i class="fa-brands fa-github"></i><h4>Commit</h4><p>Simpan progres stabil ke GitHub.</p></div>
+                <div class="sop-card"><div class="step-num">5</div><i class="fa-solid fa-rocket"></i><h4>Deploy & Test</h4><p>Validasi build Vercel dan production link.</p></div>
+            </div>
+            <div class="big-quote animate-item animate-delay-1" style="margin-top:34px; font-size:23px; font-style:normal;">Tujuan pipeline: mencegah kebingungan, penumpukan error, dan kepanikan menjelang batas waktu rilis.</div>
+        </div>
+    </div>
+
+    <!-- Slide 22 -->
+    <div class="slide" id="slide22">
+        <h2 class="slide-title">RANGKUMAN <span>ALUR KERJA UTAMA</span></h2>
+        <div class="content-area animate-item">
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Tahap</th><th>Fokus utama</th><th>Output</th></tr></thead>
+                    <tbody>
+                        <tr><td>PRD dan Prompting</td><td>Problem statement, MVP, user flow, database schema.</td><td>PRD sebagai konteks utama AI.</td></tr>
+                        <tr><td>Frontend</td><td>UI berbasis komponen menggunakan Vite + React.</td><td>Login, dashboard, dan fitur utama.</td></tr>
+                        <tr><td>Backend dan Database</td><td>Supabase database, auth, storage, RLS.</td><td>CRUD berjalan aman.</td></tr>
+                        <tr><td>Version Control</td><td>Commit stabil dan push ke GitHub.</td><td>Riwayat kode aman di cloud.</td></tr>
+                        <tr><td>Deployment</td><td>Build dan rilis di Vercel.</td><td>Production link dapat diuji.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 23 -->
+    <div class="slide" id="slide23">
+        <h2 class="slide-title">CHECKLIST <span>HASIL PRAKTIKUM</span></h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="reg-card animate-item">
+                    <h3>Deliverables</h3>
+                    <ul>
+                        <li><i class="fa-solid fa-check"></i><div>PRD final berisi problem statement, MVP, user flow, dan skema database.</div></li>
+                        <li><i class="fa-solid fa-check"></i><div>Project Vite + React memiliki struktur folder rapi dan komponen utama berjalan.</div></li>
+                        <li><i class="fa-solid fa-check"></i><div>Supabase sudah terhubung melalui <strong>supabaseClient.js</strong> dan <strong>.env</strong> lokal.</div></li>
+                        <li><i class="fa-solid fa-check"></i><div><strong>.gitignore</strong> sudah memuat <strong>.env</strong> sebelum commit dan push ke GitHub.</div></li>
+                    </ul>
+                </div>
+                <div class="reg-card lime animate-item animate-delay-1">
+                    <h3>Kriteria siap demo</h3>
+                    <ul>
+                        <li><i class="fa-solid fa-check" style="color:#111827;"></i><div>Vercel sudah terhubung ke GitHub dan Environment Variables sudah diisi.</div></li>
+                        <li><i class="fa-solid fa-check" style="color:#111827;"></i><div>Production link diuji dari sudut pandang pengguna secara end-to-end.</div></li>
+                        <li><i class="fa-solid fa-check" style="color:#111827;"></i><div>Aplikasi dapat dijalankan, fitur inti MVP dapat diuji, data tersimpan di Supabase, dan link publik dapat dibuka tanpa error fatal.</div></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 24 -->
+    <div class="slide dark" id="slide24">
+        <h2 class="slide-title">PENUTUP</h2>
+        <div class="content-area">
+            <div class="two-column">
+                <div class="animate-item">
+                    <p style="font-size:24px; color:#E5F1FF; margin-bottom:24px;">Menguasai Vite, React, Supabase, GitHub, dan Vercel memberikan pemahaman menyeluruh tentang bagaimana infrastruktur SaaS modern beroperasi secara global.</p>
+                    <p style="font-size:21px; color:#CDE6FF;">Kedisiplinan membaca PRD, mengerjakan fitur bertahap, mengamankan kode, dan memvalidasi deployment adalah fondasi agar produk SaaS fungsional, aman, dan siap diuji pengguna.</p>
+                </div>
+                <div class="reg-card animate-item animate-delay-1">
+                    <p style="font-size:26px; color:var(--text-main); font-weight:800; line-height:1.35;">Praktik Terbaik.<br><br>Mulai kecil.<br>Validasi sering.<br>Commit cepat.<br>Deploy rutin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="nav-btn-bottom" id="prev-btn" title="Slide Sebelumnya"><i class="fa-solid fa-arrow-left"></i></button>
+        <button class="nav-btn-bottom" id="next-btn" title="Slide Berikutnya"><i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+</div>
+
+<script>
+    const slides = document.querySelectorAll(".slide");
+    const progressBar = document.getElementById("progress-bar");
+    const jumpMenu = document.getElementById("slide-jump-menu");
+    const headerLogo = document.getElementById("header-brand-logo");
+    const sliderWrapper = document.getElementById("slider-wrapper");
+    const fullscreenBtn = document.getElementById("btn-fullscreen");
+    let currentSlide = 0;
+
+    function goToSlide(index) {
+        if (index < 0 || index >= slides.length) return;
+        slides.forEach((slide, idx) => {
+            slide.classList.remove("active", "prev-slide");
+            if (idx < index) slide.classList.add("prev-slide");
+        });
+        currentSlide = index;
+        slides[currentSlide].classList.add("active");
+        if (currentSlide === 0) {
+            headerLogo.style.opacity = "0";
+            headerLogo.style.pointerEvents = "none";
+        } else {
+            headerLogo.style.opacity = "1";
+            headerLogo.style.pointerEvents = "auto";
+        }
+        jumpMenu.value = currentSlide;
+        progressBar.style.width = ((currentSlide + 1) / slides.length * 100) + "%";
+    }
+
+    document.getElementById("next-btn").addEventListener("click", () => currentSlide < slides.length - 1 && goToSlide(currentSlide + 1));
+    document.getElementById("prev-btn").addEventListener("click", () => currentSlide > 0 && goToSlide(currentSlide - 1));
+    jumpMenu.addEventListener("change", (e) => { goToSlide(parseInt(e.target.value)); });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); currentSlide < slides.length - 1 && goToSlide(currentSlide + 1); }
+        else if (e.key === "ArrowLeft") { e.preventDefault(); currentSlide > 0 && goToSlide(currentSlide - 1); }
+    });
+    fullscreenBtn.addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+            sliderWrapper.requestFullscreen().catch(err => { alert(`Gagal: ${err.message}`); });
+        } else { document.exitFullscreen(); }
+    });
+    document.addEventListener("fullscreenchange", () => {
+        if (document.fullscreenElement) {
+            fullscreenBtn.innerHTML = '<i class="fa-solid fa-compress"></i> Exit Fullscreen';
+            fullscreenBtn.style.backgroundColor = "rgba(62,207,142,0.15)";
+            fullscreenBtn.style.color = "var(--accent-cyan)";
+        } else {
+            fullscreenBtn.innerHTML = '<i class="fa-solid fa-expand"></i> Fullscreen';
+            fullscreenBtn.style.backgroundColor = "#FFFFFF";
+            fullscreenBtn.style.color = "var(--text-main)";
+        }
+    });
+    goToSlide(0);
+
+    let fontMultiplier = 1.05;
+    const rootStyle = document.documentElement.style;
+    document.getElementById("btn-font-up").addEventListener("click", () => {
+        if (fontMultiplier < 1.45) { fontMultiplier += 0.05; rootStyle.setProperty('--fs-mult', fontMultiplier.toFixed(2)); }
+    });
+    document.getElementById("btn-font-down").addEventListener("click", () => {
+        if (fontMultiplier > 0.85) { fontMultiplier -= 0.05; rootStyle.setProperty('--fs-mult', fontMultiplier.toFixed(2)); }
+    });
+    document.getElementById("btn-font-reset").addEventListener("click", () => {
+        fontMultiplier = 1.05; rootStyle.setProperty('--fs-mult', fontMultiplier.toFixed(2));
+    });
+</script>
+</body>
+</html>

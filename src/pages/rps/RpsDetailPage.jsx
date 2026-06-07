@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
 import {
   ArrowLeft, CheckCircle, AlertCircle, Clock, FileText,
-  Share2, Pencil, Send, X, Download, Sparkles, RefreshCw, Trash2, Copy
+  Share2, Pencil, Send, X, Download, Sparkles, RefreshCw, Trash2, Copy, Eye, Tv
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, dbComments, dbNotifications, dbReviewRps } from '@/lib/db'
 import { reviewSpmi, generateSlideContent, generateEssayQuestions } from '@/lib/ai'
+import { generateWebSlideHtml } from '@/lib/webslideTemplate'
 import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import ConfirmModal from '@/components/ui/ConfirmModal'
@@ -655,6 +656,55 @@ export default function RpsDetailPage() {
     })
     navigator.clipboard.writeText(text)
     toast.success('Materi slide berhasil disalin ke clipboard!')
+  }
+
+  const handlePreviewWebSlide = (data) => {
+    if (!data) return
+    try {
+      const courseName = rps.mk?.nama_mk || 'Mata Kuliah'
+      const prodiName = rps.mk?.prodi?.nama || 'Program Studi'
+      const meetingNo = aiContentModal.meeting.no
+      const htmlContent = generateWebSlideHtml(courseName, prodiName, meetingNo, data)
+      
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank')
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal mempratinjau WebSlide: ' + err.message)
+    }
+  }
+
+  const handleDownloadWebSlide = (data) => {
+    if (!data) return
+    try {
+      const courseName = rps.mk?.nama_mk || 'Mata Kuliah'
+      const prodiName = rps.mk?.prodi?.nama || 'Program Studi'
+      const meetingNo = aiContentModal.meeting.no
+      const htmlContent = generateWebSlideHtml(courseName, prodiName, meetingNo, data)
+      
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+      const blobUrl = URL.createObjectURL(blob)
+      
+      const cleanCourseName = courseName.replace(/[^a-zA-Z0-9]/g, '_')
+      const fileName = `WebSlide_Pertemuan_${meetingNo}_${cleanCourseName}.html`
+      
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      
+      setTimeout(() => {
+        document.body.removeChild(a)
+        URL.revokeObjectURL(blobUrl)
+      }, 100)
+      
+      toast.success('WebSlide berhasil diunduh!')
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal mengunduh WebSlide: ' + err.message)
+    }
   }
 
   const handleCopyEssayQuestions = (data) => {
@@ -1573,6 +1623,26 @@ export default function RpsDetailPage() {
                     <Copy size={12} />
                     Salin ke Clipboard
                   </button>
+                )}
+                {aiContentModal.type === 'slide' && aiContentModal.data && (
+                  <>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handlePreviewWebSlide(aiContentModal.data)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, borderColor: 'var(--indigo-200)', color: 'var(--indigo-700)', background: '#f5f3ff' }}
+                    >
+                      <Tv size={12} />
+                      Lihat WebSlide
+                    </button>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleDownloadWebSlide(aiContentModal.data)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Download size={12} />
+                      Unduh WebSlide
+                    </button>
+                  </>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
