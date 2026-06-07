@@ -481,7 +481,7 @@ export default function RpsDetailPage() {
     const type = isExam ? 'essay' : 'slide'
     const existingData = isExam ? meeting.essay_questions : meeting.slide_content
     
-    setWebSlideData(null)
+    setWebSlideData(meeting.webslide_content || null)
     setGeneratingWebSlide(false)
 
     setAiContentModal({
@@ -611,7 +611,9 @@ export default function RpsDetailPage() {
           handleProgress
         )
       }
-      
+      if (type === 'slide') {
+        setWebSlideData(null)
+      }
       setAiContentModal(prev => prev ? { ...prev, loading: false, data: result } : null)
     } catch (err) {
       console.error(err)
@@ -624,9 +626,17 @@ export default function RpsDetailPage() {
 
   const handleSaveAiContent = async (meetingIndex, contentType, data) => {
     const newRenc = [...renc]
-    newRenc[meetingIndex] = {
-      ...newRenc[meetingIndex],
-      [contentType]: data
+    if (contentType === 'slide_content') {
+      newRenc[meetingIndex] = {
+        ...newRenc[meetingIndex],
+        slide_content: data,
+        webslide_content: webSlideData
+      }
+    } else {
+      newRenc[meetingIndex] = {
+        ...newRenc[meetingIndex],
+        [contentType]: data
+      }
     }
     
     setSaving(true)
@@ -678,7 +688,26 @@ export default function RpsDetailPage() {
         aiContentModal.data
       )
       setWebSlideData(result)
-      toast.success('WebSlide berhasil digenerate! Membuka pratinjau...')
+
+      // Otomatis simpan ke database Supabase agar persisten
+      const newRenc = [...renc]
+      const meetingIndex = aiContentModal.meetingIndex
+      newRenc[meetingIndex] = {
+        ...newRenc[meetingIndex],
+        webslide_content: result
+      }
+
+      const { error } = await dbRPS.update(id, {
+        rencana_pembelajaran: newRenc
+      })
+      if (error) throw error
+
+      setRps(prev => ({
+        ...prev,
+        rencana_pembelajaran: newRenc
+      }))
+      
+      toast.success('WebSlide berhasil digenerate dan disimpan ke RPS!')
       
       // Otomatis buka preview setelah selesai
       const htmlContent = generateWebSlideHtml(courseName, prodiName, meetingNo, result)
