@@ -1433,7 +1433,7 @@ export default function RpsDetailPage() {
       {/* ── Modal AI Content (Slide / Essay) ──────────────────────── */}
       {aiContentModal && aiContentModal.isOpen && (
         <div className="modal-overlay" style={{ zIndex: 1050 }}>
-          <div className="modal" style={{ maxWidth: 700 }}>
+          <div className="modal" style={{ maxWidth: aiContentModal.type === 'slide' ? 820 : 700, width: '100%' }}>
             <div className="modal-header">
               <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Sparkles size={16} color="var(--indigo-600)" />
@@ -1597,8 +1597,8 @@ export default function RpsDetailPage() {
                 </div>
               )}
             </div>
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: 8 }}>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button 
                   className="btn btn-secondary btn-sm"
                   onClick={() => generateAiContent(aiContentModal.meeting, aiContentModal.meetingIndex, aiContentModal.type)}
