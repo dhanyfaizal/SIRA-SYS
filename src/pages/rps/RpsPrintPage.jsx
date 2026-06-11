@@ -4,6 +4,7 @@ import { Printer, ArrowLeft, Loader } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
+import { getDynamicMedia, getDynamicPrasyarat } from '@/lib/rpsUtils'
 import toast from 'react-hot-toast'
 
 export default function RpsPrintPage() {
@@ -715,22 +716,18 @@ export default function RpsPrintPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
                   <div>
                     <strong style={{ display: 'block', marginBottom: 4, textDecoration: 'underline' }}>Perangkat Lunak:</strong>
-                    1. Google Classroom<br />
-                    2. Google Meet<br />
-                    3. PowerPoint / PDF Reader
+                    {getDynamicMedia(rps.mk?.nama_mk, rps.mk?.prodi?.nama).software}
                   </div>
                   <div>
                     <strong style={{ display: 'block', marginBottom: 4, textDecoration: 'underline' }}>Perangkat Keras:</strong>
-                    1. Laptop<br />
-                    2. Koneksi Internet<br />
-                    3. Proyektor
+                    {getDynamicMedia(rps.mk?.nama_mk, rps.mk?.prodi?.nama).hardware}
                   </div>
                 </div>
               </td>
             </tr>
             <tr>
               <td style={{ fontWeight: 'bold', backgroundColor: '#f8fafc' }}>MK Prasyarat</td>
-              <td>Jaringan Komputer (atau sesuai ketentuan kurikulum)</td>
+              <td>{getDynamicPrasyarat(rps.mk?.nama_mk, rps.mk?.prodi?.nama)}</td>
             </tr>
           </tbody>
         </table>

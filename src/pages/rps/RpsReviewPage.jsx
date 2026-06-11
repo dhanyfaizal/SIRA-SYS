@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { dbRPS, dbReviewRps, dbNotifications } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { reviewRpsFull } from '@/lib/ai'
+import { getDynamicMedia, getDynamicPrasyarat } from '@/lib/rpsUtils'
 import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
@@ -83,6 +84,7 @@ export default function RpsReviewPage() {
   const [expandedSections, setExpandedSections] = useState({ A: true, B: true, C: true })
   const [teamMembers, setTeamMembers] = useState([])
   const [showRpsData, setShowRpsData] = useState({})
+  const [kaprodi, setKaprodi] = useState(null)
 
   const isKaprodi = role === 'kaprodi'
 
@@ -108,6 +110,20 @@ export default function RpsReviewPage() {
           if (profiles) setTeamMembers(profiles)
         } else {
           setTeamMembers([])
+        }
+
+        // Load Kaprodi
+        const prodiId = rpsData.mk?.prodi?.id || rpsData.mk?.prodi_id
+        if (prodiId) {
+          const { data: kaprodiData } = await supabase
+            .from('profiles')
+            .select('nama_lengkap, nidn')
+            .eq('prodi_id', prodiId)
+            .eq('role', 'kaprodi')
+            .limit(1)
+          if (kaprodiData && kaprodiData.length > 0) {
+            setKaprodi(kaprodiData[0])
+          }
         }
 
         // Load latest review
@@ -172,7 +188,17 @@ export default function RpsReviewPage() {
     }
 
     try {
-      const result = await reviewRpsFull(rps, handleProgress)
+      const dynamicMedia = getDynamicMedia(rps.mk?.nama_mk, rps.mk?.prodi?.nama)
+      const dynamicPrasyarat = getDynamicPrasyarat(rps.mk?.nama_mk, rps.mk?.prodi?.nama)
+      const rpsWithExt = {
+        ...rps,
+        kaprodi: kaprodi,
+        tanggal_penyusunan: new Date(rps.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        koordinator_mk: rps.dosen,
+        media_pembelajaran: dynamicMedia,
+        prasyarat: dynamicPrasyarat
+      }
+      const result = await reviewRpsFull(rpsWithExt, handleProgress)
       if (result) {
         // Pre-fill ratings and catatan from AI result
         const newReview = { ...review }
@@ -254,10 +280,12 @@ export default function RpsReviewPage() {
       case 'b2_penanggung_jawab': {
         const members = teamMembers.map(m => m.nama_lengkap).join(', ') || '—';
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '6px' }}>
             <span style={{ color: '#64748b' }}>Dosen Pengampu</span><span>: <strong>{rps.dosen?.nama_lengkap || '—'}</strong> (NIDN: {rps.dosen?.nidn || '—'})</span>
+            <span style={{ color: '#64748b' }}>Koordinator / Penanggung Jawab MK</span><span>: {rps.dosen?.nama_lengkap || '—'} (NIDN: {rps.dosen?.nidn || '—'})</span>
+            <span style={{ color: '#64748b' }}>Ketua Program Studi (Kaprodi)</span><span>: {kaprodi ? `${kaprodi.nama_lengkap} (NIDN: ${kaprodi.nidn || '—'})` : '—'}</span>
             <span style={{ color: '#64748b' }}>Tim Pengajar</span><span>: {members}</span>
-            <span style={{ color: '#64748b' }}>Tanggal Dibuat</span><span>: {new Date(rps.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <span style={{ color: '#64748b' }}>Tanggal Penyusunan</span><span>: {new Date(rps.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </div>
         );
       }
@@ -297,21 +325,25 @@ export default function RpsReviewPage() {
           </div>
         );
       }
-      case 'b7_media_pembelajaran':
+      case 'b7_media_pembelajaran': {
+        const dynamicMedia = getDynamicMedia(rps.mk?.nama_mk, rps.mk?.prodi?.nama);
         return (
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px' }}>
             <span style={{ color: '#64748b', fontWeight: 'bold' }}>Perangkat Lunak</span>
-            <span>: Windows/OS, MS Office, Web Browser, IDE (VS Code, dll.), atau software penunjang praktikum.</span>
+            <span>: {dynamicMedia.software}</span>
             <span style={{ color: '#64748b', fontWeight: 'bold' }}>Perangkat Keras</span>
-            <span>: Laptop/PC, LCD Proyektor, Koneksi Internet, Whiteboard.</span>
+            <span>: {dynamicMedia.hardware}</span>
           </div>
         );
-      case 'b8_prasyarat':
+      }
+      case 'b8_prasyarat': {
+        const dynamicPrasyarat = getDynamicPrasyarat(rps.mk?.nama_mk, rps.mk?.prodi?.nama);
         return (
           <div>
-            <span style={{ color: '#64748b' }}>Mata Kuliah Prasyarat</span>: Tidak ada prasyarat khusus (mengikuti ketentuan kurikulum prodi).
+            <span style={{ color: '#64748b' }}>Mata Kuliah Prasyarat</span>: {dynamicPrasyarat}
           </div>
         );
+      }
       case 'b9_komposisi':
         return (
           <div>

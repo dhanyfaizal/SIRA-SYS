@@ -4,6 +4,7 @@ import { ChevronRight, ChevronLeft, Check, BookOpen, FileText, Target, Calendar,
 import { useAuth } from '@/contexts/AuthContext'
 import { currentTahunAkademik, TAHUN_AKADEMIK_LIST, SEMESTER_LIST, dbRPS } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
+import { distributeWeeklyBobot } from '@/lib/rpsUtils'
 import toast from 'react-hot-toast'
 
 // Step components
@@ -121,7 +122,7 @@ export default function RpsFormPage() {
         cpl:  currentForm.mk?.cpl ?? [],
         cpmk: currentForm.cpmk,
       },
-      rencana_pembelajaran: currentForm.pertemuan,
+      rencana_pembelajaran: distributeWeeklyBobot(currentForm.pertemuan, currentForm.penilaian),
       penilaian:  currentForm.penilaian,
       referensi:  currentForm.referensi,
     }
@@ -217,7 +218,7 @@ export default function RpsFormPage() {
         cpl:  form.mk?.cpl ?? [],
         cpmk: form.cpmk,
       },
-      rencana_pembelajaran: form.pertemuan,
+      rencana_pembelajaran: distributeWeeklyBobot(form.pertemuan, form.penilaian),
       penilaian:  form.penilaian,
       referensi:  form.referensi,
     }

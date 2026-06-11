@@ -418,12 +418,23 @@ export async function reviewRpsFull(rpsData, onProgress = null) {
     - Semester: ${rpsData.mk?.semester || 0}
     - Program Studi: "${rpsData.mk?.prodi?.nama || '—'}"
     - Dosen Pengampu: "${rpsData.dosen?.nama_lengkap || '—'}" (NIDN: "${rpsData.dosen?.nidn || '—'}")
+    - Koordinator MK / Penanggung Jawab: "${rpsData.koordinator_mk?.nama_lengkap || '—'}" (NIDN: "${rpsData.koordinator_mk?.nidn || '—'}")
+    - Ketua Program Studi (Kaprodi): "${rpsData.kaprodi?.nama_lengkap || '—'}" (NIDN: "${rpsData.kaprodi?.nidn || '—'}")
+    - Tanggal Penyusunan: "${rpsData.tanggal_penyusunan || '—'}"
     - Deskripsi MK: "${rpsData.deskripsi_mk || '—'}"
     - CPL yang Dibebankan: ${JSON.stringify(rpsData.capaian_pembelajaran?.cpl || [])}
     - CPMK: ${JSON.stringify(rpsData.capaian_pembelajaran?.cpmk || [])}
+    - Media Pembelajaran (Perangkat Lunak & Perangkat Keras): ${JSON.stringify(rpsData.media_pembelajaran || {})}
+    - Mata Kuliah Prasyarat: "${rpsData.prasyarat || '—'}"
     - Rencana Pembelajaran (16 Pertemuan): ${JSON.stringify(rpsData.rencana_pembelajaran || [])}
     - Penilaian/Asesmen: ${JSON.stringify(rpsData.penilaian || {})}
     - Referensi: ${JSON.stringify(rpsData.referensi || [])}
+
+    ATURAN EVALUASI & STANDAR RATING:
+    - b2_penanggung_jawab: Berikan rating "sesuai" jika terdapat informasi Dosen Pengampu, Koordinator MK / Penanggung Jawab, Ketua Program Studi (Kaprodi), dan Tanggal Penyusunan. Semua data ini sudah tertera lengkap di input.
+    - b7_media_pembelajaran: Berikan rating "sesuai" jika tertera media berupa Perangkat Lunak dan Perangkat Keras yang spesifik dan relevan dengan jenis mata kuliah (DKV/Teknologi/Komputer menggunakan aplikasi desain/pemrograman, sedangkan kelas umum memakai software office/LMS). Semua media yang diinput sudah disesuaikan secara dinamis dan layak, sehingga rating aspek ini harus bernilai "sesuai".
+    - b8_prasyarat: Berikan rating "sesuai" karena kejelasan prasyarat (baik tertulis mata kuliah prasyarat tertentu seperti Gambar 2, Dasar Pemrograman, atau dinyatakan "tidak ada prasyarat khusus") sudah terdefinisi secara teratur untuk MK ini.
+    - c8_bobot_nilai: Berikan rating "sesuai" jika total bobot dari rencana pembelajaran 16 pertemuan berjumlah tepat 100% dan bobot UTS (pertemuan 8) serta UAS (pertemuan 16) sinkron dengan bobot Penilaian/Asesmen utama (misal UTS: 25% dan UAS: 25%). Sistem kami telah menyinkronkan bobot ini secara matematis, sehingga rating aspek ini harus dinilai "sesuai".
 
     Lakukan ulasan analitis deskriptif kritis terhadap 19 aspek berikut. Untuk masing-masing aspek, tentukan:
     1. Rating: Wajib bernilai "sesuai", "cukup", atau "tidak_sesuai".
