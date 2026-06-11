@@ -80,6 +80,7 @@ export default function ReviewRpsListPage() {
   const [compilationNotes, setCompilationNotes] = useState('')
   const [compilationAiLoading, setCompilationAiLoading] = useState(false)
   const [progressText, setProgressText] = useState('')
+  const [prodi, setProdi] = useState(null)
 
   const prodiId = profile?.prodi_id
 
@@ -88,6 +89,16 @@ export default function ReviewRpsListPage() {
     setLoading(true)
     setSelectedIds([]) // Reset selection on reload
     try {
+      // 0. Ambil detail Program Studi
+      const { data: prodiData, error: prodiErr } = await supabase
+        .from('program_studi')
+        .select('*')
+        .eq('id', prodiId)
+        .single()
+      if (!prodiErr && prodiData) {
+        setProdi(prodiData)
+      }
+
       // 1. Ambil semua RPS approved di prodi
       const { data: rpsData, error: rpsErr } = await dbRPS.getByProdi(prodiId)
       if (rpsErr) throw rpsErr
@@ -249,7 +260,7 @@ export default function ReviewRpsListPage() {
     }
 
     try {
-      const prodiName = rpsList[0]?.mk?.prodi?.nama || 'Program Studi';
+      const prodiName = prodi?.nama || 'Program Studi';
       const selectedRps = rpsList.filter(r => selectedIds.includes(r.id));
       
       const coursesData = selectedRps.map(r => {
@@ -293,57 +304,136 @@ export default function ReviewRpsListPage() {
   const renderFormattedNotes = (text) => {
     if (!text) return null;
     
-    // Split into paragraphs/lines
     const lines = text.split('\n');
-    return lines.map((line, idx) => {
-      let trimmed = line.trim();
+    const renderedElements = [];
+    
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      
+      // Check for markdown table
+      if (
+        trimmed.startsWith('|') &&
+        i + 1 < lines.length &&
+        lines[i + 1].trim().startsWith('|') &&
+        (lines[i + 1].includes(':-') || lines[i + 1].includes('-:') || lines[i + 1].includes('|-') || lines[i + 1].includes('---'))
+      ) {
+        // Collect table rows
+        const tableLines = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          tableLines.push(lines[i].trim());
+          i++;
+        }
+        
+        // Parse row function
+        const parseRow = (rowText) => {
+          const parts = rowText.split('|').map(p => p.trim());
+          if (parts[0] === '') parts.shift();
+          if (parts[parts.length - 1] === '') parts.pop();
+          return parts;
+        };
+        
+        if (tableLines.length >= 2) {
+          const headers = parseRow(tableLines[0]);
+          const dataRows = [];
+          
+          // Row 1 is delimiter/separator row (tableLines[1]), skip it
+          for (let r = 2; r < tableLines.length; r++) {
+            dataRows.push(parseRow(tableLines[r]));
+          }
+          
+          renderedElements.push(
+            <div key={`table-${i}`} style={{ overflowX: 'auto', margin: '14px 0' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left', border: '1px solid #cbd5e1' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                    {headers.map((h, hIdx) => (
+                      <th key={hIdx} style={{ padding: '8px 10px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>
+                        {h.replace(/\*\*|\*/g, '')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dataRows.map((row, rIdx) => (
+                    <tr key={rIdx} style={{ borderBottom: '1px solid #e2e8f0', background: rIdx % 2 === 1 ? '#f8fafc' : '#ffffff' }}>
+                      {headers.map((_, cIdx) => {
+                        const cellText = row[cIdx] || '';
+                        return (
+                          <td key={cIdx} style={{ padding: '8px 10px', border: '1px solid #cbd5e1', lineHeight: '1.4' }}>
+                            {cellText.replace(/\*\*|\*/g, '')}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+          
+          continue;
+        }
+      }
       
       // Horizontal rule
       if (trimmed === '---') {
-        return <hr key={idx} style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '12px 0' }} />;
+        renderedElements.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '12px 0' }} />);
+        i++;
+        continue;
       }
       
       // List items starting with '-' or '•'
       const isBullet = trimmed.startsWith('- ') || trimmed.startsWith('• ');
       if (isBullet) {
         const cleanText = trimmed.replace(/^[-•\s]+/, '').replace(/\*\*|\*/g, '');
-        return (
-          <div key={idx} style={{ display: 'flex', gap: 8, paddingLeft: 12, marginBottom: 4 }}>
+        renderedElements.push(
+          <div key={i} style={{ display: 'flex', gap: 8, paddingLeft: 12, marginBottom: 4 }}>
             <span style={{ color: '#4f46e5' }}>•</span>
             <span style={{ flex: 1, fontSize: '12px', lineHeight: '1.6' }}>{cleanText}</span>
           </div>
         );
+        i++;
+        continue;
       }
       
-      // Main headers (e.g. 1. ANALISIS KEKUATAN & KEPATUHAN (Strengths) or I. DAFTAR MATA KULIAH...)
+      // Main headers
       const isMainHeader = /^[0-9]+\.\s+[A-Z\s&()\-]+$/.test(trimmed) || /^[IVXLCDM]+\.\s+[A-Z\s&()\-]+$/.test(trimmed);
       if (isMainHeader) {
-        return (
-          <h3 key={idx} style={{ fontSize: '13px', fontWeight: 800, margin: '20px 0 8px 0', color: '#1e293b', textTransform: 'uppercase' }}>
+        renderedElements.push(
+          <h3 key={i} style={{ fontSize: '13px', fontWeight: 800, margin: '20px 0 8px 0', color: '#1e293b', textTransform: 'uppercase' }}>
             {trimmed}
           </h3>
         );
+        i++;
+        continue;
       }
       
-      // Subheaders (e.g. 1.1. Ketepatan...)
+      // Subheaders
       const isSubHeader = /^[0-9]+\.[0-9]+\.\s+/.test(trimmed);
       if (isSubHeader) {
-        return (
-          <h4 key={idx} style={{ fontSize: '12px', fontWeight: 700, margin: '14px 0 6px 0', color: '#334155' }}>
+        renderedElements.push(
+          <h4 key={i} style={{ fontSize: '12px', fontWeight: 700, margin: '14px 0 6px 0', color: '#334155' }}>
             {trimmed}
           </h4>
         );
+        i++;
+        continue;
       }
 
       // Fallback clean of any markdown characters
-      trimmed = trimmed.replace(/#+\s*/g, '').replace(/\*\*|\*/g, '');
+      const cleaned = trimmed.replace(/#+\s/g, '').replace(/\*\*|\*/g, '');
       
-      return (
-        <p key={idx} style={{ margin: '0 0 8px 0', minHeight: trimmed ? 'auto' : '8px', fontSize: '12px', lineHeight: '1.6' }}>
-          {trimmed}
+      renderedElements.push(
+        <p key={i} style={{ margin: '0 0 8px 0', minHeight: cleaned ? 'auto' : '8px', fontSize: '12px', lineHeight: '1.6' }}>
+          {cleaned}
         </p>
       );
-    });
+      i++;
+    }
+    
+    return renderedElements;
   };
 
   // Count filled aspects in a review
@@ -673,7 +763,7 @@ export default function ReviewRpsListPage() {
       {showCompileModal && (() => {
         const { stats, overall } = calculateCompilationStats();
         const selectedRps = rpsList.filter(r => selectedIds.includes(r.id));
-        const prodiName = rpsList[0]?.mk?.prodi?.nama || 'Program Studi';
+        const prodiName = prodi?.nama || 'Program Studi';
 
         return (
           <div className="compilation-modal-overlay" style={{
