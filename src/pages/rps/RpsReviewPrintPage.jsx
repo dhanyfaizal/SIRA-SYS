@@ -263,7 +263,7 @@ export default function RpsReviewPrintPage() {
       </div>
       <div className="signature-section">
         <div className="signature-box">
-          <div>AUDITEE</div>
+          <div>DOSEN MATA KULIAH</div>
           <div>
             <div style={{ fontWeight: 'bold', textDecoration: 'underline' }}>
               {rps.dosen?.nama_lengkap}
@@ -274,7 +274,7 @@ export default function RpsReviewPrintPage() {
           </div>
         </div>
         <div className="signature-box">
-          <div>AUDITOR,</div>
+          <div>KA. PRODI</div>
           <div>
             <div style={{ fontWeight: 'bold', textDecoration: 'underline' }}>
               {kaprodi?.nama_lengkap || review?.reviewer?.nama_lengkap || '(Ka. Prodi)'}
