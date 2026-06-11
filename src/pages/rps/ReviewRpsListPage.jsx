@@ -35,7 +35,27 @@ const ASPECT_LABELS = {
 
 const cleanMarkdown = (text) => {
   if (!text) return '';
-  return text
+  
+  let cleaned = text.trim();
+  
+  // Strip code block markers if present
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```[a-zA-Z0-9]*\s*\n?/, '');
+    cleaned = cleaned.replace(/\n?\s*```$/, '');
+  }
+  
+  // Clean any starting "markdown" text (case-insensitive)
+  if (cleaned.toLowerCase().startsWith('markdown\n')) {
+    cleaned = cleaned.substring(9);
+  } else if (cleaned.toLowerCase().startsWith('markdown\r\n')) {
+    cleaned = cleaned.substring(10);
+  } else if (cleaned.toLowerCase().startsWith('markdown ')) {
+    cleaned = cleaned.substring(9);
+  } else if (cleaned.toLowerCase() === 'markdown') {
+    cleaned = '';
+  }
+  
+  return cleaned.trim()
     .split('\n')
     .map(line => {
       let l = line.trim();
@@ -304,7 +324,26 @@ export default function ReviewRpsListPage() {
   const renderFormattedNotes = (text) => {
     if (!text) return null;
     
-    const lines = text.split('\n');
+    let cleanedText = text.trim();
+    
+    // Strip code block markers if present
+    if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```[a-zA-Z0-9]*\s*\n?/, '');
+      cleanedText = cleanedText.replace(/\n?\s*```$/, '');
+    }
+    
+    // Clean any starting "markdown" text (case-insensitive)
+    if (cleanedText.toLowerCase().startsWith('markdown\n')) {
+      cleanedText = cleanedText.substring(9);
+    } else if (cleanedText.toLowerCase().startsWith('markdown\r\n')) {
+      cleanedText = cleanedText.substring(10);
+    } else if (cleanedText.toLowerCase().startsWith('markdown ')) {
+      cleanedText = cleanedText.substring(9);
+    } else if (cleanedText.toLowerCase() === 'markdown') {
+      cleanedText = '';
+    }
+    
+    const lines = cleanedText.split('\n');
     const renderedElements = [];
     
     let i = 0;
@@ -312,26 +351,30 @@ export default function ReviewRpsListPage() {
       const line = lines[i];
       const trimmed = line.trim();
       
-      // Check for markdown table
+      // Check for markdown table (flexible style, with or without leading/trailing pipes)
       if (
-        trimmed.startsWith('|') &&
+        trimmed.includes('|') &&
         i + 1 < lines.length &&
-        lines[i + 1].trim().startsWith('|') &&
+        lines[i + 1].trim().includes('|') &&
         (lines[i + 1].includes(':-') || lines[i + 1].includes('-:') || lines[i + 1].includes('|-') || lines[i + 1].includes('---'))
       ) {
         // Collect table rows
         const tableLines = [];
-        while (i < lines.length && lines[i].trim().startsWith('|')) {
+        while (i < lines.length && lines[i].includes('|')) {
           tableLines.push(lines[i].trim());
           i++;
         }
         
         // Parse row function
         const parseRow = (rowText) => {
-          const parts = rowText.split('|').map(p => p.trim());
-          if (parts[0] === '') parts.shift();
-          if (parts[parts.length - 1] === '') parts.pop();
-          return parts;
+          let row = rowText.trim();
+          if (row.startsWith('|')) {
+            row = row.substring(1);
+          }
+          if (row.endsWith('|')) {
+            row = row.slice(0, -1);
+          }
+          return row.split('|').map(p => p.trim());
         };
         
         if (tableLines.length >= 2) {
