@@ -1,13 +1,18 @@
 import { useState } from 'react'
-import { Sparkles, RefreshCw } from 'lucide-react'
-import { generateCourseDescription } from '@/lib/ai'
+import { Sparkles, RefreshCw, Plus, Trash2 } from 'lucide-react'
+import { generateCourseDescription, generateReferences } from '@/lib/ai'
 import AiProgressModal from '@/components/ui/AiProgressModal'
 import toast from 'react-hot-toast'
 
 export default function Step2Identitas({ form, setF }) {
   const mk = form.mk
+  const referensi = form.referensi || []
+  const [newRef, setNewRef] = useState('')
   const [generating, setGenerating] = useState(false)
   const [progressText, setProgressText] = useState('')
+
+  const [generatingRefs, setGeneratingRefs] = useState(false)
+  const [refProgressText, setRefProgressText] = useState('')
 
   async function handleAiGenerateDesc() {
     if (!mk?.nama_mk) {
@@ -66,6 +71,94 @@ export default function Step2Identitas({ form, setF }) {
       if (subTimer) clearInterval(subTimer)
       setGenerating(false)
     }
+  }
+
+  async function handleAiGenerateRefs() {
+    const courseName = form.mk?.nama_mk
+    if (!courseName) {
+      toast.error('Nama Mata Kuliah tidak ditemukan. Pastikan Anda sudah melengkapi Langkah 1.')
+      return
+    }
+
+    setGeneratingRefs(true)
+    setRefProgressText("Menghubungi Gateway API Server...")
+
+    let subTimer = null
+    const steps = [
+      "Menganalisis Nama Mata Kuliah & CPMK...",
+      "Mencari Buku Teks Akademik Mutakhir...",
+      "Mencari Artikel & Jurnal Ilmiah Terbaru...",
+      "Memformat Sitasi dengan Standar APA Style...",
+      "Mempersiapkan Rekomendasi Pustaka..."
+    ]
+    let currentStep = 0
+
+    const handleProgress = (event) => {
+      if (typeof event === 'string') {
+        if (event === "AI sedang memikirkan materi & merumuskan konten (proses ini memakan waktu)...") {
+          setRefProgressText(steps[0])
+          subTimer = setInterval(() => {
+            currentStep++
+            if (currentStep < steps.length) {
+              setRefProgressText(steps[currentStep])
+            } else {
+              setRefProgressText("AI sedang menyusun rujukan pustaka... Mohon tunggu sebentar lagi...")
+            }
+          }, 2500)
+        } else {
+          if (subTimer) clearInterval(subTimer)
+          setRefProgressText(event)
+        }
+      } else if (event && event.type === 'chunk') {
+        if (subTimer) clearInterval(subTimer)
+        const charCount = event.text.length
+        setRefProgressText(`AI sedang merumuskan referensi... (${charCount.toLocaleString('id-ID')} karakter)`)
+      }
+    }
+
+    try {
+      const result = await generateReferences(courseName, form.cpmk, handleProgress)
+      if (Array.isArray(result) && result.length > 0) {
+        const existing = new Set(referensi)
+        const newAdded = []
+        result.forEach(ref => {
+          if (!existing.has(ref)) {
+            newAdded.push(ref)
+          }
+        })
+        if (newAdded.length > 0) {
+          setF('referensi', [...referensi, ...newAdded])
+          toast.success(`Berhasil menambahkan ${newAdded.length} referensi pustaka mutakhir! 🎉`)
+        } else {
+          toast.info('Referensi yang disarankan AI sudah ada di daftar Anda.')
+        }
+      } else {
+        throw new Error("Format rekomendasi referensi tidak valid.")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error(err.message || 'Gagal merekomendasikan referensi.')
+    } finally {
+      if (subTimer) clearInterval(subTimer)
+      setGeneratingRefs(false)
+    }
+  }
+
+  function addRef() {
+    const val = newRef.trim()
+    if (!val) return
+    setF('referensi', [...referensi, val])
+    setNewRef('')
+  }
+
+  function removeRef(i) {
+    setF('referensi', referensi.filter((_, idx) => idx !== i))
+  }
+
+  function updateRef(i, val) {
+    const newRefs = [...referensi]
+    newRefs[i] = val
+    setF('referensi', newRefs)
   }
 
   return (
@@ -140,7 +233,83 @@ export default function Step2Identitas({ form, setF }) {
         />
         <span className="input-hint">{form.deskripsi_mk.length} karakter · minimal 50 karakter disarankan</span>
       </div>
+
+      {/* Referensi */}
+      <div style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+            Referensi Pustaka (3 Tahun Terakhir)
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleAiGenerateRefs}
+            disabled={generatingRefs}
+            style={{
+              background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
+              borderColor: 'var(--indigo-200)',
+              color: 'var(--indigo-700)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 8px',
+              fontSize: '11px',
+            }}
+          >
+            {generatingRefs ? (
+              <RefreshCw size={12} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Sparkles size={12} color="var(--indigo-600)" />
+            )}
+            {generatingRefs ? 'Mencari...' : 'Rekomendasi Referensi AI'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <input className="input" style={{ flex: 1 }}
+            placeholder="Contoh: Pressman, R.S. (2014). Software Engineering. McGraw-Hill."
+            value={newRef}
+            onChange={e => setNewRef(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRef() } }}
+          />
+          <button type="button" className="btn btn-secondary" onClick={addRef}>
+            <Plus size={14} /> Tambah
+          </button>
+        </div>
+
+        {referensi.length === 0 ? (
+          <p style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+            Belum ada referensi. Ketik rujukan di atas lalu tekan Enter atau klik Tambah.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {referensi.map((r, i) => (
+              <div key={i} style={{
+                display: 'flex', gap: 8, alignItems: 'center',
+                padding: '6px 12px', background: '#f8fafc',
+                border: '1px solid #e2e8f0', borderRadius: 6
+              }}>
+                <span style={{ color: '#6366f1', fontWeight: 700, fontSize: 12, width: 24, flexShrink: 0 }}>[{i + 1}]</span>
+                
+                <input
+                  className="input"
+                  style={{ flex: 1, fontSize: 12, border: 'none', background: 'transparent', padding: '2px 0' }}
+                  value={r}
+                  onChange={e => updateRef(i, e.target.value)}
+                />
+
+                <button type="button" className="btn btn-ghost btn-icon btn-sm" style={{ padding: 2, flexShrink: 0 }}
+                  onClick={() => removeRef(i)}>
+                  <Trash2 size={13} color="#ef4444" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <AiProgressModal isOpen={generating} title="Penyusunan Deskripsi MK" progressText={progressText} />
+      <AiProgressModal isOpen={generatingRefs} title="Rekomendasi Referensi Pustaka" progressText={refProgressText} />
     </div>
   )
 }

@@ -172,6 +172,7 @@ export default function Step4Pertemuan({ form, setF }) {
         form.deskripsi_mk,
         form.cpmk,
         sks,
+        form.referensi || [],
         handleProgress
       )
 
