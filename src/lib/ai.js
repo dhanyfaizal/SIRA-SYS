@@ -605,19 +605,47 @@ export async function generateObeMapping(courseName, cpmkList, assessmentCompone
 }
 
 // 11. Generate Materi Slide untuk Pertemuan (Format Outline Sederhana)
-export async function generateSlideContent(courseName, meetingNo, topic, capability, references = [], onProgress = null) {
+export async function generateSlideContent(courseName, meetingNo, topic, capability, references = [], semester = 1, sks = 3, onProgress = null) {
+  const isSenior = semester >= 5;
+  const targetWaktu = sks * 50;
+
   const prompt = `
-    Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline slide presentasi terstruktur untuk perkuliahan berikut:
+    Anda adalah pakar akademis dan desainer instruksional senior. Tugas Anda adalah menyusun rancangan materi ajar dalam bentuk outline slide presentasi terstruktur berbasis Outcome-Based Education (OBE) untuk perkuliahan berikut:
     Mata Kuliah: "${courseName}"
+    Semester: ${semester} (Tingkat: ${isSenior ? 'Lanjut/Akhir - fokus pada studi kasus industri nyata, sintesis, & proyek mandiri' : 'Awal/Dasar - fokus pada teori fondasional, konsep utama, & contoh dasar'})
+    SKS: ${sks} SKS (Alokasi waktu tatap muka: ${targetWaktu} menit)
     Pertemuan Ke: ${meetingNo}
     Topik / Bahan Kajian: "${topic || '—'}"
     Kemampuan Akhir Mahasiswa: "${capability || '—'}"
     Referensi Pustaka Utama RPS: ${JSON.stringify(references)}
 
-    Hasilkan outline slide presentasi yang sangat komprehensif, mendalam, dan kaya materi dengan ketentuan berikut:
+    Hasilkan outline slide presentasi yang sangat komprehensif, mendalam, dan terstruktur sesuai dengan alur (workflow) berikut:
+
+    Fase 1: Pemetaan Tujuan (Alignment) & Karakteristik Mahasiswa
+    - Sesuaikan kedalaman materi dengan tingkat semester (${semester}).
+    - ${isSenior ? 'Karena mahasiswa berada di tingkat akhir (semester >= 5), berikan porsi lebih besar pada studi kasus industri nyata, proyek mandiri, dan sintesis konsep.' : 'Karena mahasiswa berada di tingkat awal/menengah (semester < 5), fokuskan pada teori dasar, terminologi, konsep fondasional, serta contoh terstruktur.'}
+
+    Fase 2: Strukturisasi Materi (Outline)
+    Pecah topik menjadi kerangka logis yang mencakup:
+    1. Apersepsi / Hook (Slide 2): Menjelaskan urgensi topik ini di dunia nyata/industri nyata.
+    2. Konsep Utama (Core Concept): Teori dasar, terminologi, dan prinsip dasar.
+    3. Penerapan (Application): Studi kasus praktis atau demonstrasi.
+    4. Pembagian Estimasi Waktu: Tentukan estimasi waktu pengerjaan/pembelajaran untuk setiap slide/sub-topik (alokasikan secara proporsional dari total waktu ${targetWaktu} menit).
+
+    Fase 3: Pengembangan Konten Interaktif & Visual
+    - Kurasi pustaka: Integrasikan referensi pustaka utama RPS di atas yang relevan (cantumkan rujukan buku/artikel pada slide yang sesuai).
+    - Berikan visualisasi data/perbandingan dalam bentuk tabel atau bagan perbandingan di salah dari slide tengah.
+    - Sediakan setidaknya 1 slide multimedia yang memerlukan gambar visual penjelas (sediakan deskripsi kata kunci bahasa Inggris sederhana untuk 'unsplash_query').
+    - Sediakan kuis interaktif pendek di bagian akhir materi (berupa 1 soal Pilihan Ganda dengan 5 opsi jawaban: A, B, C, D, E beserta kunci jawaban & penjelasan singkat).
+
+    Fase 4: Desain Aktivitas Kelas & Evaluasi (Active Learning)
+    - Rancang aktivitas belajar aktif di dalam kelas (pilih salah satu: skenario Focus Group Discussion (FGD), bedah kasus industri, atau sesi mini-sprint).
+    - Rancang penugasan praktis yang relevan (misalnya pembuatan desain, penulisan esai kritis, atau coding challenge).
+    - Sintesis: Slide kesimpulan akhir dan keterkaitan topik ini dengan materi minggu lalu/minggu depan.
+
+    Ketentuan Slide:
     1. Jumlah Slide: MINIMAL 15 SLIDE (slide 1 s.d. slide 15+).
-    2. Integrasi Referensi: Hubungkan penjelasan materi dengan referensi pustaka utama RPS di atas yang relevan (cantumkan kutipan/rujukan buku atau artikel ilmiah tersebut pada slide yang relevan).
-    3. Kedalaman Konten: Berikan penjelasan yang mendalam dan bermakna pada setiap slide. Di dalam poin-poin materi, berikan CONTOH konkret, PENERAPAN praktis di industri/studi kasus nyata, PERBANDINGAN teori/konsep/metode, dan penjelasan pelengkap lainnya yang dapat mengembangkan wawasan materi ini secara maksimal. Poin penjelasan harus berupa kalimat informatif yang kaya konten (bukan frasa pendek atau ringkasan seadanya).
+    2. Struktur Slide: Poin penjelasan pada setiap slide harus berupa kalimat informatif yang kaya konten, memberikan contoh konkret, perbandingan, atau studi kasus nyata. Hindari poin-poin yang terlalu pendek atau ringkasan seadanya.
 
     Format output harus berupa JSON OBJECT murni dengan struktur:
     {
@@ -625,20 +653,28 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
       "slides": [
         {
           "slide_no": 1,
-          "title": "Judul Slide 1 (contoh: Pendahuluan & Rujukan)",
+          "title": "Judul Slide",
+          "estimated_time": 10,
           "content": [
-            "Poin penjelasan mendalam tentang konsep dasar...",
-            "Rujukan pustaka dan perannya dalam bab ini...",
-            "Contoh kasus nyata..."
-          ]
+            "Poin penjelasan mendalam..."
+          ],
+          "unsplash_query": "kata kunci gambar di unsplash jika slide ini membutuhkan gambar pendukung (opsional, gunakan bahasa inggris seperti: 'programming', 'meeting', 'data')",
+          "quiz": {
+            "question": "Pertanyaan kuis...",
+            "options": ["Opsi A", "Opsi B", "Opsi C", "Opsi D", "Opsi E"],
+            "answer": "A/B/C/D/E",
+            "explanation": "Penjelasan jawaban..."
+          },
+          "activity": {
+            "type": "FGD" | "Case Study" | "Mini-Sprint" | "Assignment",
+            "instruction": "Instruksi aktivitas atau tugas..."
+          }
         },
         ...
       ]
     }
 
-    ATURAN:
-    - Gunakan Bahasa Indonesia formal akademik.
-    - Jangan berikan penjelasan tambahan apapun di luar JSON murni.
+    Jangan sertakan teks pengantar maupun penutup di luar JSON murni.
   `;
 
   return callAi(prompt, true, onProgress);
@@ -733,6 +769,36 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
            { "header": "Pertanyaan pemantik / Judul sub-konsep 1?", "content": "Pembahasan substantif / jawaban ilmiah yang komprehensif atas pertanyaan tersebut..." },
            { "header": "Pertanyaan pemantik / Judul sub-konsep 2?", "content": "Analisis kasus / penjelasan mendalam..." }
          ]
+       }
+    7. "image": Layout slide dengan visual gambar pendukung. Menampilkan gambar di kiri (berdasarkan query pencarian) dan poin penjelasan di kanan. Cocok untuk slide yang memerlukan demonstrasi visual/multimedia.
+       {
+         "slide_no": X,
+         "layout": "image",
+         "title": "Judul Slide",
+         "reference": "...",
+         "unsplash_query": "kata kunci gambar dalam bahasa inggris (misal: 'programming', 'network', 'data')",
+         "content": [
+           "Poin penjelasan visual 1...",
+           "Poin penjelasan visual 2..."
+         ]
+       }
+    8. "quiz": Layout kuis interaktif pilihan ganda di akhir materi presentasi untuk mengukur pemahaman.
+       {
+         "slide_no": X,
+         "layout": "quiz",
+         "title": "Kuis Interaktif: Uji Pemahaman",
+         "quiz": {
+           "question": "Pertanyaan kuis pilihan ganda...",
+           "options": [
+             "Opsi A: deskripsi opsi A...",
+             "Opsi B: deskripsi opsi B...",
+             "Opsi C: deskripsi opsi C...",
+             "Opsi D: deskripsi opsi D...",
+             "Opsi E: deskripsi opsi E..."
+           ],
+           "answer": "A" | "B" | "C" | "D" | "E",
+           "explanation": "Penjelasan detail kenapa jawaban tersebut benar..."
+         }
        }
 
     Format output harus berupa JSON OBJECT murni dengan struktur:

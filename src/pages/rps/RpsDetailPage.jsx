@@ -599,6 +599,8 @@ export default function RpsDetailPage() {
           meeting.bahan_kajian,
           meeting.kemampuan_akhir,
           rps.referensi ?? [],
+          rps.mk?.semester || 1,
+          rps.mk?.sks || 3,
           handleProgress
         )
       } else {
@@ -1624,7 +1626,7 @@ export default function RpsDetailPage() {
                               padding: '2px 8px',
                               borderRadius: 12
                             }}>
-                              Slide {slide.slide_no}
+                              Slide {slide.slide_no}{slide.estimated_time ? ` (${slide.estimated_time} mnt)` : ''}
                             </span>
                             <button
                               type="button"
@@ -1656,6 +1658,39 @@ export default function RpsDetailPage() {
                               <li key={idx} style={{ marginBottom: 4 }}>{poin}</li>
                             ))}
                           </ul>
+
+                          {slide.unsplash_query && (
+                            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--indigo-600)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Eye size={12} />
+                              <span>Rekomendasi Visual Unsplash: <em>"{slide.unsplash_query}"</em></span>
+                            </div>
+                          )}
+
+                          {slide.quiz && (
+                            <div style={{ marginTop: 10, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, textAlign: 'left' }}>
+                              <div style={{ fontWeight: 700, color: '#10b981', marginBottom: 4 }}>Kuis Pilihan Ganda:</div>
+                              <div style={{ fontWeight: 600, marginBottom: 6 }}>{slide.quiz.question}</div>
+                              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 6px 0' }}>
+                                {slide.quiz.options?.map((opt, oIdx) => (
+                                  <li key={oIdx} style={{ padding: '2px 0' }}>
+                                    <strong>{['A','B','C','D','E'][oIdx]}.</strong> {opt}
+                                  </li>
+                                ))}
+                              </ul>
+                              <div style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>
+                                <strong>Kunci Jawaban:</strong> {slide.quiz.answer} | <strong>Penjelasan:</strong> {slide.quiz.explanation}
+                              </div>
+                            </div>
+                          )}
+
+                          {slide.activity && (
+                            <div style={{ marginTop: 10, padding: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, textAlign: 'left' }}>
+                              <div style={{ fontWeight: 700, color: '#b45309', marginBottom: 4 }}>
+                                Aktivitas Kelas ({slide.activity.type}):
+                              </div>
+                              <div style={{ color: '#92400e', lineHeight: 1.5 }}>{slide.activity.instruction}</div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

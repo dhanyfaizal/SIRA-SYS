@@ -37,6 +37,28 @@ const PRODI_THEMES = {
   }
 };
 
+const UNSPLASH_IMAGES = {
+  programming: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600',
+  code: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600',
+  software: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600',
+  web: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
+  ui: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
+  ux: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
+  design: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
+  data: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600',
+  database: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?q=80&w=600',
+  network: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=600',
+  cloud: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=600',
+  security: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=600',
+  theory: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600',
+  study: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600',
+  class: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600',
+  collaboration: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600',
+  meeting: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600',
+  book: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?q=80&w=600',
+  default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'
+};
+
 function getThemeByProdi(prodiName) {
   const name = prodiName?.toLowerCase() || '';
   if (name.includes('sistem informasi')) return PRODI_THEMES.si;
@@ -222,6 +244,69 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
               </div>
             </details>
           `).join('')}
+        </div>
+      `;
+    }
+
+    // 6b. LAYOUT: IMAGE (Gambar Unsplash & Konten Teks)
+    if (layout === 'image') {
+      const query = (slide.unsplash_query || '').toLowerCase().trim();
+      let imageUrl = UNSPLASH_IMAGES.default;
+      for (const [key, url] of Object.entries(UNSPLASH_IMAGES)) {
+        if (query.includes(key)) {
+          imageUrl = url;
+          break;
+        }
+      }
+      if (slide.image_url) {
+        imageUrl = slide.image_url;
+      }
+      
+      const points = slide.content || [];
+      return `
+        <div class="split animate-item">
+          <div class="col" style="justify-content: center; align-items: center;">
+            <img src="${imageUrl}" alt="${slide.title || 'Materi'}" style="width: 100%; max-height: 360px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);" />
+          </div>
+          <div class="col" style="justify-content: center; gap: 14px;">
+            ${points.map((pt, idx) => `
+              <div style="display: flex; gap: 12px; align-items: flex-start;" class="animate-item animate-delay-${idx + 1}">
+                <div class="chk chk-green"><svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1 4.5l2.5 2.5L8 1.5" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <p class="body" style="font-size: calc(15px * var(--fs-mult)); color: var(--text-dim); line-height: 1.55;">${pt}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // 6c. LAYOUT: QUIZ (Kuis Pilihan Ganda Interaktif)
+    if (layout === 'quiz') {
+      const q = slide.quiz || { question: 'Pertanyaan Kuis?', options: [], answer: 'A', explanation: '' };
+      const optionLetters = ['A', 'B', 'C', 'D', 'E'];
+      return `
+        <div class="quiz-container animate-item" style="display: flex; flex-direction: column; gap: 16px; width: 100%; text-align: left;">
+          <div class="quiz-question" style="font-size: calc(17px * var(--fs-mult)); font-weight: 700; color: var(--text-main); background: #FFFFFF; border: 1px solid rgba(229,231,235,1); padding: 18px 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); line-height: 1.5;">
+            ${q.question}
+          </div>
+          <div class="quiz-options" style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+            ${q.options.map((opt, idx) => {
+              const letter = optionLetters[idx] || '';
+              return `
+                <div class="quiz-option" onclick="checkAnswer(this, '${letter}', '${q.answer}', '${slideIndex}')" style="display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid rgba(229,231,235,1); padding: 12px 20px; border-radius: 10px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.01); user-select: none;">
+                  <span class="quiz-option-letter" style="width: 26px; height: 26px; border-radius: 50%; background: var(--accent-cyan); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">${letter}</span>
+                  <span class="quiz-option-text" style="font-size: calc(14px * var(--fs-mult)); color: var(--text-dim); font-weight: 500;">${opt}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div class="quiz-explanation-box" id="quiz-exp-${slideIndex}" style="display: none; background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px 20px; font-size: calc(14px * var(--fs-mult)); color: #065f46; line-height: 1.55;">
+            <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Pembahasan Jawaban:</span>
+            </div>
+            <p>${q.explanation}</p>
+          </div>
         </div>
       `;
     }
@@ -507,6 +592,10 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
         }
         .nav-btn-bottom:hover { background: var(--accent-cyan); color: #FFFFFF; border-color: var(--accent-cyan); box-shadow: 0 10px 15px -3px ${theme.rgbaLight}; transform: translateY(-2px); }
         
+        /* ── Quiz Interactive ── */
+        .quiz-option { transition: all 0.2s ease; }
+        .quiz-option:hover { background: ${theme.rgbaLight} !important; border-color: var(--accent-cyan) !important; }
+
         /* Animation states */
         .active .animate-item { animation: fadeInUp 0.5s forwards; opacity: 0; }
         .active .animate-delay-1 { animation-delay: 0.1s; }
@@ -638,9 +727,33 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
     document.getElementById("btn-font-down").addEventListener("click", () => {
         if (fontMultiplier > 0.85) { fontMultiplier -= 0.05; rootStyle.setProperty('--fs-mult', fontMultiplier.toFixed(2)); }
     });
-    document.getElementById("btn-font-reset").addEventListener("click", () => {
-        fontMultiplier = 1.05; rootStyle.setProperty('--fs-mult', fontMultiplier.toFixed(2));
-    });
+    window.checkAnswer = function(element, chosen, correct, slideIndex) {
+        const parent = element.parentElement;
+        const options = parent.querySelectorAll('.quiz-option');
+        const expBox = document.getElementById('quiz-exp-' + slideIndex);
+        
+        options.forEach(opt => {
+            opt.style.pointerEvents = 'none';
+        });
+        
+        options.forEach(opt => {
+            const letterSpan = opt.querySelector('.quiz-option-letter');
+            const letter = letterSpan.textContent.trim();
+            if (letter === correct) {
+                opt.style.background = '#ecfdf5';
+                opt.style.borderColor = '#10b981';
+                if (letterSpan) letterSpan.style.background = '#10b981';
+            } else if (letter === chosen) {
+                opt.style.background = '#fef2f2';
+                opt.style.borderColor = '#ef4444';
+                if (letterSpan) letterSpan.style.background = '#ef4444';
+            }
+        });
+        
+        if (expBox) {
+            expBox.style.display = 'block';
+        }
+    };
 </script>
 </body>
 </html>`;
