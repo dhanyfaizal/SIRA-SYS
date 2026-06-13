@@ -665,20 +665,30 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
+        @page {
+            size: landscape;
+            margin: 0;
+        }
         @media print {
-            body {
-                background: white !important;
-                color: black !important;
+            html, body {
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 overflow: visible !important;
-                min-height: auto !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             #slider-wrapper {
                 width: 100% !important;
-                height: auto !important;
+                height: 100% !important;
                 box-shadow: none !important;
                 border: none !important;
                 overflow: visible !important;
                 position: static !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             .slide {
                 position: relative !important;
@@ -686,14 +696,16 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
                 visibility: visible !important;
                 transform: none !important;
                 page-break-after: always !important;
+                page-break-inside: avoid !important;
                 break-after: page !important;
-                width: 100% !important;
+                width: 100vw !important;
                 height: 100vh !important;
                 display: flex !important;
                 flex-direction: column !important;
                 box-sizing: border-box !important;
                 margin: 0 !important;
                 padding: 80px 60px 60px 60px !important;
+                overflow: hidden !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
