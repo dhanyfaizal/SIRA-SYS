@@ -664,6 +664,43 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
             color: rgba(216, 231, 255, 0.5) !important;
         }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                overflow: visible !important;
+                min-height: auto !important;
+            }
+            #slider-wrapper {
+                width: 100% !important;
+                height: auto !important;
+                box-shadow: none !important;
+                border: none !important;
+                overflow: visible !important;
+                position: static !important;
+            }
+            .slide {
+                position: relative !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: none !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                width: 100% !important;
+                height: 100vh !important;
+                display: flex !important;
+                flex-direction: column !important;
+                box-sizing: border-box !important;
+                margin: 0 !important;
+                padding: 80px 60px 60px 60px !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .top-header, .controls, #progress-container {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -675,6 +712,7 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
             <span style="border-left: 2px solid #374151; padding-left: 12px; margin-left: 5px; color: var(--text-main); font-weight: 700;">Pertemuan ${meetingNo}</span>
         </div>
         <div class="header-controls">
+            <button class="action-btn" id="btn-print" title="Cetak ke PDF"><i class="fa-solid fa-print"></i> Cetak PDF</button>
             <button class="action-btn" id="btn-fullscreen" title="Layar Penuh"><i class="fa-solid fa-expand"></i> Fullscreen</button>
             <div class="font-control-group">
                 <button class="font-btn" id="btn-font-down"><i class="fa-solid fa-minus"></i> A</button>
@@ -738,6 +776,10 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
         if (!document.fullscreenElement) {
             sliderWrapper.requestFullscreen().catch(err => { alert(\`Gagal: \${err.message}\`); });
         } else { document.exitFullscreen(); }
+    });
+
+    document.getElementById("btn-print").addEventListener("click", () => {
+        window.print();
     });
     
     document.addEventListener("fullscreenchange", () => {
