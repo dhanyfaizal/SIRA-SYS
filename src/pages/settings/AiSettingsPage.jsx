@@ -258,7 +258,7 @@ export default function AiSettingsPage() {
             Sistem asisten AI SIRASYS dikonfigurasi untuk mencoba model-model berikut secara berurutan (*fallback loop*) guna menjamin ketersediaan layanan meskipun terjadi kehabisan kuota pada salah satu model:
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-            {['deepseek-v4-pro', 'qwen3.6-plus', 'glm-5.1', 'glm-5', 'deepseek-v4-flash', 'qwen3.6-flash', 'glm-5-turbo'].map(m => (
+            {['deepseek-v4-flash', 'deepseek-v4-pro', 'qwen3.6-plus', 'glm-5.1', 'glm-5', 'qwen3.6-flash', 'glm-5-turbo'].map(m => (
               <span key={m} className="badge-pill badge-slate" style={{ fontSize: 10 }}>
                 {m}
               </span>
