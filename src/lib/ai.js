@@ -619,24 +619,23 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
     Kemampuan Akhir Mahasiswa: "${capability || '—'}"
     Referensi Pustaka Utama RPS: ${JSON.stringify(references)}
 
-    Hasilkan outline slide presentasi yang sangat komprehensif, mendalam, dan terstruktur sesuai dengan alur (workflow) berikut:
+    Hasilkan outline slide presentasi yang sangat komprehensif, mendalam, dan terstruktur dengan ketentuan alur (workflow) berikut:
 
     Fase 1: Pemetaan Tujuan (Alignment) & Karakteristik Mahasiswa
     - Sesuaikan kedalaman materi dengan tingkat semester (${semester}).
     - ${isSenior ? 'Karena mahasiswa berada di tingkat akhir (semester >= 5), berikan porsi lebih besar pada studi kasus industri nyata, proyek mandiri, dan sintesis konsep.' : 'Karena mahasiswa berada di tingkat awal/menengah (semester < 5), fokuskan pada teori dasar, terminologi, konsep fondasional, serta contoh terstruktur.'}
 
-    Fase 2: Strukturisasi Materi (Outline)
-    Pecah topik menjadi kerangka logis yang mencakup:
-    1. Apersepsi / Hook (Slide 2): Menjelaskan urgensi topik ini di dunia nyata/industri nyata.
-    2. Konsep Utama (Core Concept): Teori dasar, terminologi, dan prinsip dasar.
-    3. Penerapan (Application): Studi kasus praktis atau demonstrasi.
-    4. Pembagian Estimasi Waktu: Tentukan estimasi waktu pengerjaan/pembelajaran untuk setiap slide/sub-topik (alokasikan secara proporsional dari total waktu ${targetWaktu} menit).
+    Fase 2: Strukturisasi Materi (Outline) & Section Divider
+    - Pembagian Topik: Pecah topik bahasan menjadi beberapa topik bahasan utama yang logis.
+    - Slide Pembatas Topik (Section Divider): Setiap kali masuk ke topik bahasan baru, Anda WAJIB membuat satu slide transisi khusus (Section Divider) yang berfungsi sebagai pembatas. Slide ini ditandai dengan properti "is_section": true, dan hanya memuat judul topik bahasan tersebut (tanpa poin-poin panjang).
+    - Slide Lanjutan (Continuation): Materi/topik bahasan yang kompleks diperbolehkan (dan disarankan) dijelaskan menggunakan 2 atau 3 slide berturut-turut. Pada slide ke-2 dan ke-3 dari topik yang sama, tambahkan tulisan " (Lanjutan)" atau " (Bagian 2)" / " (Bagian 3)" pada judul slide tersebut agar mahasiswa memahami kelanjutan materinya.
+    - Pembagian Estimasi Waktu: Tentukan estimasi waktu pengerjaan/pembelajaran untuk setiap slide/sub-topik (alokasikan secara proporsional dari total waktu ${targetWaktu} menit).
 
-    Fase 3: Pengembangan Konten Interaktif & Visual
+    Fase 3: Pengembangan Konten Interaktif & Visual (Termasuk 5 Slide Kuis Mandiri)
     - Kurasi pustaka: Integrasikan referensi pustaka utama RPS di atas yang relevan (cantumkan rujukan buku/artikel pada slide yang sesuai).
     - Berikan visualisasi data/perbandingan dalam bentuk tabel atau bagan perbandingan di salah dari slide tengah.
     - Sediakan setidaknya 1 slide multimedia yang memerlukan gambar visual penjelas (sediakan deskripsi kata kunci bahasa Inggris sederhana untuk 'unsplash_query').
-    - Sediakan kuis interaktif pendek di bagian akhir materi (berupa 1 soal Pilihan Ganda dengan 5 opsi jawaban: A, B, C, D, E beserta kunci jawaban & penjelasan singkat).
+    - Kuis Interaktif Dedikatif (5 Slide Kuis Mandiri): Di akhir materi (sebelum slide kesimpulan/sintesis), Anda WAJIB menyusun TEPAT 5 slide kuis pilihan ganda terpisah secara berurutan (Kuis 1 s.d. Kuis 5). Setiap kuis harus menempati 1 slide-nya sendiri. Setiap slide kuis harus memiliki properti "quiz" yang berisi 1 pertanyaan kuis pilihan ganda dengan 5 pilihan jawaban (A, B, C, D, E), kunci jawaban, serta penjelasan/pembahasan singkat yang mendalam.
 
     Fase 4: Desain Aktivitas Kelas & Evaluasi (Active Learning)
     - Rancang aktivitas belajar aktif di dalam kelas (pilih salah satu: skenario Focus Group Discussion (FGD), bedah kasus industri, atau sesi mini-sprint).
@@ -644,8 +643,8 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
     - Sintesis: Slide kesimpulan akhir dan keterkaitan topik ini dengan materi minggu lalu/minggu depan.
 
     Ketentuan Slide:
-    1. Jumlah Slide: MINIMAL 15 SLIDE (slide 1 s.d. slide 15+).
-    2. Struktur Slide: Poin penjelasan pada setiap slide harus berupa kalimat informatif yang kaya konten, memberikan contoh konkret, perbandingan, atau studi kasus nyata. Hindari poin-poin yang terlalu pendek atau ringkasan seadanya.
+    1. Jumlah Slide: Total slide yang dihasilkan berkisar antara 18 s.d. 25 slide secara keseluruhan.
+    2. Struktur Slide: Poin penjelasan pada setiap slide materi harus berupa kalimat informatif yang kaya konten, memberikan contoh konkret, perbandingan, atau studi kasus nyata. Hindari poin-poin yang terlalu pendek atau ringkasan seadanya.
 
     Format output harus berupa JSON OBJECT murni dengan struktur:
     {
@@ -654,18 +653,25 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
         {
           "slide_no": 1,
           "title": "Judul Slide",
-          "estimated_time": 10,
+          "is_section": false, // true jika slide ini adalah pembatas/transisi topik baru
+          "estimated_time": 5, // dalam menit
           "content": [
-            "Poin penjelasan mendalam..."
+            "Poin penjelasan mendalam..." // kosongkan atau beri deskripsi singkat jika is_section = true
           ],
-          "unsplash_query": "kata kunci gambar di unsplash jika slide ini membutuhkan gambar pendukung (opsional, gunakan bahasa inggris seperti: 'programming', 'meeting', 'data')",
-          "quiz": {
+          "unsplash_query": "kata kunci gambar di unsplash jika slide ini membutuhkan gambar pendukung (opsional, gunakan bahasa inggris)",
+          "quiz": { // WAJIB ada dan hanya diisi pada tepat 5 slide kuis di bagian akhir presentasi
             "question": "Pertanyaan kuis...",
-            "options": ["Opsi A", "Opsi B", "Opsi C", "Opsi D", "Opsi E"],
+            "options": [
+              "Opsi A: deskripsi opsi A...",
+              "Opsi B: deskripsi opsi B...",
+              "Opsi C: deskripsi opsi C...",
+              "Opsi D: deskripsi opsi D...",
+              "Opsi E: deskripsi opsi E..."
+            ],
             "answer": "A/B/C/D/E",
             "explanation": "Penjelasan jawaban..."
           },
-          "activity": {
+          "activity": { // hanya untuk slide aktivitas/tugas (opsional)
             "type": "FGD" | "Case Study" | "Mini-Sprint" | "Assignment",
             "instruction": "Instruksi aktivitas atau tugas..."
           }
@@ -690,7 +696,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
     Data Outline Materi (JSON):
     ${JSON.stringify(outlineData)}
 
-    Berdasarkan data outline sederhana di atas, buatlah presentasi WebSlide lengkap (12 sampai 15 slide). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
+    Berdasarkan data outline di atas, buatlah presentasi WebSlide lengkap yang memetakan seluruh slide dari outline (antara 18 s.d. 25 slide). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
 
     ATURAN LAYOUT YANG HARUS DIPILIH:
     Setiap objek slide dapat memuat properti opsional "reference": "Nama Penulis & Tahun (contoh: Williams & Park, 2023)" apabila slide tersebut memuat kutipan/rujukan teoretis.
@@ -702,6 +708,13 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
          "title": "Judul Cover",
          "subtitle": "Subjudul cover",
          "description": "Deskripsi singkat isi perkuliahan hari ini"
+       }
+    1b. "section": Slide pembatas/transisi topik baru (Section Divider). Wajib digunakan jika slide pada outline memiliki "is_section": true.
+       {
+         "slide_no": X,
+         "layout": "section",
+         "title": "Judul Topik Baru",
+         "description": "Deskripsi singkat sub-topik bahasan ini (opsional)"
        }
     2. "split": Layout 2 kolom (kiri & kanan). Cth: konsep/masalah di kiri, poin detail di kanan.
        {

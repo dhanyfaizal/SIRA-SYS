@@ -91,9 +91,7 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
 
   // Parser konten slide dinamis berdasarkan layout yang ditentukan AI atau fallback manual
   function renderSlideBody(slide, slideIndex) {
-    const layout = slide.layout || (slideIndex === 0 ? 'cover' : 'legacy');
-
-    // 1. LAYOUT: COVER (Slide Pembuka)
+    const layout = slide.layout || (slideIndex === 0 ? 'cover' : 'legacy');    // 1. LAYOUT: COVER (Slide Pembuka)
     if (layout === 'cover') {
       const coverTitle = slide.title || title;
       const subtitle = slide.subtitle || courseName;
@@ -118,6 +116,21 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
           <div class="animate-item animate-delay-3" style="margin-top: 40px; font-size: calc(12px * var(--fs-mult)); color: rgba(255,255,255,0.4); font-weight: 600;">
             Powered by WebSlide — <a href="https://getwebslide.com" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none; border-bottom: 1px dotted rgba(255,255,255,0.4);">getwebslide.com</a>
           </div>
+        </div>
+      `;
+    }
+
+    // 1c. LAYOUT: SECTION (Slide Pembatas Topik / Transisi)
+    if (layout === 'section') {
+      return `
+        <div class="cover-content" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+          <h2 class="animate-item animate-delay-1" style="color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 12px; font-size: calc(18px * var(--fs-mult));">
+            Topik Bahasan
+          </h2>
+          <h1 class="animate-item animate-delay-2" style="font-weight: 800; font-size: calc(38px * var(--fs-mult)); color: #FFFFFF; text-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px; font-family: 'Urbanist', sans-serif;">
+            ${slide.title?.toUpperCase()}
+          </h1>
+          ${slide.description || (slide.content && slide.content[0]) ? `<p class="animate-item animate-delay-3" style="max-width: 650px; font-weight: 500; font-size: calc(16px * var(--fs-mult)); color: #D8E7FF; line-height: 1.6; margin-top: 10px;">${slide.description || slide.content[0]}</p>` : ''}
         </div>
       `;
     }
@@ -365,15 +378,15 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
 
   // Bangun elemen HTML slide
   const slidesHtml = slides.map((slide, idx) => {
-    const isDarkClass = (idx === 0 || slide.layout === 'cover' || slide.layout === 'thank_you' || idx === slides.length - 1) ? 'dark' : '';
+    const isDarkClass = (idx === 0 || slide.layout === 'cover' || slide.layout === 'thank_you' || slide.layout === 'section' || idx === slides.length - 1) ? 'dark' : '';
     const isActiveClass = (idx === 0) ? 'active' : '';
     const slideClasses = `${isDarkClass} ${isActiveClass}`.trim();
     
-    const slideTitle = (idx === 0 || slide.layout === 'thank_you') 
+    const slideTitle = (idx === 0 || slide.layout === 'thank_you' || slide.layout === 'section') 
       ? '' 
       : `<h2 class="slide-title"><span>${slide.title || `Slide ${idx + 1}`}</span></h2>`;
 
-    const referenceFooter = (slide.reference && slide.layout !== 'cover' && slide.layout !== 'thank_you')
+    const referenceFooter = (slide.reference && slide.layout !== 'cover' && slide.layout !== 'thank_you' && slide.layout !== 'section')
       ? `<div class="slide-reference-footer animate-item" style="font-size: calc(11.5px * var(--fs-mult)); color: var(--text-dim); margin-top: auto; padding-top: 14px; border-top: 1px solid rgba(0, 0, 0, 0.08); display: flex; align-items: center; gap: 6px; font-weight: 600;">
            <i class="fa-solid fa-book-bookmark" style="color: var(--accent-cyan); font-size: 11px;"></i>
            <span>Rujukan: ${slide.reference}</span>
