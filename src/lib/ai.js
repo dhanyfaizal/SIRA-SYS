@@ -643,7 +643,13 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
     - Sintesis: Slide kesimpulan akhir dan keterkaitan topik ini dengan materi minggu lalu/minggu depan.
 
     Ketentuan Slide:
-    1. Jumlah Slide: Total slide yang dihasilkan berkisar antara 18 s.d. 25 slide secara keseluruhan.
+    1. Jumlah Slide Konten Materi: Wajib menghasilkan antara 18 s.d. 25 slide yang MURNI berisi konten materi/sub-topik perkuliahan saja. Jumlah ini di luar/tidak termasuk:
+       - Slide Cover Utama (Slide 1)
+       - Slide Pembatas Topik (Section Divider/Transition)
+       - 5 Slide Kuis Mandiri di akhir materi
+       - Slide Aktivitas Belajar Aktif (FGD/Case Study) & Penugasan
+       - Slide Kesimpulan/Sintesis
+       (Dengan demikian, total keseluruhan slide presentasi jika digabung dapat mencapai sekitar 30 hingga 38 slide).
     2. Struktur Slide: Poin penjelasan pada setiap slide materi harus berupa kalimat informatif yang kaya konten, memberikan contoh konkret, perbandingan, atau studi kasus nyata. Hindari poin-poin yang terlalu pendek atau ringkasan seadanya.
 
     Format output harus berupa JSON OBJECT murni dengan struktur:
@@ -696,7 +702,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
     Data Outline Materi (JSON):
     ${JSON.stringify(outlineData)}
 
-    Berdasarkan data outline di atas, buatlah presentasi WebSlide lengkap yang memetakan seluruh slide dari outline (antara 18 s.d. 25 slide). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
+    Berdasarkan data outline di atas, buatlah presentasi WebSlide lengkap yang memetakan seluruh slide dari outline (antara 25 s.d. 40 slide secara keseluruhan). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
 
     ATURAN LAYOUT YANG HARUS DIPILIH:
     Setiap objek slide dapat memuat properti opsional "reference": "Nama Penulis & Tahun (contoh: Williams & Park, 2023)" apabila slide tersebut memuat kutipan/rujukan teoretis.
