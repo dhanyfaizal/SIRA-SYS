@@ -662,6 +662,8 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
        (Dengan demikian, total keseluruhan slide presentasi jika digabung dapat mencapai sekitar 30 hingga 38 slide).
     2. Struktur Slide: Poin penjelasan pada setiap slide materi harus berupa kalimat informatif yang kaya konten, memberikan contoh konkret, perbandingan, atau studi kasus nyata. Hindari poin-poin yang terlalu pendek atau ringkasan seadanya.
 
+    PENTING: Jangan pernah memasukkan teks referensi (seperti "REFERENSI: ...") atau nama dosen/placeholder dosen (seperti "DOSEN: ...") ke dalam properti "title" dari outline utama.
+
     Format output harus berupa JSON OBJECT murni dengan struktur:
     {
       "title": "Judul Utama Presentasi",
@@ -718,6 +720,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
     Setiap objek slide dapat memuat properti opsional "reference": "Nama Penulis & Tahun (contoh: Williams & Park, 2023)" apabila slide tersebut memuat kutipan/rujukan teoretis.
 
     1. "cover": Hanya untuk Slide 1 (Cover utama perkuliahan).
+       PENTING: Jangan pernah memasukkan daftar referensi (seperti "REFERENSI: ...") atau nama dosen/placeholder dosen (seperti "DOSEN: ...") ke dalam properti title, subtitle, atau description dari cover slide. Informasi dosen pengampu akan ditangani secara terpisah oleh sistem.
        {
          "slide_no": 1,
          "layout": "cover",

@@ -68,6 +68,17 @@ function getThemeByProdi(prodiName) {
   return PRODI_THEMES.default;
 }
 
+function sanitizeCoverText(text) {
+  if (!text) return '';
+  const parts = text.split(/(?:\r?\n|<br\s*\/?>)/gi);
+  return parts
+    .filter(part => {
+      const cleanPart = part.trim().toUpperCase();
+      return !cleanPart.startsWith('REFERENSI:') && !cleanPart.startsWith('DOSEN:');
+    })
+    .join('<br>');
+}
+
 export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData, dosenName = '', teamDosen = '') {
   const theme = getThemeByProdi(prodiName);
   const title = slideData?.title || `Materi Pertemuan ${meetingNo}`;
@@ -93,13 +104,13 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
   function renderSlideBody(slide, slideIndex) {
     const layout = slide.layout || (slideIndex === 0 ? 'cover' : 'legacy');    // 1. LAYOUT: COVER (Slide Pembuka)
     if (layout === 'cover') {
-      const coverTitle = slide.title || title;
-      const subtitle = slide.subtitle || courseName;
+      const coverTitle = sanitizeCoverText(slide.title || title);
+      const subtitle = sanitizeCoverText(slide.subtitle || courseName);
       const desc = slide.description || (slide.content && slide.content[0]) || 'Outline presentasi terstruktur pendukung perkuliahan berbasis Outcome-Based Education.';
       return `
         <div class="cover-content">
           <div class="animate-item animate-delay-1" style="margin-bottom: 24px;">
-            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 60px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 120px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
           </div>
           <h2 class="animate-item animate-delay-1" style="color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 2.5px; font-weight: 700; margin-bottom: 12px; font-size: calc(18px * var(--fs-mult));">
             Pertemuan ${meetingNo}
@@ -148,7 +159,7 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
       return `
         <div class="cover-content" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
           <div class="animate-item animate-delay-1" style="margin-bottom: 20px;">
-            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 50px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 100px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
           </div>
           <h2 class="animate-item animate-delay-1" style="color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 12px; font-size: calc(18px * var(--fs-mult));">
             Topik Bahasan
@@ -166,7 +177,7 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
       return `
         <div class="cover-content" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
           <div class="animate-item animate-delay-1" style="margin-bottom: 24px;">
-            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 60px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 120px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
           </div>
           <h1 class="animate-item animate-delay-1" style="font-weight: 800; font-size: calc(56px * var(--fs-mult)); color: #FFFFFF; text-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px; font-family: 'Urbanist', sans-serif;">
             TERIMA KASIH
