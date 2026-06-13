@@ -659,6 +659,33 @@ export default function RpsDetailPage() {
     }
   }
 
+  const handleDeleteSlide = (slideNo) => {
+    if (!aiContentModal || !aiContentModal.data || !aiContentModal.data.slides) return
+    
+    // Filter out the deleted slide
+    const updatedSlides = aiContentModal.data.slides.filter(s => s.slide_no !== slideNo)
+    
+    // Re-index remaining slides to keep slide_no sequential
+    const reindexedSlides = updatedSlides.map((s, idx) => ({
+      ...s,
+      slide_no: idx + 1
+    }))
+    
+    const updatedData = {
+      ...aiContentModal.data,
+      slides: reindexedSlides
+    }
+    
+    setAiContentModal(prev => ({
+      ...prev,
+      data: updatedData
+    }))
+    
+    // Reset webslide data to force regeneration
+    setWebSlideData(null)
+    toast.success(`Slide ${slideNo} berhasil dihapus.`)
+  }
+
   const handleCopySlideContent = (data) => {
     if (!data) return
     let text = `=== ${data.title} ===\n\n`
@@ -1585,14 +1612,41 @@ export default function RpsDetailPage() {
                             position: 'absolute',
                             top: 12,
                             right: 16,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: '#64748b',
-                            background: '#f1f5f9',
-                            padding: '2px 8px',
-                            borderRadius: 12
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8
                           }}>
-                            Slide {slide.slide_no}
+                            <span style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: '#64748b',
+                              background: '#f1f5f9',
+                              padding: '2px 8px',
+                              borderRadius: 12
+                            }}>
+                              Slide {slide.slide_no}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSlide(slide.slide_no)}
+                              style={{
+                                border: 'none',
+                                background: 'none',
+                                padding: 2,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                transition: 'opacity 0.2s',
+                                borderRadius: 4
+                              }}
+                              title="Hapus slide ini"
+                              onMouseEnter={e => e.currentTarget.style.opacity = 0.7}
+                              onMouseLeave={e => e.currentTarget.style.opacity = 1}
+                            >
+                              <Trash2 size={13} />
+                            </button>
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#4f46e5', marginBottom: 10, maxWidth: '85%' }}>
                             {slide.title}
