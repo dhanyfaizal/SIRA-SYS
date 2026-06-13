@@ -37,26 +37,26 @@ const PRODI_THEMES = {
   }
 };
 
-const UNSPLASH_IMAGES = {
-  programming: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600',
-  code: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600',
-  software: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600',
-  web: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
-  ui: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
-  ux: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
-  design: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600',
-  data: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600',
-  database: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?q=80&w=600',
-  network: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=600',
-  cloud: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=600',
-  security: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=600',
-  theory: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600',
-  study: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600',
-  class: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600',
-  collaboration: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600',
-  meeting: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600',
-  book: 'https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?q=80&w=600',
-  default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600'
+const STOCK_IMAGES = {
+  programming: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600', // Unsplash
+  code: 'https://cdn.pixabay.com/photo/2016/11/19/14/00/code-1839406_640.jpg', // Pixabay
+  software: 'https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg?auto=compress&cs=tinysrgb&w=600', // Pexels
+  web: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600', // Unsplash
+  ui: 'https://cdn.pixabay.com/photo/2017/10/10/21/47/laptop-2838945_640.jpg', // Pixabay
+  ux: 'https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=600', // Pexels
+  design: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=600', // Unsplash
+  data: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=600', // Unsplash
+  database: 'https://images.pexels.com/photos/228817/pexels-photo-228817.jpeg?auto=compress&cs=tinysrgb&w=600', // Pexels
+  network: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=600', // Unsplash
+  cloud: 'https://cdn.pixabay.com/photo/2016/11/29/08/50/background-1868541_640.jpg', // Pixabay
+  security: 'https://images.pexels.com/photos/373543/pexels-photo-373543.jpeg?auto=compress&cs=tinysrgb&w=600', // Pexels
+  theory: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600', // Unsplash
+  study: 'https://cdn.pixabay.com/photo/2015/07/17/22/43/student-849825_640.jpg', // Pixabay
+  class: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600', // Unsplash
+  collaboration: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600', // Unsplash
+  meeting: 'https://images.pexels.com/photos/265087/pexels-photo-265087.jpeg?auto=compress&cs=tinysrgb&w=600', // Pexels
+  book: 'https://images.pexels.com/photos/159866/books-book-pages-read-literature-159866.jpeg?auto=compress&cs=tinysrgb&w=600', // Pexels
+  default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600' // Unsplash
 };
 
 function getThemeByProdi(prodiName) {
@@ -301,11 +301,11 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
       `;
     }
 
-    // 6b. LAYOUT: IMAGE (Gambar Unsplash & Konten Teks)
+    // 6b. LAYOUT: IMAGE (Gambar Stock & Konten Teks)
     if (layout === 'image') {
       const query = (slide.unsplash_query || '').toLowerCase().trim();
-      let imageUrl = UNSPLASH_IMAGES.default;
-      for (const [key, url] of Object.entries(UNSPLASH_IMAGES)) {
+      let imageUrl = STOCK_IMAGES.default;
+      for (const [key, url] of Object.entries(STOCK_IMAGES)) {
         if (query.includes(key)) {
           imageUrl = url;
           break;

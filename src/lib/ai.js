@@ -634,7 +634,7 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
     Fase 3: Pengembangan Konten Interaktif & Visual (Termasuk 5 Slide Kuis Mandiri)
     - Kurasi pustaka: Integrasikan referensi pustaka utama RPS di atas yang relevan (cantumkan rujukan buku/artikel pada slide yang sesuai).
     - Berikan visualisasi data/perbandingan dalam bentuk tabel atau bagan perbandingan di salah dari slide tengah.
-    - Sediakan setidaknya 1 slide multimedia yang memerlukan gambar visual penjelas (sediakan deskripsi kata kunci bahasa Inggris sederhana untuk 'unsplash_query').
+    - Sediakan setidaknya 1 slide multimedia yang memerlukan gambar visual penjelas (sediakan deskripsi kata kunci bahasa Inggris sederhana untuk 'unsplash_query' yang akan digunakan untuk mencari gambar dari Unsplash, Pexels, atau Pixabay).
     - Kuis Interaktif Dedikatif (5 Slide Kuis Mandiri): Kuis ini diletakkan SETELAH slide Kesimpulan/Sintesis dan SEBELUM slide Penugasan/Aktivitas Kelas. Anda WAJIB menyusun TEPAT 5 slide kuis pilihan ganda terpisah secara berurutan (Kuis 1 s.d. Kuis 5). Setiap kuis harus menempati 1 slide-nya sendiri. Setiap slide kuis harus memiliki properti "quiz" yang berisi 1 pertanyaan kuis pilihan ganda dengan 5 pilihan jawaban (A, B, C, D, E), kunci jawaban, serta penjelasan/pembahasan singkat yang mendalam.
 
     Fase 4: Desain Aktivitas Kelas & Evaluasi (Active Learning)
@@ -644,7 +644,7 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
 
     Urutan Slide yang WAJIB dipatuhi secara berurutan:
     1. Slide Cover / Judul Utama Presentasi (Slide 1)
-    2. Slide Konten Materi (18 s.d. 25 slide, diselingi Section Divider / transisi topik baru jika ada)
+    2. Slide Konten Materi (minimal 35 slide, diselingi Section Divider / transisi topik baru jika ada)
     3. Slide Diskusi Kelas & Tanya Jawab (berisi pertanyaan pemantik diskusi interaktif)
     4. Slide Kesimpulan & Sintesis
     5. 5 Slide Kuis Mandiri (Kuis 1 s.d. Kuis 5 berurutan secara terpisah)
@@ -652,14 +652,14 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
     (Slide Terima Kasih akan ditambahkan secara otomatis oleh sistem, jadi Anda tidak perlu membuatnya).
 
     Ketentuan Slide:
-    1. Jumlah Slide Konten Materi: Wajib menghasilkan antara 18 s.d. 25 slide yang MURNI berisi konten materi/sub-topik perkuliahan saja. Jumlah ini di luar/tidak termasuk:
+    1. Jumlah Slide Konten Materi: Wajib menghasilkan minimal 35 slide (dan maksimal 45 slide jika diperlukan) yang MURNI berisi konten materi/sub-topik perkuliahan saja. Jumlah ini di luar/tidak termasuk:
        - Slide Cover Utama (Slide 1)
        - Slide Pembatas Topik (Section Divider/Transition)
        - Slide Diskusi Kelas & Tanya Jawab
        - Slide Kesimpulan/Sintesis
        - 5 Slide Kuis Mandiri
        - Slide Aktivitas Belajar Aktif (FGD/Case Study) & Penugasan
-       (Dengan demikian, total keseluruhan slide presentasi jika digabung dapat mencapai sekitar 30 hingga 38 slide).
+       (Dengan demikian, total keseluruhan slide presentasi jika digabung dapat mencapai sekitar 45 hingga 55 slide).
     2. Struktur Slide: Poin penjelasan pada setiap slide materi harus berupa kalimat informatif yang kaya konten, memberikan contoh konkret, perbandingan, atau studi kasus nyata. Hindari poin-poin yang terlalu pendek atau ringkasan seadanya.
 
     PENTING: Jangan pernah memasukkan teks referensi (seperti "REFERENSI: ...") atau nama dosen/placeholder dosen (seperti "DOSEN: ...") ke dalam properti "title" dari outline utama.
@@ -714,7 +714,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
     Data Outline Materi (JSON):
     ${JSON.stringify(outlineData)}
 
-    Berdasarkan data outline di atas, buatlah presentasi WebSlide lengkap yang memetakan seluruh slide dari outline (antara 25 s.d. 40 slide secara keseluruhan). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
+    Berdasarkan data outline di atas, buatlah presentasi WebSlide lengkap yang memetakan seluruh slide dari outline (antara 45 s.d. 60 slide secara keseluruhan). Untuk setiap slide dari outline, analisis materinya secara mendalam dan tentukan tipe tata letak (layout) yang paling sesuai, variatif, dan profesional agar presentasi interaktif dan tidak monoton.
 
     ATURAN LAYOUT YANG HARUS DIPILIH:
     Setiap objek slide dapat memuat properti opsional "reference": "Nama Penulis & Tahun (contoh: Williams & Park, 2023)" apabila slide tersebut memuat kutipan/rujukan teoretis.
@@ -807,7 +807,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
          "layout": "image",
          "title": "Judul Slide",
          "reference": "...",
-         "unsplash_query": "kata kunci gambar dalam bahasa inggris (misal: 'programming', 'network', 'data')",
+         "unsplash_query": "kata kunci gambar dalam bahasa inggris (misal: 'programming', 'network', 'data') untuk mencari gambar dari Unsplash, Pexels, atau Pixabay",
          "content": [
            "Poin penjelasan visual 1...",
            "Poin penjelasan visual 2..."
