@@ -68,7 +68,7 @@ function getThemeByProdi(prodiName) {
   return PRODI_THEMES.default;
 }
 
-export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData) {
+export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData, dosenName = '', teamDosen = '') {
   const theme = getThemeByProdi(prodiName);
   const title = slideData?.title || `Materi Pertemuan ${meetingNo}`;
   let slides = [...(slideData?.slides || [])];
@@ -98,6 +98,9 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
       const desc = slide.description || (slide.content && slide.content[0]) || 'Outline presentasi terstruktur pendukung perkuliahan berbasis Outcome-Based Education.';
       return `
         <div class="cover-content">
+          <div class="animate-item animate-delay-1" style="margin-bottom: 24px;">
+            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 60px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+          </div>
           <h2 class="animate-item animate-delay-1" style="color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 2.5px; font-weight: 700; margin-bottom: 12px; font-size: calc(18px * var(--fs-mult));">
             Pertemuan ${meetingNo}
           </h2>
@@ -113,6 +116,26 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
             <span class="badge-tag">Pertemuan ${meetingNo}</span>
             <span class="badge-tag" style="background: rgba(255,255,255,0.15); color: #fff;">${prodiName}</span>
           </div>
+          <div class="animate-item animate-delay-3" style="display: flex; gap: 24px; margin-top: 32px; font-size: calc(14px * var(--fs-mult)); border-top: 1px solid rgba(255,255,255,0.15); padding-top: 20px; flex-wrap: wrap;">
+            ${dosenName ? `
+              <div>
+                <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px;">Dosen Pengampu</div>
+                <div style="color: #FFFFFF; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-chalkboard-user" style="color: var(--accent-cyan);"></i>
+                  ${dosenName}
+                </div>
+              </div>
+            ` : ''}
+            ${teamDosen ? `
+              <div>
+                <div style="color: rgba(255,255,255,0.5); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 4px;">Tim Pengajar</div>
+                <div style="color: #FFFFFF; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-users" style="color: var(--accent-cyan);"></i>
+                  ${teamDosen}
+                </div>
+              </div>
+            ` : ''}
+          </div>
           <div class="animate-item animate-delay-3" style="margin-top: 40px; font-size: calc(12px * var(--fs-mult)); color: rgba(255,255,255,0.4); font-weight: 600;">
             Powered by WebSlide — <a href="https://getwebslide.com" target="_blank" style="color: rgba(255,255,255,0.6); text-decoration: none; border-bottom: 1px dotted rgba(255,255,255,0.4);">getwebslide.com</a>
           </div>
@@ -124,6 +147,9 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
     if (layout === 'section') {
       return `
         <div class="cover-content" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+          <div class="animate-item animate-delay-1" style="margin-bottom: 20px;">
+            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 50px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+          </div>
           <h2 class="animate-item animate-delay-1" style="color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 12px; font-size: calc(18px * var(--fs-mult));">
             Topik Bahasan
           </h2>
@@ -139,6 +165,9 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
     if (layout === 'thank_you') {
       return `
         <div class="cover-content" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+          <div class="animate-item animate-delay-1" style="margin-bottom: 24px;">
+            <img src="https://i.ibb.co.com/kgV7WDhF/Logo-SYS.png" alt="Logo STIKOM Yos Sudarso" style="height: 60px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));">
+          </div>
           <h1 class="animate-item animate-delay-1" style="font-weight: 800; font-size: calc(56px * var(--fs-mult)); color: #FFFFFF; text-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px; font-family: 'Urbanist', sans-serif;">
             TERIMA KASIH
           </h1>
@@ -673,8 +702,8 @@ export function generateWebSlideHtml(courseName, prodiName, meetingNo, slideData
         currentSlide = index;
         slides[currentSlide].classList.add("active");
         
-        // Hide logo on Cover Slide (Slide 1)
-        if (currentSlide === 0) {
+        // Hide small header logo on slides that are Cover, Section, or Thank You (which have the 'dark' class)
+        if (slides[currentSlide].classList.contains("dark")) {
             headerLogo.style.opacity = "0";
             headerLogo.style.pointerEvents = "none";
         } else {

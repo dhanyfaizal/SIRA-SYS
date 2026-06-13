@@ -635,20 +635,30 @@ export async function generateSlideContent(courseName, meetingNo, topic, capabil
     - Kurasi pustaka: Integrasikan referensi pustaka utama RPS di atas yang relevan (cantumkan rujukan buku/artikel pada slide yang sesuai).
     - Berikan visualisasi data/perbandingan dalam bentuk tabel atau bagan perbandingan di salah dari slide tengah.
     - Sediakan setidaknya 1 slide multimedia yang memerlukan gambar visual penjelas (sediakan deskripsi kata kunci bahasa Inggris sederhana untuk 'unsplash_query').
-    - Kuis Interaktif Dedikatif (5 Slide Kuis Mandiri): Di akhir materi (sebelum slide kesimpulan/sintesis), Anda WAJIB menyusun TEPAT 5 slide kuis pilihan ganda terpisah secara berurutan (Kuis 1 s.d. Kuis 5). Setiap kuis harus menempati 1 slide-nya sendiri. Setiap slide kuis harus memiliki properti "quiz" yang berisi 1 pertanyaan kuis pilihan ganda dengan 5 pilihan jawaban (A, B, C, D, E), kunci jawaban, serta penjelasan/pembahasan singkat yang mendalam.
+    - Kuis Interaktif Dedikatif (5 Slide Kuis Mandiri): Kuis ini diletakkan SETELAH slide Kesimpulan/Sintesis dan SEBELUM slide Penugasan/Aktivitas Kelas. Anda WAJIB menyusun TEPAT 5 slide kuis pilihan ganda terpisah secara berurutan (Kuis 1 s.d. Kuis 5). Setiap kuis harus menempati 1 slide-nya sendiri. Setiap slide kuis harus memiliki properti "quiz" yang berisi 1 pertanyaan kuis pilihan ganda dengan 5 pilihan jawaban (A, B, C, D, E), kunci jawaban, serta penjelasan/pembahasan singkat yang mendalam.
 
     Fase 4: Desain Aktivitas Kelas & Evaluasi (Active Learning)
-    - Rancang aktivitas belajar aktif di dalam kelas (pilih salah satu: skenario Focus Group Discussion (FGD), bedah kasus industri, atau sesi mini-sprint).
-    - Rancang penugasan praktis yang relevan (misalnya pembuatan desain, penulisan esai kritis, atau coding challenge).
-    - Sintesis: Slide kesimpulan akhir dan keterkaitan topik ini dengan materi minggu lalu/minggu depan.
+    - Diskusi Kelas & Tanya Jawab: Rancang slide interaktif khusus Diskusi Kelas & Tanya Jawab tepat setelah akhir slide Konten Materi (sebelum Kesimpulan). Slide ini berisi beberapa pertanyaan pemantik diskusi interaktif.
+    - Sintesis/Kesimpulan: Slide kesimpulan akhir dan keterkaitan topik ini dengan materi minggu lalu/minggu depan. Slide ini diletakkan tepat setelah slide Diskusi Kelas & Tanya Jawab dan sebelum 5 Slide Kuis Mandiri.
+    - Penugasan Praktis & Aktivitas Kelas: Rancang aktivitas belajar aktif di dalam kelas (seperti FGD, Case Study, Mini-Sprint) ATAU penugasan praktis yang relevan. Slide ini diletakkan tepat setelah 5 Slide Kuis Mandiri (sebelum slide Terima Kasih).
+
+    Urutan Slide yang WAJIB dipatuhi secara berurutan:
+    1. Slide Cover / Judul Utama Presentasi (Slide 1)
+    2. Slide Konten Materi (18 s.d. 25 slide, diselingi Section Divider / transisi topik baru jika ada)
+    3. Slide Diskusi Kelas & Tanya Jawab (berisi pertanyaan pemantik diskusi interaktif)
+    4. Slide Kesimpulan & Sintesis
+    5. 5 Slide Kuis Mandiri (Kuis 1 s.d. Kuis 5 berurutan secara terpisah)
+    6. Slide Penugasan & Aktivitas Kelas (FGD / Case Study / Assignment)
+    (Slide Terima Kasih akan ditambahkan secara otomatis oleh sistem, jadi Anda tidak perlu membuatnya).
 
     Ketentuan Slide:
     1. Jumlah Slide Konten Materi: Wajib menghasilkan antara 18 s.d. 25 slide yang MURNI berisi konten materi/sub-topik perkuliahan saja. Jumlah ini di luar/tidak termasuk:
        - Slide Cover Utama (Slide 1)
        - Slide Pembatas Topik (Section Divider/Transition)
-       - 5 Slide Kuis Mandiri di akhir materi
-       - Slide Aktivitas Belajar Aktif (FGD/Case Study) & Penugasan
+       - Slide Diskusi Kelas & Tanya Jawab
        - Slide Kesimpulan/Sintesis
+       - 5 Slide Kuis Mandiri
+       - Slide Aktivitas Belajar Aktif (FGD/Case Study) & Penugasan
        (Dengan demikian, total keseluruhan slide presentasi jika digabung dapat mencapai sekitar 30 hingga 38 slide).
     2. Struktur Slide: Poin penjelasan pada setiap slide materi harus berupa kalimat informatif yang kaya konten, memberikan contoh konkret, perbandingan, atau studi kasus nyata. Hindari poin-poin yang terlalu pendek atau ringkasan seadanya.
 
@@ -777,8 +787,7 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
          }
        }
     6. "accordion": Layout akordion interaktif (Tanya Jawab / Diskusi Kelas / Sub-Materi).
-       Dapat digunakan secara bebas di slide-slide tengah untuk memaparkan sub-konsep secara interaktif.
-       Catatan khusus: Slide kedua dari terakhir (Slide N-1) WAJIB berupa layout "accordion" dengan topik "Diskusi Kelas & Tanya Jawab" yang memicu interaksi aktif mahasiswa sebelum kuliah berakhir.
+       Gunakan layout "accordion" untuk slide "Diskusi Kelas & Tanya Jawab" yang diletakkan setelah akhir slide Konten Materi (sebelum Kesimpulan) agar interaktif.
        {
          "slide_no": X,
          "layout": "accordion",
@@ -828,7 +837,17 @@ export async function generateWebSlideData(courseName, prodiName, meetingNo, out
       ]
     }
 
-    Aturan:
+    Aturan Urutan Tata Letak (Layout) Slide:
+    1. Slide 1 (Cover Utama): Gunakan layout "cover".
+    2. Slide Konten Materi (dengan/tanpa Section Divider):
+       - Gunakan layout "section" untuk slide pembatas/transisi topik baru (jika outlineData memiliki "is_section": true).
+       - Gunakan layout variatif seperti "split", "grid", "list", "table", "image", atau "accordion" untuk konten materi standard.
+    3. Slide Diskusi Kelas & Tanya Jawab: Gunakan layout "accordion". Slide ini diletakkan tepat setelah slide Konten Materi terakhir (sebelum Kesimpulan).
+    4. Slide Kesimpulan / Sintesis: Gunakan layout deskriptif seperti "list", "split", atau fallback standard.
+    5. 5 Slide Kuis Mandiri: Gunakan layout "quiz" berturut-turut untuk 5 kuis dari outlineData.
+    6. Slide Penugasan & Aktivitas Kelas: Gunakan layout dengan properti "activity" yang sesuai (seperti layout "split" atau "list" beraksen biru/hijau untuk penugasan/aktivitas).
+
+    Aturan Umum:
     - Gunakan Bahasa Indonesia formal akademik yang kaya konten dan berwawasan ilmiah tinggi.
     - HINDARI memberikan meta-instruksi, arahan presentasi, atau instruksi lisan bagi presenter/dosen (seperti "Ajak mahasiswa...", "Jelaskan...", "Tekankan...", "Tunjukkan contoh...", dll.). Konten harus langsung berupa penjelasan materi, pembahasan teoritis, jawaban konkret, atau data ilmiah yang ditujukan untuk audiens/mahasiswa.
     - GLOSARIUM: Apabila sebuah slide memuat istilah asing, istilah ilmiah/teknis khusus yang mungkin tidak umum bagi mahasiswa (misalnya visual clutter, whitespace, grid system, hierarchy, dll.), wajib menyisipkan satu slide berikutnya yang secara khusus menjelaskan/mendefinisikan arti istilah tersebut menggunakan layout yang sesuai (seperti split, list, atau accordion).

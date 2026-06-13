@@ -739,7 +739,14 @@ export default function RpsDetailPage() {
       toast.success('WebSlide berhasil digenerate dan disimpan ke RPS!')
       
       // Otomatis buka preview setelah selesai
-      const htmlContent = generateWebSlideHtml(courseName, prodiName, meetingNo, result)
+      const htmlContent = generateWebSlideHtml(
+        courseName,
+        prodiName,
+        meetingNo,
+        result,
+        rps?.dosen?.nama_lengkap || '',
+        teamMembers.map(m => m.nama_lengkap).join(', ')
+      )
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
       const blobUrl = URL.createObjectURL(blob)
       window.open(blobUrl, '_blank')
@@ -757,7 +764,14 @@ export default function RpsDetailPage() {
       const courseName = rps.mk?.nama_mk || 'Mata Kuliah'
       const prodiName = rps.mk?.prodi?.nama || 'Program Studi'
       const meetingNo = aiContentModal.meeting.no
-      const htmlContent = generateWebSlideHtml(courseName, prodiName, meetingNo, data)
+      const htmlContent = generateWebSlideHtml(
+        courseName,
+        prodiName,
+        meetingNo,
+        data,
+        rps?.dosen?.nama_lengkap || '',
+        teamMembers.map(m => m.nama_lengkap).join(', ')
+      )
       
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
       const blobUrl = URL.createObjectURL(blob)
@@ -774,7 +788,14 @@ export default function RpsDetailPage() {
       const courseName = rps.mk?.nama_mk || 'Mata Kuliah'
       const prodiName = rps.mk?.prodi?.nama || 'Program Studi'
       const meetingNo = aiContentModal.meeting.no
-      const htmlContent = generateWebSlideHtml(courseName, prodiName, meetingNo, data)
+      const htmlContent = generateWebSlideHtml(
+        courseName,
+        prodiName,
+        meetingNo,
+        data,
+        rps?.dosen?.nama_lengkap || '',
+        teamMembers.map(m => m.nama_lengkap).join(', ')
+      )
       
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
       const blobUrl = URL.createObjectURL(blob)
