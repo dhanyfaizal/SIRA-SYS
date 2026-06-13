@@ -14,12 +14,25 @@ export default function Step2Identitas({ form, setF }) {
   const [generatingRefs, setGeneratingRefs] = useState(false)
   const [refProgressText, setRefProgressText] = useState('')
 
+  // States for custom keyword input modal
+  const [showKeywordModal, setShowKeywordModal] = useState(false)
+  const [keywords, setKeywords] = useState('')
+
+  function handleOpenKeywordModal() {
+    if (!mk?.nama_mk) {
+      toast.error('Pilih Mata Kuliah terlebih dahulu di langkah 1.')
+      return
+    }
+    setShowKeywordModal(true)
+  }
+
   async function handleAiGenerateDesc() {
     if (!mk?.nama_mk) {
       toast.error('Pilih Mata Kuliah terlebih dahulu di langkah 1.')
       return
     }
 
+    setShowKeywordModal(false)
     setGenerating(true)
     setProgressText("Menghubungi Gateway API Server...")
 
@@ -57,7 +70,7 @@ export default function Step2Identitas({ form, setF }) {
     }
 
     try {
-      const result = await generateCourseDescription(mk.nama_mk, handleProgress)
+      const result = await generateCourseDescription(mk.nama_mk, handleProgress, keywords)
       if (result && result.deskripsi) {
         setF('deskripsi_mk', result.deskripsi)
         toast.success('Deskripsi Mata Kuliah berhasil dibuat dengan AI! 🎉')
@@ -202,7 +215,7 @@ export default function Step2Identitas({ form, setF }) {
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={handleAiGenerateDesc}
+            onClick={handleOpenKeywordModal}
             disabled={generating}
             style={{
               background: 'linear-gradient(135deg, var(--indigo-50), #f5f3ff)',
@@ -307,6 +320,107 @@ export default function Step2Identitas({ form, setF }) {
           </div>
         )}
       </div>
+
+      {/* Modal Input Kata Kunci / Topik */}
+      {showKeywordModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+          animation: 'fadeIn .2s ease-out'
+        }}>
+          <div className="card" style={{
+            width: '100%',
+            maxWidth: 460,
+            padding: 24,
+            boxShadow: 'var(--shadow-lg)',
+            background: '#fff',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--gray-200)',
+            animation: 'scaleIn .2s ease'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: 'var(--indigo-50)',
+                color: 'var(--indigo-600)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  Generate Deskripsi Mata Kuliah
+                </h3>
+                <p style={{ fontSize: 12, color: 'var(--gray-500)', margin: 0 }}>
+                  Mata Kuliah: <strong>{mk?.nama_mk}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="input-group" style={{ marginBottom: 20 }}>
+              <label className="input-label" style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-700)', marginBottom: 6 }}>
+                Topik atau Kata Kunci Pembelajaran (Opsional)
+              </label>
+              <textarea
+                className="input"
+                rows={3}
+                placeholder="Contoh: React, Hooks, State Management, API integration, Tailwind CSS"
+                value={keywords}
+                onChange={e => setKeywords(e.target.value)}
+                style={{ resize: 'vertical', fontSize: '13px', lineHeight: 1.5 }}
+                autoFocus
+              />
+              <span className="input-hint" style={{ marginTop: 6 }}>
+                Kata kunci di atas akan dijadikan acuan utama oleh AI untuk menyusun deskripsi mata kuliah Anda secara terarah.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowKeywordModal(false)
+                  setKeywords('')
+                }}
+                style={{ fontSize: 12, height: 36, padding: '0 16px' }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleAiGenerateDesc}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12,
+                  height: 36,
+                  padding: '0 16px',
+                  background: 'var(--indigo-600)',
+                  borderColor: 'var(--indigo-700)',
+                  color: '#fff'
+                }}
+              >
+                <Sparkles size={14} />
+                Mulai Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AiProgressModal isOpen={generating} title="Penyusunan Deskripsi MK" progressText={progressText} />
       <AiProgressModal isOpen={generatingRefs} title="Rekomendasi Referensi Pustaka" progressText={refProgressText} />
